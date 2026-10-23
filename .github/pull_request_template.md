@@ -1,56 +1,33 @@
-## 📌 Deskripsi Singkat
-<!-- Jelaskan secara ringkas APA yang diubah dan MENGAPA perubahan ini dibuat -->
-
-## 🔗 Terkait Task / User Story
-- Closes / Relates to: #<!-- Masukkan nomor issue atau ID Story, misal: M4-US1, T-08 -->
-
-## 🛠️ Jenis Perubahan
-Pilih salah satu atau lebih dengan tanda `[x]`:
-- [ ] 🚀 `feat`: Penambahan fitur / endpoint baru
-- [ ] 🐛 `fix`: Perbaikan bug / logic error
-- [ ] ⚡ `refactor`: Perbaikan struktur kode (tanpa perubahan fitur)
-- [ ] 🧪 `test`: Penambahan / pembaruan test (unit/integration)
-- [ ] 📝 `docs`: Dokumentasi, README, atau OpenAPI spec
-- [ ] 🔧 `chore`: Konfigurasi dependency, linter, atau CI/CD
-
----
-
-## 🔍 Detail Perubahan Teknis
-<!-- Berikan poin-poin perubahan utama pada kode -->
-- 
+## 📝 What Changed?
+<!-- A clear, high-level summary of the changes introduced in this PR -->
 - 
 
----
+## 🎯 Why?
+<!-- The motivation, context, and problem being solved. Link to Jira/Linear/Scrum ticket -->
+- Resolves: #PRO-44 / M4-EN1
+- Background & business justification: 
 
-## 🧪 Panduan Pengujian (How to Test)
-<!-- Tulis langkah detail agar reviewer dapat menguji perubahan ini di lokal -->
-1. Jalankan migrasi / seed (jika ada):
-   ```bash
-   # contoh: npm run db:migrate / npm run db:seed
-   ```
-2. Jalankan test suite:
-   ```bash
-   # contoh: npm run test:unit
-   ```
-3. Endpoint / UI yang dapat dicoba:
-   - Endpoint: `POST /api/v1/...`
-   - Payload contoh:
-     ```json
-     {}
-     ```
+## 🛠️ How (Technical Approach)?
+<!-- Overview of architectural decisions, libraries/patterns used, or core algorithms -->
+- 
 
----
+## 🧪 How to Test?
+<!-- Step-by-step instructions for the reviewer or QA to verify this PR -->
+1. 
+2. 
 
-## 📸 Bukti Pengujian (Screenshots / Test Output)
-<!-- Tempel screenshot hasil test passed di terminal atau respons API Postman/cURL -->
+## 📊 Test Results & Verification
+<!-- Evidence of correctness: unit test output, logs, or screenshots -->
+- [ ] Unit tests pass (`npm test`)
+- [ ] Linter & typecheck pass (`npm run lint`, `npm run build`)
 
+## ⚠️ Risks & Breaking Changes
+<!-- Any risks, edge cases, migration steps, or rollback considerations -->
+- Risks: 
+- Rollback plan: 
 
----
-
-## ✅ Checklist Pra-Review (Definition of Done)
-Sebelum meminta review, pastikan:
-- [ ] Kode telah melalui *self-review* (tidak ada file sampah, debug log, atau kredensial rahasia).
-- [ ] Branch sudah *up-to-date* dengan branch target (`develop`).
-- [ ] Seluruh unit test dan linter berjalan sukses (hijau) di lokal.
-- [ ] Logika kalkulasi uang mematuhi aturan pembulatan (`ROUND_HALF_UP`) dan presisi desimal tanpa floating point.
-- [ ] Dokumentasi terkait (OpenAPI / Swagger / README) sudah diperbarui jika ada perubahan kontrak/skema.
+## ✅ Author Checklist
+- [ ] PR is small, focused, and atomic (<300 lines of functional code)
+- [ ] Self-review completed (no debug logs, credentials, or dead code)
+- [ ] Target branch is `develop`
+- [ ] All tests and CI checks are green
