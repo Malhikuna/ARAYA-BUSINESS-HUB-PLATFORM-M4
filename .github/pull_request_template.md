@@ -1,33 +1,43 @@
 ## 📝 What Changed?
-<!-- A clear, high-level summary of the changes introduced in this PR -->
+<!-- Rangkum secara jelas dan padat apa saja yang diubah dalam PR ini -->
 - 
 
 ## 🎯 Why?
-<!-- The motivation, context, and problem being solved. Link to Jira/Linear/Scrum ticket -->
-- Resolves: #PRO-44 / M4-EN1
-- Background & business justification: 
+<!-- Mengapa perubahan ini dibuat? Sebutkan kebutuhan, bug yang diperbaiki, atau tiket Scrum/Jira terkait -->
+- Resolves: #
+- Konteks & urgensi: 
 
 ## 🛠️ How (Technical Approach)?
-<!-- Overview of architectural decisions, libraries/patterns used, or core algorithms -->
+<!-- Bagaimana cara kerjanya secara teknis? Jelaskan pendekatan arsitektur, logic baru, atau komponen yang disentuh -->
 - 
 
 ## 🧪 How to Test?
-<!-- Step-by-step instructions for the reviewer or QA to verify this PR -->
-1. 
-2. 
+<!-- Langkah konkret bagi reviewer untuk memverifikasi PR ini di lokal -->
+1. Jalankan perintah instalasi / migrasi (jika ada):
+   ```bash
+   # contoh: npm install
+   ```
+2. Jalankan test suite & linter:
+   ```bash
+   npm test
+   npm run lint
+   npm run build
+   ```
+3. Langkah pengujian fungsional / API:
+   - 
 
 ## 📊 Test Results & Verification
-<!-- Evidence of correctness: unit test output, logs, or screenshots -->
-- [ ] Unit tests pass (`npm test`)
-- [ ] Linter & typecheck pass (`npm run lint`, `npm run build`)
+<!-- Cantumkan bukti hasil pengujian: teks output test terminal, respons API, atau screenshot -->
+- [ ] Unit / Integration tests lolos hijau
+- [ ] Build dan lint lolos tanpa error
 
 ## ⚠️ Risks & Breaking Changes
-<!-- Any risks, edge cases, migration steps, or rollback considerations -->
-- Risks: 
-- Rollback plan: 
+<!-- Risiko teknis, potensi regresi, atau langkah migrasi jika ada -->
+- Risiko: 
+- Rencana rollback: Revert PR
 
 ## ✅ Author Checklist
-- [ ] PR is small, focused, and atomic (<300 lines of functional code)
-- [ ] Self-review completed (no debug logs, credentials, or dead code)
-- [ ] Target branch is `develop`
-- [ ] All tests and CI checks are green
+- [ ] PR berukuran kecil dan fokus (atomic)
+- [ ] Sudah melakukan self-review diff (tidak ada console.log, file sampah, atau kredensial)
+- [ ] Target branch ditujukan ke `develop`
+- [ ] Semua test dan build di lokal berhasil hijau
