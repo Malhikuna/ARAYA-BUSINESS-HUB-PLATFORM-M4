@@ -95,14 +95,47 @@ Gunakan format **Conventional Commits** pada judul PR:
 **Pilihan Tipe:**
 - `feat:` Fitur baru (misal: `feat(quotation): implement tax calculation service UT-TAX`)
 - `fix:` Perbaikan bug (misal: `fix(checkout): resolve idempotency key collision`)
+- `docs:` Perubahan dokumentasi, README, atau OpenAPI spec
+- `style:` Pemformatan kode tanpa mengubah perilaku
 - `refactor:` Perubahan kode tanpa mengubah fungsi eksternal
+- `perf:` Perubahan kode untuk meningkatkan performa
 - `test:` Penambahan atau perbaikan unit/integration test
-- `docs:` Perubahan dokumen, README, atau OpenAPI spec
-- `chore:` Pembaruan dependensi, konfigurasi build/CI
+- `build:` Perubahan sistem build atau dependency eksternal (misal: `build(deps): upgrade axios to version 1.6.0`)
+- `ci:` Perubahan file konfigurasi CI/CD (misal: `ci(github): add workflow to run tests on every pull request`)
+- `chore:` Pemeliharaan umum yang tidak mengubah kode aplikasi (misal: `chore(changelog): release version 2.4.0`)
+- `revert:` Membatalkan commit sebelumnya, misalnya karena memicu error (misal: `revert: feat(auth): add Google OAuth login option`)
 
 ---
 
-### 2.3 Anatomi Deskripsi PR yang Sempurna
+### 2.3 Format Pesan Commit
+
+Setiap commit harus menjelaskan jenis perubahan dan bagian proyek yang terdampak. Gunakan format:
+
+```
+<tipe>(<lingkup-opsional>): <deskripsi singkat>
+```
+
+Gunakan tipe yang sesuai dengan daftar pada bagian 2.2. Tulis deskripsi secara ringkas, spesifik, dan sesuai perubahan sebenarnya. Hindari pesan umum seperti `update`, `changes`, atau `fix stuff` tanpa konteks. Kata `update` boleh dipakai di deskripsi, tetapi bukan tipe standar proyek; pilih tipe berdasarkan tujuan perubahan, misalnya `chore(deps): update Next.js`.
+
+Contoh:
+
+```text
+feat(quotation): add quotation creation form
+fix(invoice): correct per-line tax rounding
+docs(design): document visual and icon rules
+style(ui): format invoice table component
+refactor(format): simplify date formatting
+perf(invoice): reduce repeated line total calculation
+test(tax): cover half-up rounding cases
+build(deps): upgrade axios to version 1.6.0
+ci(github): add workflow to run tests on every pull request
+chore(changelog): release version 2.4.0
+revert: feat(auth): add Google OAuth login option
+```
+
+Untuk perubahan yang memutus kompatibilitas, tambahkan tanda `!` setelah tipe atau lingkup dan jelaskan dampaknya. Contoh: `feat(api)!: replace invoice response fields`. Jika perlu, tambahkan footer `BREAKING CHANGE: <dampak perubahan>` pada pesan commit.
+
+### 2.4 Anatomi Deskripsi PR yang Sempurna
 Setiap PR wajib mengisi template deskripsi yang mencakup:
 1. **Ringkasan (What & Why):** Apa yang diubah dan alasan perubahan tersebut.
 2. **Kaitan Backlog / Task ID:** Tautkan ke ID User Story / Task (misal: `Closes M4-US2a`, `Relates to T-13`).
