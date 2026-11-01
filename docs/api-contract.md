@@ -1,278 +1,281 @@
-# Spesifikasi Lengkap API & Event Komunikasi Antar-Modul (Modul 4)
-## Araya Business Hub Platform — Modul 4: Penawaran & Tagihan Penjualan (Sales & Invoicing)
+# Panduan Integrasi & Kontrak API Bersama (Modul 4)
+## Araya Business Hub Platform — Modul 4: Penawaran & Tagihan Penjualan (Sales)
 
-- **Versi Dokumen:** v1.0
-- **Tanggal:** 1 November 2026
-- **Status:** Resmi untuk Integrasi Lintas Modul (M1, M2, M3, M5, M7, M8, & Gateway)
-- **OpenAPI Specification:** [`docs/openapi.yaml`](openapi.yaml)
-
----
-
-## 1. Konvensi Umum Arsitektur
-
-1. **Base URL:** `/api/v1`
-2. **Format Data:** JSON (`Content-Type: application/json; charset=utf-8`).
-3. **Format Waktu:** ISO 8601 UTC (contoh: `2026-11-01T09:15:30Z`).
-4. **Format Moneter:** String desimal presisi 2 digit (contoh: `"194250.00"`), mata uang `IDR`. Dilarang memakai tipe `float`.
-5. **Autentikasi:** Header `Authorization: Bearer <JWT>` yang diterbitkan oleh Modul 1 (User & Access), kecuali endpoint webhook yang menggunakan verifikasi cryptographic signature (SHA-512).
-6. **Pelacakan Request:** Header `X-Request-Id` disertakan pada setiap request dan dikembalikan pada response header untuk audit log.
-7. **Idempotensi:** Header `Idempotency-Key: <UUID>` wajib disertakan pada transaksi pembuatan checkout keranjang agar tidak terjadi duplikasi order saat koneksi tidak stabil.
+- **Versi Dokumen:** v1.0 (Mengacu pada *Panduan API Bersama v1.0 Draf 28 Okt 2026*)
+- **Status:** Wajib dan Berlaku untuk Seluruh Integrasi Antarmodul (M1–M14)
+- **Spesifikasi Mesin (OpenAPI):** [`docs/openapi.yaml`](openapi.yaml) & [`docs/openapi.json`](openapi.json)
+- **Halaman Dokumentasi Interaktif (Swagger UI):** `/api/m4/v1/docs` dan `/docs`
 
 ---
 
-## 2. Format Respon Error Seragam (*Uniform Error Response*)
+## 1. Alamat dan Penamaan Endpoint
 
-Seluruh endpoint API Modul 4 mengembalikan format error seragam sesuai standar Capstone:
+Sesuai aturan bersama, semua alamat endpoint modul memakai pola alamat yang seragam:
 
+$$\text{https://[server-bersama]/api/\{modul\}/v1/\{resource\}}$$
+
+Untuk **Modul 4 (Penjualan)**, seluruh endpoint menggunakan basis URL:
+```http
+/api/m4/v1/{resource}
+```
+
+### Aturan Komponen URL & Payload:
+| Bagian | Aturan | Contoh di Modul 4 |
+| :--- | :--- | :--- |
+| **Kode Modul** | Huruf kecil sesuai nomor modul (`m4`) | `/api/m4/v1/...` |
+| **Versi** | Selalu ada, dimulai dari `v1` | `/api/m4/v1/orders` |
+| **Resource** | Kata benda jamak (*plural*), bahasa Inggris, huruf kecil dengan tanda hubung (*kebab-case*) | `orders`, `products`, `customers`, `quotations`, `invoices`, `dashboard-summary` |
+| **Satu Data** | Resource + ID bilangan bulat | `/api/m4/v1/orders/125`, `/api/m4/v1/products/31` |
+| **Aksi Perubahan Status** | `POST` ke resource + nama aksi | `POST /api/m4/v1/quotations/12/convert` |
+| **Nama Field JSON** | `snake_case`, bahasa Inggris | `total_amount`, `customer_id`, `product_id`, `order_no`, `is_active` |
+
+---
+
+## 2. Autentikasi dan Hak Akses
+
+1. **Pengguna Memanggil API:**  
+   Header: `Authorization: Bearer <token>` (Token JWT resmi diterbitkan oleh Modul 1, berlaku 8 jam).  
+   Modul 4 membaca `user_id`, `role`, dan `unit_usaha_id` dari payload token untuk memeriksa hak akses tanpa menembak ulang M1 di setiap request.
+   
+   **Contoh Isi Token JWT dari M1:**
+   ```json
+   {
+     "user_id": 42,
+     "name": "Rani Kusumawati",
+     "role": "kasir",
+     "division": "penjualan",
+     "unit_usaha_id": 3,
+     "exp": 1793180400
+   }
+   ```
+
+2. **Panggilan Antarmodul Tanpa Pengguna (Service-to-Service / Event Bus):**  
+   Header: `X-Service-Key: <kunci modul>`  
+   Digunakan untuk pengiriman event webhook atau sinkronisasi background job.
+
+3. **Endpoint Publik:**  
+   Tanpa header. Ditandai `publik` di OpenAPI (misal: webhook pembayaran Midtrans dan halaman dokumentasi `/docs`).
+
+4. **Penanganan Error Akses:**
+   - Token tidak ada, salah, atau kedaluwarsa $\rightarrow$ **HTTP 401** (`code: "UNAUTHENTICATED"`).
+   - Token benar tetapi peran tidak berhak $\rightarrow$ **HTTP 403** (`code: "FORBIDDEN"`).
+
+---
+
+## 3. Bentuk Respons dan Kode Status (Amplop Seragam)
+
+Semua respons JSON di Modul 4 wajib menggunakan format amplop standar:
+
+### 3.1 Respons Sukses (Satu Data)
 ```json
 {
-  "error": {
-    "code": "PRICE_CHANGED",
-    "message": "Harga satu atau lebih item telah berubah di sistem penjualan.",
-    "details": [
-      {
-        "field": "items[0].unit_price_displayed",
-        "issue": "expected 75000.00, got 70000.00"
-      }
-    ],
-    "trace_id": "req_9f2c1a"
+  "success": true,
+  "data": {
+    "id": 125,
+    "order_no": "ORD-20261028-0007",
+    "status": "baru",
+    "total_amount": 185000
   }
 }
 ```
 
----
-
-## 3. Matriks Lengkap Endpoint Masuk (*Inbound REST API*)
-
-### 3.1 Integrasi dengan Modul 5 (Checkout Keranjang Belanja)
-
-#### `POST /api/v1/checkouts`
-- **Tujuan:** Menerima data keranjang belanja customer dari Modul 5 untuk divalidasi, dihitung ulang pajaknya (PPN 11%), lalu dibuatkan Order dan Invoice tagihan secara atomik.
-- **Hak Akses:** Role `Customer` (Bearer JWT M1).
-- **Header Wajib:**
-  - `Authorization: Bearer <JWT>`
-  - `Idempotency-Key: <UUID>`
-  - `Content-Type: application/json`
-
-**Contoh Payload Request:**
+### 3.2 Respons Sukses (Daftar Data & Pagination)
 ```json
 {
-  "source": {
-    "module": "M5",
-    "cart_id": "cart_01J9ZQ7K3M",
-    "checkout_requested_at": "2026-10-07T09:15:30Z"
-  },
-  "customer": {
-    "user_id": "usr_01J9ZP2A8C",
-    "full_name": "Budi Santoso",
-    "email": "budi@example.com",
-    "phone": "+6281234567890",
-    "billing_address": {
-      "line1": "Jl. Dipati Ukur No. 10",
-      "city": "Bandung",
-      "province": "Jawa Barat",
-      "postal_code": "40132",
-      "country": "ID"
-    }
-  },
-  "partner_id": "ptr_01J9ZN5R1D",
-  "business_unit_id": "bu_01J9ZM3T9E",
-  "currency": "IDR",
-  "items": [
+  "success": true,
+  "data": [
     {
-      "product_id": "prd_01J9ZK8W2F",
+      "id": 31,
       "sku": "KAOS-UNPAS-M",
       "name": "Kaos Unpas Size M",
-      "quantity": 2,
-      "unit_price_displayed": "75000.00"
+      "price": 75000,
+      "tax_rate": 11,
+      "unit": "pcs",
+      "is_active": true
     }
   ],
-  "notes": "Mohon dikemas rapi"
-}
-```
-
-**Contoh Payload Response (HTTP 201 Created):**
-```json
-{
-  "checkout_id": "chk_01J9ZR4B7H",
-  "order": {
-    "id": "ord_01J9ZR4B8J",
-    "order_number": "ORD-202610-0001",
-    "status": "Baru",
-    "payment_status": "PENDING_PAYMENT",
-    "source_cart_id": "cart_01J9ZQ7K3M",
-    "partner_id": "ptr_01J9ZN5R1D",
-    "business_unit_id": "bu_01J9ZM3T9E",
-    "items": [
-      {
-        "product_id": "prd_01J9ZK8W2F",
-        "name": "Kaos Unpas Size M",
-        "quantity": 2,
-        "unit_price": "75000.00",
-        "tax_rate": "0.1100",
-        "line_net": "150000.00",
-        "line_tax": "16500.00",
-        "line_total": "166500.00"
-      }
-    ],
-    "subtotal": "150000.00",
-    "discount_total": "0.00",
-    "tax_total": "16500.00",
-    "grand_total": "166500.00",
-    "currency": "IDR",
-    "created_at": "2026-10-07T09:15:31Z"
-  },
-  "invoice": {
-    "id": "inv_01J9ZR4B9K",
-    "invoice_number": "INV-202610-0001",
-    "status": "ISSUED",
-    "issue_date": "2026-10-07",
-    "due_date": "2026-10-09",
-    "grand_total": "166500.00",
-    "pay_url": "/api/v1/invoices/inv_01J9ZR4B9K/payments"
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 57,
+    "total_pages": 3
   }
 }
 ```
 
----
-
-### 3.2 Integrasi Pembayaran Sandbox (Customer & Midtrans Webhook)
-
-#### `POST /api/v1/invoices/{invoice_id}/payments`
-- **Tujuan:** Customer memulai transaksi pembayaran atas invoice tertentu untuk mendapatkan Snap Token / Redirect URL Midtrans.
-- **Hak Akses:** Role `Customer` pemilik invoice.
-
-**Contoh Response (HTTP 201 Created):**
+### 3.3 Respons Galat (*Error Envelope*)
 ```json
 {
-  "payment_id": "pay_01J9ZS1C2M",
-  "invoice_id": "inv_01J9ZR4B9K",
-  "provider": "midtrans",
-  "gateway_order_id": "INV-202610-0001-1",
-  "amount": "166500.00",
-  "currency": "IDR",
-  "status": "PENDING",
-  "snap_token": "66e4fa55-fdac-4ef9-91b5-733b97d1b862",
-  "redirect_url": "https://app.sandbox.midtrans.com/snap/v4/redirection/66e4fa55-...",
-  "expires_at": "2026-10-08T09:20:00Z"
-}
-```
-
-#### `POST /api/v1/webhooks/payments/midtrans`
-- **Tujuan:** Menerima notifikasi status transaksi dari payment gateway (Midtrans Sandbox).
-- **Autentikasi:** Tanpa JWT. Menggunakan verifikasi tanda tangan kriptografis:
-  $$\text{SHA512}(\text{order\_id} + \text{status\_code} + \text{gross\_amount} + \text{SERVER\_KEY})$$
-- **Aksi Otomatis:**
-  - Jika `transaction_status` = `settlement` atau `capture` (fraud = accept) ➔ Status invoice otomatis berubah menjadi **`PAID`**, status Order menjadi **`PAID`**, dan Event **`invoice.paid`** diterbitkan.
-
-**Contoh Payload Webhook Midtrans:**
-```json
-{
-  "transaction_time": "2026-10-07 16:21:45",
-  "transaction_status": "settlement",
-  "transaction_id": "9aed5972-5b6a-401e-894b-a32c91ed1a3a",
-  "status_message": "midtrans payment notification",
-  "status_code": "200",
-  "signature_key": "9a2f4c...",
-  "payment_type": "bank_transfer",
-  "order_id": "INV-202610-0001-1",
-  "gross_amount": "166500.00",
-  "fraud_status": "accept",
-  "currency": "IDR"
-}
-```
-
----
-
-### 3.3 Endpoint Manajemen Pesanan & Master Data
-
-#### `PATCH /api/v1/orders/{id}/status` *(M4-US4)*
-- **Tujuan:** Mitra/Partner memperbarui status pemrosesan pesanan agar customer dapat melihat progresnya.
-- **Hak Akses:** Role `Partner` (pemilik produk) dan `Admin`.
-- **Payload Request:**
-  ```json
-  {
-    "status": "Diproses" 
-  }
-  ```
-  *(Nilai status yang valid: `Baru`, `Diproses`, `Selesai`, `Dibatalkan`)*
-
-#### `GET /api/v1/products` & `POST /api/v1/products` *(M4-US1)*
-- **Tujuan:** Pengelolaan katalog master produk/jasa (sumber kebenaran harga resmi).
-- **Hak Akses:** Role `Admin` dan `Partner`.
-
-#### `GET /api/v1/customers` & `POST /api/v1/customers` *(M4-US1)*
-- **Tujuan:** Pengelolaan dan validasi data pelanggan.
-
-#### `POST /api/v1/quotations` *(M4-US2)*
-- **Tujuan:** Pembuatan draf penawaran (*Quotation*) dengan kalkulasi pajak dan pembulatan *Round-Half-Up* per baris.
-
-#### `POST /api/v1/quotations/{id}/convert` *(M4-US2)*
-- **Tujuan:** Mengonversi quotation yang sudah `ACCEPTED` menjadi Invoice (`ISSUED`).
-
----
-
-## 4. Spesifikasi Event Keluar (*Outbound Event: invoice.paid*)
-
-Setelah sebuah invoice berhasil dilunasi melalui webhook Midtrans, Modul 4 menerbitkan **Event `invoice.paid`** untuk dikonsumsi oleh modul hilir tanpa kontak database langsung:
-
-### 4.1 Konsumen Event:
-1. **Modul 7 (Jurnal Otomatis / Finance):** Menangkap event ini untuk langsung membukukan jurnal debit/kredit pendapatan dan piutang/kas.
-2. **Modul 8 (Notifikasi):** Menangkap event ini untuk mengirimkan kuitansi atau tanda terima lunas via WhatsApp / Email ke customer.
-
-### 4.2 Skema Data Event `invoice.paid`:
-```json
-{
-  "event_id": "evt_01J9ZT3D4N",
-  "event_type": "invoice.paid",
-  "occurred_at": "2026-10-07T09:21:46Z",
-  "data": {
-    "invoice_id": "inv_01J9ZR4B9K",
-    "invoice_number": "INV-202610-0001",
-    "order_id": "ord_01J9ZR4B8J",
-    "partner_id": "ptr_01J9ZN5R1D",
-    "business_unit_id": "bu_01J9ZM3T9E",
-    "customer_id": "cus_01J9ZP2A8C",
-    "subtotal": "150000.00",
-    "tax_total": "16500.00",
-    "grand_total": "166500.00",
-    "currency": "IDR",
-    "payment": {
-      "provider": "midtrans",
-      "payment_type": "bank_transfer",
-      "paid_at": "2026-10-07T09:21:45Z"
+  "success": false,
+  "error": {
+    "code": "ITEMS_EMPTY",
+    "message": "Keranjang masih kosong",
+    "fields": {
+      "items": "Daftar item tidak boleh kosong"
     }
   }
 }
 ```
+- `code`: `HURUF_BESAR_DENGAN_GARIS_BAWAH` (*SCREAMING_SNAKE_CASE*). Modul lain membaca `code`, bukan message.
+- `message`: Bahasa Indonesia dan sama persis dengan teks Acceptance Criteria.
+- `fields`: Hanya ada untuk galat validasi (**HTTP 422**). Jika bukan 422, bernilai `null`.
+
+### 3.4 Matriks Kode Status HTTP:
+| Kode | Arti | Contoh di Modul 4 |
+| :--- | :--- | :--- |
+| **200** | Berhasil | Daftar produk/pelanggan tampil, status update |
+| **201** | Data baru berhasil dibuat | Order terbentuk dari keranjang, invoice dibuat |
+| **400** | Permintaan tidak masuk akal | Konversi quotation yang belum disetujui |
+| **401** | Belum login atau token tidak sah | Customer belum login saat checkout (`UNAUTHENTICATED`) |
+| **403** | Sudah login, tetapi peran tidak berhak | Role kasir mencoba mengubah konfigurasi pajak |
+| **404** | Data tidak ditemukan | ID order atau invoice tidak ada di basis data |
+| **409** | Konflik / bertentangan status | Ada produk di keranjang yang sudah tidak aktif |
+| **422** | Isian tidak lolos validasi | Items kosong, quantity $\le 0$ |
+| **500** | Galat di server | Kegagalan sistem internal |
+
+> [!NOTE]
+> Kondisi **"tidak ada data"** bukan galat. Daftar kosong dijawab **HTTP 200** dengan `"data": []`.
 
 ---
 
-## 5. Ringkasan Matriks Alur Komunikasi
+## 4. Standar Format Data
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Customer
-    participant M5 as Modul 5 (Katalog & Cart)
-    participant M4 as Modul 4 (Sales & Invoicing)
-    participant Gateway as Midtrans Sandbox
-    participant M7 as Modul 7 (Jurnal Otomatis)
-    participant M8 as Modul 8 (Notifikasi)
+| Data | Format di API | Contoh |
+| :--- | :--- | :--- |
+| **Tanggal** | ISO 8601 `YYYY-MM-DD` | `"2026-10-28"` |
+| **Tanggal & Jam** | ISO 8601 zona WIB | `"2026-10-28T09:15:00+07:00"` |
+| **Bulan (Rekap)** | `YYYY-MM` | `"2026-10"` |
+| **Uang** | **Bilangan bulat rupiah, tanpa titik dan tanpa desimal** | `85000`, `185000` |
+| **Persen** | Angka 0–100 | `11` (untuk PPN 11%) |
+| **ID** | Bilangan bulat dari modul pemilik | `"product_id": 31`, `"customer_id": 17` |
+| **Nomor Dokumen** | `PREFIKS-YYYYMMDD-urutan 4 digit` | `"ORD-20261028-0007"`, `"INV-20261028-0001"`, `"QUO-20261028-0001"` |
+| **Status** | Huruf kecil, snake_case, bahasa Indonesia | `"baru"`, `"lunas"`, `"belum_lunas"`, `"disetujui"` |
+| **Ya/Tidak** | Boolean `true` / `false` | `"is_active": true` |
+| **Kosong** | `null` (bukan string kosong `""`) | `"notes": null` |
 
-    Customer->>M5: Klik Checkout
-    M5->>M4: POST /api/v1/checkouts (Idempotency-Key + Bearer JWT)
-    M4-->>M5: 201 Created (Order status: Baru, Invoice: ISSUED, pay_url)
-    M5-->>Customer: Redirect ke Halaman Pembayaran
-    Customer->>M4: POST /api/v1/invoices/{id}/payments
-    M4-->>Customer: Snap Token & Redirect URL Midtrans
-    Customer->>Gateway: Lakukan Pembayaran Sandbox
-    Gateway->>M4: POST /api/v1/webhooks/payments/midtrans (Signature SHA-512)
-    Note over M4: Verifikasi signature & nominal
-    M4->>M4: Update Invoice -> PAID, Order -> PAID
-    M4-->>Gateway: 200 OK {"received": true}
-    par Publikasi Event
-        M4->>M7: Kirim Event invoice.paid (Catat Jurnal Kas)
-        M4->>M8: Kirim Event invoice.paid (Kirim Kuitansi Lunas)
-    end
+### Field Rujukan Antarmodul (`{nama_data}_id`):
+- `user_id` (M1)
+- `unit_usaha_id` (M2)
+- `partner_id` (M3)
+- `product_id`, `customer_id`, `order_id`, `invoice_id` (M4)
+- `sale_id` (M6)
+- `supplier_id`, `purchase_order_id` (M10)
+
+---
+
+## 5. Event Antarmodul (Publikasi Keluar Modul 4)
+
+Ketika pesanan online berhasil dibayar melalui webhook Midtrans atau dibatalkan, Modul 4 mempublikasikan event ke modul hilir (khususnya **Modul 9: Manajemen Stok** untuk penyesuaian stok otomatis).
+
+```http
+POST /api/m9/v1/events
+X-Service-Key: <kunci modul pengirim>
 ```
+
+**Payload Event:**
+```json
+{
+  "event_id": "6f1c2b9e-0d4a-4f7b-9a51-1e2c3d4f5a6b",
+  "event_type": "order.paid",
+  "source_module": "M4",
+  "occurred_at": "2026-10-28T10:05:12+07:00",
+  "recipient_role": null,
+  "payload": {
+    "order_id": 125,
+    "order_no": "ORD-20261028-0007",
+    "customer_id": 17,
+    "items": [
+      { "product_id": 31, "qty": 2 },
+      { "product_id": 40, "qty": 1 }
+    ],
+    "total_amount": 185000
+  }
+}
+```
+
+### Aturan Event:
+1. `event_id`: UUID unik. Modul penerima wajib menyimpan dan mengabaikan event ganda (*idempotent deduplication*).
+2. `event_type`: Format `data.kejadian` huruf kecil bentuk lampau (`order.paid`, `order.cancelled`).
+3. Retry: Jika penerima tidak merespons HTTP 200, pengirim mencoba ulang 3x dengan jeda 1, 5, dan 30 menit.
+
+---
+
+## 6. Daftar Kontrak Resmi Terkait Modul 4
+
+Daftar kontrak resmi yang tercantum pada tabel Bab 6 Panduan Bersama:
+
+| ID | Penyedia $\rightarrow$ Pemakai | Kontrak | Bentuk Endpoint | User Story Terkait |
+| :--- | :--- | :--- | :--- | :--- |
+| **K-01** | M1 $\rightarrow$ semua | Token login dan profil pengguna | `GET /api/m1/v1/me` | M1-US1 |
+| **K-02** | M2 $\rightarrow$ semua | Data unit usaha aktif | `GET /api/m2/v1/business-units` | M2-US1 |
+| **K-03** | M4 $\rightarrow$ M2 | Ringkasan penjualan untuk dashboard | `GET /api/m4/v1/dashboard-summary?from&to&unit_usaha_id` | M2-US2, M2-US4 |
+| **K-04** | M4 $\rightarrow$ M5 | Membuat Order dari keranjang checkout | `POST /api/m4/v1/orders` | M5-US4 |
+| **K-05** | M4 $\rightarrow$ M5, M6 | Data produk/jasa aktif | `GET /api/m4/v1/products` | M4-US1, M5-US1, M6-US1 |
+| **K-06** | M3 $\rightarrow$ M5 | Data partner terverifikasi untuk katalog | `GET /api/m3/v1/partners?status=terverifikasi` | M3-US2, M3-US4 |
+| **K-09** | M4 $\rightarrow$ M9 | Pesanan online lunas / dibatalkan | `event order.paid`, `order.cancelled` | M9-US1, M9-US2 |
+
+---
+
+## 7. Rincian Kontrak Inti K-04 (Order dari Keranjang M5)
+
+### Permintaan dari Modul 5:
+```http
+POST /api/m4/v1/orders
+Authorization: Bearer <token Customer>
+Content-Type: application/json
+
+{
+  "customer_id": 17,
+  "source": "website",
+  "items": [
+    { "product_id": 31, "qty": 2 },
+    { "product_id": 40, "qty": 1 }
+  ]
+}
+```
+
+### Jawaban Modul 4 (201 Created):
+```json
+{
+  "success": true,
+  "data": {
+    "id": 125,
+    "order_no": "ORD-20261028-0007",
+    "status": "baru",
+    "total_amount": 185000
+  }
+}
+```
+
+### Kemungkinan Galat:
+| Kode HTTP | `error.code` | Kapan Terjadi |
+| :--- | :--- | :--- |
+| **401** | `UNAUTHENTICATED` | Customer belum login atau token kedaluwarsa |
+| **409** | `PRODUCT_INACTIVE` | Terdapat item produk yang sudah dinonaktifkan di master M4 |
+| **422** | `ITEMS_EMPTY` | Daftar item keranjang kosong |
+
+---
+
+## 8. Endpoint Internal / Back-Office Modul 4
+
+Selain kontrak antarmodul publik di atas, Modul 4 menyediakan endpoint back-office untuk Admin & Mitra:
+
+1. **`POST /api/m4/v1/quotations` (M4-US2):** Pembuatan surat penawaran harga (*quotation*) resmi.
+2. **`POST /api/m4/v1/quotations/{id}/convert` (M4-US2 / PRO-20):** Mengonversi penawaran berstatus `disetujui` menjadi tagihan faktur invoice `belum_lunas`.
+3. **`POST /api/m4/v1/invoices/{invoice_id}/payments`:** Customer memulai sesi pembayaran invoice untuk mendapatkan snap token Midtrans Sandbox.
+4. **`POST /api/m4/v1/webhooks/payments/midtrans`:** Webhook penerima status settlement dari Midtrans (Verifikasi signature SHA-512).
+5. **`GET & POST /api/m4/v1/customers` (M4-US1):** Manajemen data kontak dan alamat faktur pelanggan.
+
+---
+
+## 9. Daftar Periksa Kepatuhan Integrasi (Bab 8 & Lampiran)
+
+- [x] Semua alamat memakai pola `/api/m4/v1/...`
+- [x] Semua endpoint yang butuh login memeriksa token JWT dari M1
+- [x] Panggilan antarmodul tanpa pengguna memakai header `X-Service-Key`
+- [x] Semua respons memakai amplop seragam `success` / `data` / `error`
+- [x] Pesan galat berbahasa Indonesia dan sama persis dengan Acceptance Criteria
+- [x] Kode status HTTP sesuai standar (daftar kosong dijawab 200, bukan error)
+- [x] Tanggal ISO 8601, uang bilangan bulat rupiah tanpa desimal, status huruf kecil snake_case
+- [x] Event memiliki `event_id` unik dan penerima melakukan deduplikasi
+- [x] File `docs/openapi.yaml` sudah sesuai kode dan bisa dibuka di `/api/m4/v1/docs` dan `/docs`

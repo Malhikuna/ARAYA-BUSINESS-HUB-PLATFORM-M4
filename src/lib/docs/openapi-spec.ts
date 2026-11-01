@@ -1,294 +1,450 @@
+/**
+ * OpenAPI 3.0.3 Specification for Araya Business Hub - Modul 4 (Penawaran & Tagihan Penjualan)
+ * Sesuai Panduan API Bersama v1.0 (Draf 28 Okt 2026 - Capstone IF Unpas)
+ */
 export const openapiSpec = {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Araya Business Hub — Modul 4 (Sales & Invoicing) Complete API & Events",
-    "description": "Spesifikasi lengkap seluruh endpoint API dan Event keluar Modul 4 (Sales & Invoicing) untuk integrasi dengan Modul 1, Modul 2, Modul 3, Modul 5, Modul 7, Modul 8, dan Payment Gateway Midtrans.\n",
-    "version": "1.0.0"
+  openapi: "3.0.3",
+  info: {
+    title: "API Modul M4 - Penjualan",
+    description: "Spesifikasi resmi API dan Event komunikasi antarmodul untuk Modul 4 (Penawaran & Tagihan Penjualan) Araya Business Hub Platform. Mengacu penuh pada Panduan API Bersama v1.0 (draf 28 Okt 2026).\n",
+    version: "1.0.0"
   },
-  "servers": [
+  servers: [
     {
-      "url": "https://api.araya-m4.unpas.ac.id/api/v1",
-      "description": "Server Staging / Produksi"
+      url: "https://[server-bersama]/api/m4/v1",
+      description: "Server Bersama Integrasi Antarmodul"
     },
     {
-      "url": "http://localhost:3000/api/v1",
-      "description": "Lingkungan Pengembangan Lokal"
+      url: "http://localhost:3000/api/m4/v1",
+      description: "Lingkungan Pengembangan Lokal"
     }
   ],
-  "paths": {
-    "/checkouts": {
-      "post": {
-        "summary": "Terima Checkout Keranjang dari Modul 5 (M5-US4)",
-        "operationId": "checkoutCart",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CheckoutRequest"
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description: "Token JWT dari M1 (berlaku 8 jam)"
+      },
+      serviceKey: {
+        type: "apiKey",
+        in: "header",
+        name: "X-Service-Key",
+        description: "Kunci modul untuk komunikasi antarmodul tanpa pengguna"
+      }
+    },
+    schemas: {
+      Error: {
+        type: "object",
+        required: ["success", "error"],
+        properties: {
+          success: { type: "boolean", example: false },
+          error: {
+            type: "object",
+            required: ["code", "message"],
+            properties: {
+              code: {
+                type: "string",
+                example: "ITEMS_EMPTY",
+                description: "Kode galat dalam format HURUF_BESAR_DENGAN_GARIS_BAWAH"
+              },
+              message: {
+                type: "string",
+                example: "Keranjang masih kosong",
+                description: "Pesan galat dalam bahasa Indonesia sesuai Acceptance Criteria"
+              },
+              fields: {
+                type: "object",
+                nullable: true,
+                additionalProperties: { type: "string" },
+                example: { quantity: "Jumlah kosong atau <= 0" },
+                description: "Peta galat validasi per field (hanya ada pada kode status 422)"
               }
             }
           }
+        }
+      },
+      PaginationMeta: {
+        type: "object",
+        required: ["page", "per_page", "total", "total_pages"],
+        properties: {
+          page: { type: "integer", example: 1 },
+          per_page: { type: "integer", example: 20 },
+          total: { type: "integer", example: 57 },
+          total_pages: { type: "integer", example: 3 }
+        }
+      },
+      OrderCartItem: {
+        type: "object",
+        required: ["product_id", "qty"],
+        properties: {
+          product_id: { type: "integer", example: 31, description: "ID produk dari master Modul 4" },
+          qty: { type: "integer", minimum: 1, example: 2 }
+        }
+      },
+      OrderCreateRequest: {
+        type: "object",
+        required: ["customer_id", "source", "items"],
+        properties: {
+          customer_id: { type: "integer", example: 17, description: "ID pelanggan dari master pelanggan Modul 4" },
+          source: { type: "string", example: "website" },
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/OrderCartItem" }
+          }
+        }
+      },
+      OrderResponseData: {
+        type: "object",
+        required: ["id", "order_no", "status", "total_amount"],
+        properties: {
+          id: { type: "integer", example: 125 },
+          order_no: { type: "string", example: "ORD-20261028-0007" },
+          status: { type: "string", example: "baru" },
+          total_amount: {
+            type: "integer",
+            example: 185000,
+            description: "Nominal uang dalam bilangan bulat rupiah tanpa titik dan desimal"
+          }
+        }
+      },
+      OrderResponse: {
+        type: "object",
+        required: ["success", "data"],
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: "#/components/schemas/OrderResponseData" }
+        }
+      },
+      ProductItem: {
+        type: "object",
+        required: ["id", "sku", "name", "price", "tax_rate", "is_active"],
+        properties: {
+          id: { type: "integer", example: 31 },
+          sku: { type: "string", example: "KAOS-UNPAS-M" },
+          name: { type: "string", example: "Kaos Unpas Size M" },
+          price: { type: "integer", example: 75000, description: "Harga pokok/jual dalam rupiah bulat" },
+          tax_rate: { type: "integer", example: 11, description: "Persentase PPN (0-100)" },
+          unit: { type: "string", example: "pcs" },
+          is_active: { type: "boolean", example: true },
+          partner_id: { type: "integer", nullable: true, example: 1 },
+          unit_usaha_id: { type: "integer", nullable: true, example: 3 }
+        }
+      },
+      ProductListResponse: {
+        type: "object",
+        required: ["success", "data", "meta"],
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ProductItem" }
+          },
+          meta: { $ref: "#/components/schemas/PaginationMeta" }
+        }
+      },
+      DashboardSummaryData: {
+        type: "object",
+        required: ["total_sales", "total_orders", "total_invoices_paid", "total_invoices_pending"],
+        properties: {
+          total_sales: { type: "integer", example: 185000 },
+          total_orders: { type: "integer", example: 1 },
+          total_invoices_paid: { type: "integer", example: 1 },
+          total_invoices_pending: { type: "integer", example: 0 }
+        }
+      },
+      DashboardSummaryResponse: {
+        type: "object",
+        required: ["success", "data"],
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: "#/components/schemas/DashboardSummaryData" }
+        }
+      },
+      QuotationItem: {
+        type: "object",
+        required: ["product_id", "qty", "unit_price"],
+        properties: {
+          product_id: { type: "integer", example: 31 },
+          qty: { type: "integer", example: 2 },
+          unit_price: { type: "integer", example: 75000 },
+          discount: { type: "integer", example: 0 }
+        }
+      },
+      QuotationCreateRequest: {
+        type: "object",
+        required: ["customer_id", "items"],
+        properties: {
+          customer_id: { type: "integer", example: 17 },
+          notes: { type: "string", nullable: true, example: "Penawaran seragam BPU" },
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/QuotationItem" }
+          }
+        }
+      },
+      QuotationData: {
+        type: "object",
+        required: ["id", "quotation_no", "customer_id", "status", "total_amount"],
+        properties: {
+          id: { type: "integer", example: 12 },
+          quotation_no: { type: "string", example: "QUO-20261028-0001" },
+          customer_id: { type: "integer", example: 17 },
+          status: { type: "string", example: "disetujui" },
+          total_amount: { type: "integer", example: 185000 }
+        }
+      },
+      QuotationResponse: {
+        type: "object",
+        required: ["success", "data"],
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: "#/components/schemas/QuotationData" }
+        }
+      },
+      ConvertInvoiceData: {
+        type: "object",
+        required: ["id", "invoice_no", "quotation_id", "status", "total_amount"],
+        properties: {
+          id: { type: "integer", example: 89 },
+          invoice_no: { type: "string", example: "INV-20261028-0001" },
+          quotation_id: { type: "integer", example: 12 },
+          status: { type: "string", example: "belum_lunas" },
+          total_amount: { type: "integer", example: 185000 }
+        }
+      },
+      ConvertInvoiceResponse: {
+        type: "object",
+        required: ["success", "data"],
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: "#/components/schemas/ConvertInvoiceData" }
+        }
+      },
+      PaymentData: {
+        type: "object",
+        required: ["payment_id", "invoice_id", "provider", "amount", "status", "snap_token", "redirect_url"],
+        properties: {
+          payment_id: { type: "integer", example: 55 },
+          invoice_id: { type: "integer", example: 89 },
+          provider: { type: "string", example: "midtrans" },
+          amount: { type: "integer", example: 185000 },
+          status: { type: "string", example: "pending" },
+          snap_token: { type: "string", example: "66e4fa55-fdac-4ef9-91b5-733b97d1b862" },
+          redirect_url: { type: "string", example: "https://app.sandbox.midtrans.com/snap/v4/redirection/66e4fa55" }
+        }
+      },
+      PaymentResponse: {
+        type: "object",
+        required: ["success", "data"],
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: "#/components/schemas/PaymentData" }
+        }
+      },
+      EventPayload: {
+        type: "object",
+        required: ["event_id", "event_type", "source_module", "occurred_at", "recipient_role", "payload"],
+        properties: {
+          event_id: { type: "string", format: "uuid", example: "6f1c2b9e-0d4a-4f7b-9a51-1e2c3d4f5a6b" },
+          event_type: { type: "string", example: "order.paid" },
+          source_module: { type: "string", example: "M4" },
+          occurred_at: { type: "string", format: "date-time", example: "2026-10-28T10:05:12+07:00" },
+          recipient_role: { type: "string", nullable: true, example: null },
+          payload: {
+            type: "object",
+            required: ["order_id", "order_no", "customer_id", "total_amount"],
+            properties: {
+              order_id: { type: "integer", example: 125 },
+              order_no: { type: "string", example: "ORD-20261028-0007" },
+              customer_id: { type: "integer", example: 17 },
+              total_amount: { type: "integer", example: 185000 }
+            }
+          }
+        }
+      }
+    }
+  },
+  paths: {
+    "/orders": {
+      post: {
+        summary: "Buat order dari keranjang (Kontrak K-04, M5-US4)",
+        description: "Menerima data pesanan checkout dari keranjang Modul 5 dan membuat Order resmi berstatus 'baru'.",
+        operationId: "createOrderFromCart",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/OrderCreateRequest" }
+            }
+          }
         },
-        "responses": {
+        responses: {
           "201": {
-            "description": "Order dan Invoice berhasil dibuat (status Order awal 'Baru')",
-            "content": {
+            description: "Order berhasil terbentuk",
+            content: {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CheckoutResponse"
+                schema: { $ref: "#/components/schemas/OrderResponse" }
+              }
+            }
+          },
+          "401": {
+            description: "Customer belum login",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+                example: {
+                  success: false,
+                  error: {
+                    code: "UNAUTHENTICATED",
+                    message: "Customer belum login",
+                    fields: null
+                  }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400Error"
-          },
-          "401": {
-            "$ref": "#/components/responses/401Error"
-          },
-          "403": {
-            "$ref": "#/components/responses/403Error"
-          },
           "409": {
-            "$ref": "#/components/responses/409Error"
+            description: "Ada produk yang sudah tidak aktif",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+                example: {
+                  success: false,
+                  error: {
+                    code: "PRODUCT_INACTIVE",
+                    message: "Ada produk yang sudah tidak aktif",
+                    fields: null
+                  }
+                }
+              }
+            }
           },
           "422": {
-            "$ref": "#/components/responses/422Error"
-          }
-        }
-      }
-    },
-    "/invoices/{invoice_id}/payments": {
-      "post": {
-        "summary": "Memulai Pembayaran Invoice Sandbox",
-        "operationId": "createPaymentAttempt",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "invoice_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "inv_01J9ZR4B9K"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Snap Token dan Redirect URL Midtrans berhasil dibuat",
-            "content": {
+            description: "Items kosong",
+            content: {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaymentInitiateResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/401Error"
-          },
-          "409": {
-            "description": "Invoice sudah lunas atau dibatalkan (INVOICE_NOT_PAYABLE)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/webhooks/payments/midtrans": {
-      "post": {
-        "summary": "Webhook Callback Payment Gateway Midtrans Sandbox",
-        "operationId": "handleMidtransWebhook",
-        "description": "Diverifikasi menggunakan signature SHA-512 (order_id + status_code + gross_amount + ServerKey). Jika pembayaran sukses, status invoice dan order otomatis berubah menjadi PAID, lalu event invoice.paid diterbitkan.\n",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MidtransWebhookPayload"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Webhook diterima dan diproses (idempoten)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "received": {
-                      "type": "boolean",
-                      "example": true
-                    }
+                schema: { $ref: "#/components/schemas/Error" },
+                example: {
+                  success: false,
+                  error: {
+                    code: "ITEMS_EMPTY",
+                    message: "Keranjang masih kosong",
+                    fields: { items: "Daftar item tidak boleh kosong" }
                   }
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/400Error"
-          },
-          "401": {
-            "description": "Signature tidak valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/{id}/status": {
-      "patch": {
-        "summary": "Memperbarui Status Pengerjaan Pesanan (M4-US4)",
-        "operationId": "updateOrderStatus",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "ord_01J9ZR4B8J"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "status"
-                ],
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "Baru",
-                      "Diproses",
-                      "Selesai",
-                      "Dibatalkan"
-                    ],
-                    "example": "Diproses"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Status order berhasil diperbarui",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "order_id": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/401Error"
-          },
-          "403": {
-            "$ref": "#/components/responses/403Error"
           }
         }
       }
     },
     "/products": {
-      "get": {
-        "summary": "Mendapatkan Daftar Master Produk & Jasa",
-        "operationId": "getProducts",
-        "security": [
-          {
-            "BearerAuth": []
-          }
+      get: {
+        summary: "Data produk/jasa aktif (Kontrak K-05, M4-US1, M5-US1, M6-US1)",
+        description: "Mengambil daftar katalog master produk/jasa aktif untuk ditampilkan di storefront M5 atau kasir M6.",
+        operationId: "getActiveProducts",
+        security: [{ bearerAuth: [] }, { serviceKey: [] }],
+        parameters: [
+          { name: "q", in: "query", required: false, schema: { type: "string" }, description: "Kata kunci pencarian produk" },
+          { name: "page", in: "query", required: false, schema: { type: "integer", default: 1 } },
+          { name: "per_page", in: "query", required: false, schema: { type: "integer", default: 20 } },
+          { name: "status", in: "query", required: false, schema: { type: "string", example: "aktif" } }
         ],
-        "parameters": [
-          {
-            "name": "partner_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "is_active",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
+        responses: {
           "200": {
-            "description": "Daftar produk",
-            "content": {
+            description: "Daftar produk berhasil diambil",
+            content: {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Product"
+                schema: { $ref: "#/components/schemas/ProductListResponse" }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        summary: "Tambah produk/jasa baru (M4-US1)",
+        operationId: "createProduct",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["sku", "name", "price"],
+                properties: {
+                  sku: { type: "string", example: "KAOS-UNPAS-L" },
+                  name: { type: "string", example: "Kaos Unpas Size L" },
+                  price: { type: "integer", example: 75000 },
+                  tax_rate: { type: "integer", default: 11 },
+                  unit: { type: "string", default: "pcs" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "201": {
+            description: "Produk berhasil ditambahkan",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { $ref: "#/components/schemas/ProductItem" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard-summary": {
+      get: {
+        summary: "Ringkasan untuk dashboard (Kontrak K-03, M2-US2, M2-US4)",
+        description: "Endpoint ringkasan penjualan seragam yang dipanggil oleh Modul 2 untuk agregasi dashboard pimpinan.",
+        operationId: "getDashboardSummary",
+        security: [{ bearerAuth: [] }, { serviceKey: [] }],
+        parameters: [
+          { name: "from", in: "query", required: false, schema: { type: "string", format: "date" }, example: "2026-10-01" },
+          { name: "to", in: "query", required: false, schema: { type: "string", format: "date" }, example: "2026-10-31" },
+          { name: "unit_usaha_id", in: "query", required: false, schema: { type: "integer" }, example: 3 }
+        ],
+        responses: {
+          "200": {
+            description: "Ringkasan metrik penjualan berhasil diambil",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/DashboardSummaryResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quotations": {
+      get: {
+        summary: "Daftar penawaran penjualan (M4-US2)",
+        operationId: "getQuotations",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "Daftar penawaran berhasil diambil",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/QuotationData" }
+                    }
                   }
                 }
               }
@@ -296,31 +452,106 @@ export const openapiSpec = {
           }
         }
       },
-      "post": {
-        "summary": "Menambahkan Produk / Jasa Baru",
-        "operationId": "createProduct",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
+      post: {
+        summary: "Buat draf penawaran baru (M4-US2)",
+        operationId: "createQuotation",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProductInput"
-              }
+              schema: { $ref: "#/components/schemas/QuotationCreateRequest" }
             }
           }
         },
-        "responses": {
+        responses: {
           "201": {
-            "description": "Produk berhasil dibuat",
-            "content": {
+            description: "Penawaran berhasil dibuat",
+            content: {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Product"
+                schema: { $ref: "#/components/schemas/QuotationResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quotations/{id}/convert": {
+      post: {
+        summary: "Konversi penawaran ke tagihan invoice (M4-US2 / PRO-20)",
+        description: "Aksi perubahan status penawaran yang sudah 'disetujui' menjadi invoice 'belum_lunas'.",
+        operationId: "convertQuotationToInvoice",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" }, example: 12 }
+        ],
+        responses: {
+          "201": {
+            description: "Invoice berhasil terbentuk dari penawaran",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ConvertInvoiceResponse" }
+              }
+            }
+          },
+          "400": {
+            description: "Penawaran belum disetujui sehingga tidak dapat dikonversi",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+                example: {
+                  success: false,
+                  error: {
+                    code: "QUOTATION_NOT_ACCEPTED",
+                    message: "Penawaran belum disetujui dan tidak dapat dikonversi ke tagihan",
+                    fields: null
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoice_id}/payments": {
+      post: {
+        summary: "Mulai transaksi pembayaran invoice (Midtrans Sandbox Snap)",
+        operationId: "createInvoicePayment",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "invoice_id", in: "path", required: true, schema: { type: "integer" }, example: 89 }
+        ],
+        responses: {
+          "201": {
+            description: "Snap token dan URL pembayaran berhasil diterbitkan",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PaymentResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/payments/midtrans": {
+      post: {
+        summary: "Webhook notifikasi status pembayaran Midtrans (Publik)",
+        description: "Endpoint publik tanpa bearer JWT. Diverifikasi dengan signature SHA-512.",
+        operationId: "handleMidtransWebhook",
+        responses: {
+          "200": {
+            description: "Notifikasi berhasil diproses",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: { received: { type: "boolean", example: true } }
+                    }
+                  }
                 }
               }
             }
@@ -329,586 +560,92 @@ export const openapiSpec = {
       }
     },
     "/customers": {
-      "get": {
-        "summary": "Mendapatkan Daftar Pelanggan",
-        "operationId": "getCustomers",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
+      get: {
+        summary: "Daftar pelanggan aktif (M4-US1)",
+        operationId: "getCustomers",
+        security: [{ bearerAuth: [] }],
+        responses: {
           "200": {
-            "description": "Daftar pelanggan"
+            description: "Daftar pelanggan berhasil diambil",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          id: { type: "integer", example: 17 },
+                          name: { type: "string", example: "Budi Santoso" },
+                          email: { type: "string", example: "budi@example.com" },
+                          phone: { type: "string", example: "+6281234567890" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
-      "post": {
-        "summary": "Mendaftarkan / Memperbarui Profil Pelanggan",
-        "operationId": "createOrUpdateCustomer",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
+      post: {
+        summary: "Registrasi pelanggan baru (M4-US1)",
+        operationId: "createCustomer",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CustomerInput"
+              schema: {
+                type: "object",
+                required: ["name", "email"],
+                properties: {
+                  name: { type: "string", example: "Budi Santoso" },
+                  email: { type: "string", example: "budi@example.com" },
+                  phone: { type: "string", example: "+6281234567890" }
+                }
               }
             }
           }
         },
-        "responses": {
+        responses: {
           "201": {
-            "description": "Profil pelanggan berhasil disimpan"
+            description: "Pelanggan berhasil terdaftar"
           }
         }
       }
     },
-    "/quotations": {
-      "post": {
-        "summary": "Membuat Dokumen Penawaran Baru (Quotation)",
-        "operationId": "createQuotation",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
+    "/events": {
+      post: {
+        summary: "Event bus antarmodul (Kontrak K-09, order.paid / order.cancelled)",
+        description: "Mengirimkan atau menerima notifikasi status pesanan lunas ke Modul 9 (Stok).",
+        operationId: "handleModuleEvent",
+        security: [{ serviceKey: [] }],
+        requestBody: {
+          required: true,
+          content: {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QuotationInput"
-              }
+              schema: { $ref: "#/components/schemas/EventPayload" }
             }
           }
         },
-        "responses": {
-          "201": {
-            "description": "Quotation berhasil dibuat (status DRAFT)"
-          }
-        }
-      }
-    },
-    "/quotations/{id}/convert": {
-      "post": {
-        "summary": "Mengonversi Quotation ACCEPTED menjadi Invoice",
-        "operationId": "convertQuotationToInvoice",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Invoice berhasil diterbitkan dari quotation"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-    "responses": {
-      "400Error": {
-        "description": "Validasi request gagal",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "401Error": {
-        "description": "Unauthorized (Token tidak valid / tidak ada)",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "403Error": {
-        "description": "Forbidden (Peran tidak berhak)",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "409Error": {
-        "description": "Konflik idempotensi atau selisih harga",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "422Error": {
-        "description": "Aturan bisnis tidak terpenuhi",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "schemas": {
-      "CheckoutRequest": {
-        "type": "object",
-        "required": [
-          "source",
-          "customer",
-          "partner_id",
-          "business_unit_id",
-          "currency",
-          "items"
-        ],
-        "properties": {
-          "source": {
-            "type": "object",
-            "required": [
-              "module",
-              "cart_id"
-            ],
-            "properties": {
-              "module": {
-                "type": "string",
-                "example": "M5"
-              },
-              "cart_id": {
-                "type": "string",
-                "example": "cart_01J9ZQ7K3M"
-              },
-              "checkout_requested_at": {
-                "type": "string",
-                "format": "date-time"
-              }
-            }
-          },
-          "customer": {
-            "type": "object",
-            "required": [
-              "user_id",
-              "full_name",
-              "email"
-            ],
-            "properties": {
-              "user_id": {
-                "type": "string",
-                "example": "usr_01J9ZP2A8C"
-              },
-              "full_name": {
-                "type": "string",
-                "example": "Budi Santoso"
-              },
-              "email": {
-                "type": "string",
-                "example": "budi@example.com"
-              },
-              "phone": {
-                "type": "string",
-                "example": "+6281234567890"
-              },
-              "billing_address": {
-                "type": "object"
-              }
-            }
-          },
-          "partner_id": {
-            "type": "string",
-            "example": "ptr_01J9ZN5R1D"
-          },
-          "business_unit_id": {
-            "type": "string",
-            "example": "bu_01J9ZM3T9E"
-          },
-          "currency": {
-            "type": "string",
-            "example": "IDR"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "product_id",
-                "quantity",
-                "unit_price_displayed"
-              ],
-              "properties": {
-                "product_id": {
-                  "type": "string",
-                  "example": "prd_01J9ZK8W2F"
-                },
-                "quantity": {
-                  "type": "integer",
-                  "example": 2
-                },
-                "unit_price_displayed": {
-                  "type": "string",
-                  "example": "75000.00"
-                }
-              }
-            }
-          }
-        }
-      },
-      "CheckoutResponse": {
-        "type": "object",
-        "properties": {
-          "checkout_id": {
-            "type": "string"
-          },
-          "order": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "order_number": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string",
-                "example": "Baru"
-              },
-              "grand_total": {
-                "type": "string",
-                "example": "166500.00"
-              }
-            }
-          },
-          "invoice": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "invoice_number": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string",
-                "example": "ISSUED"
-              },
-              "pay_url": {
-                "type": "string",
-                "example": "/api/v1/invoices/inv_01J9ZR4B9K/payments"
-              }
-            }
-          }
-        }
-      },
-      "PaymentInitiateResponse": {
-        "type": "object",
-        "properties": {
-          "payment_id": {
-            "type": "string",
-            "example": "pay_01J9ZS1C2M"
-          },
-          "invoice_id": {
-            "type": "string"
-          },
-          "provider": {
-            "type": "string",
-            "example": "midtrans"
-          },
-          "gateway_order_id": {
-            "type": "string",
-            "example": "INV-202610-0001-1"
-          },
-          "amount": {
-            "type": "string",
-            "example": "166500.00"
-          },
-          "snap_token": {
-            "type": "string"
-          },
-          "redirect_url": {
-            "type": "string"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "MidtransWebhookPayload": {
-        "type": "object",
-        "required": [
-          "order_id",
-          "status_code",
-          "gross_amount",
-          "signature_key",
-          "transaction_status"
-        ],
-        "properties": {
-          "order_id": {
-            "type": "string",
-            "example": "INV-202610-0001-1"
-          },
-          "status_code": {
-            "type": "string",
-            "example": "200"
-          },
-          "gross_amount": {
-            "type": "string",
-            "example": "166500.00"
-          },
-          "signature_key": {
-            "type": "string"
-          },
-          "transaction_status": {
-            "type": "string",
-            "example": "settlement"
-          },
-          "fraud_status": {
-            "type": "string",
-            "example": "accept"
-          },
-          "payment_type": {
-            "type": "string",
-            "example": "bank_transfer"
-          }
-        }
-      },
-      "Product": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "sku": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "PRODUCT",
-              "SERVICE"
-            ]
-          },
-          "price": {
-            "type": "string"
-          },
-          "is_active": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ProductInput": {
-        "type": "object",
-        "required": [
-          "sku",
-          "name",
-          "type",
-          "price"
-        ],
-        "properties": {
-          "sku": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "PRODUCT",
-              "SERVICE"
-            ]
-          },
-          "price": {
-            "type": "string",
-            "example": "75000.00"
-          }
-        }
-      },
-      "CustomerInput": {
-        "type": "object",
-        "required": [
-          "full_name",
-          "email"
-        ],
-        "properties": {
-          "user_id": {
-            "type": "string"
-          },
-          "full_name": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "phone": {
-            "type": "string"
-          }
-        }
-      },
-      "QuotationInput": {
-        "type": "object",
-        "required": [
-          "customer_id",
-          "items"
-        ],
-        "properties": {
-          "customer_id": {
-            "type": "string"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "product_id",
-                "quantity"
-              ],
-              "properties": {
-                "product_id": {
-                  "type": "string"
-                },
-                "quantity": {
-                  "type": "integer"
-                },
-                "discount": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "required": [
-              "code",
-              "message",
-              "details",
-              "trace_id"
-            ],
-            "properties": {
-              "code": {
-                "type": "string"
-              },
-              "message": {
-                "type": "string"
-              },
-              "details": {
-                "type": "array",
-                "items": {
-                  "type": "object"
-                }
-              },
-              "trace_id": {
-                "type": "string",
-                "example": "req_9f2c1a"
-              }
-            }
-          }
-        }
-      },
-      "InvoicePaidEvent": {
-        "type": "object",
-        "description": "Event yang dipublikasikan Modul 4 saat invoice lunas untuk dikonsumsi Modul 7 (Jurnal) dan Modul 8 (Notifikasi)",
-        "properties": {
-          "event_id": {
-            "type": "string",
-            "example": "evt_01J9ZT3D4N"
-          },
-          "event_type": {
-            "type": "string",
-            "example": "invoice.paid"
-          },
-          "occurred_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-10-07T09:21:46Z"
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "invoice_id": {
-                "type": "string"
-              },
-              "invoice_number": {
-                "type": "string"
-              },
-              "order_id": {
-                "type": "string"
-              },
-              "partner_id": {
-                "type": "string"
-              },
-              "business_unit_id": {
-                "type": "string"
-              },
-              "customer_id": {
-                "type": "string"
-              },
-              "subtotal": {
-                "type": "string"
-              },
-              "tax_total": {
-                "type": "string"
-              },
-              "grand_total": {
-                "type": "string"
-              },
-              "currency": {
-                "type": "string",
-                "example": "IDR"
-              },
-              "payment": {
-                "type": "object",
-                "properties": {
-                  "provider": {
-                    "type": "string",
-                    "example": "midtrans"
-                  },
-                  "payment_type": {
-                    "type": "string"
-                  },
-                  "paid_at": {
-                    "type": "string",
-                    "format": "date-time"
+        responses: {
+          "200": {
+            description: "Event diterima dan diproses",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: { received: { type: "boolean", example: true } }
+                    }
                   }
                 }
               }
@@ -918,6 +655,4 @@ export const openapiSpec = {
       }
     }
   }
-} as const;
-
-export type OpenApiSpec = typeof openapiSpec;
+};
