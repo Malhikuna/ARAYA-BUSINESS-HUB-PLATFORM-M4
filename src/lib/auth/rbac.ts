@@ -9,6 +9,7 @@ interface RouteRule {
 const PUBLIC_ROUTE_PATTERNS: RegExp[] = [
   /^\/api\/v1\/webhooks\/.*/, // Webhook Midtrans diverifikasi via signature HMAC/SHA-512
   /^\/api\/v1\/health$/,
+  /^\/api\/v1\/openapi(\.json)?$/,
 ];
 
 // Matriks otorisasi berbasis peran (RBAC) per prefix rute API
