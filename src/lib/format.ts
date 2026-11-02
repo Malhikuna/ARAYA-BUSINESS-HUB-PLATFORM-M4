@@ -9,6 +9,8 @@ const rupiahFormatter = new Intl.NumberFormat("id-ID", {
   trailingZeroDisplay: "stripIfInteger",
 });
 
+const ribuanFormatter = new Intl.NumberFormat("id-ID");
+
 const tanggalFormatter = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "long",
   timeZone: TIME_ZONE,
@@ -36,6 +38,15 @@ export function formatRupiah(value: number | bigint | string): string {
     }
   }
   return rupiahFormatter.format(value);
+}
+
+/**
+ * Format string digit bulat menjadi ribuan bertitik tanpa float, mis. "70000" -> "70.000".
+ */
+export function formatRibuan(digits: string): string {
+  const clean = digits.replace(/\D/g, "");
+  if (!clean) return "";
+  return ribuanFormatter.format(BigInt(clean));
 }
 
 /** Format tanggal, mis. "2026-10-21" -> "21 Oktober 2026". */
