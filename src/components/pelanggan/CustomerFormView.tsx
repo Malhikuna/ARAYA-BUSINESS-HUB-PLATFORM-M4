@@ -47,6 +47,12 @@ export function CustomerFormView({
     } else if (form.phone.trim().length < MIN_PHONE_DIGITS) {
       errs.phone = `Nomor telepon minimal ${MIN_PHONE_DIGITS} digit setelah +62.`;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!form.email.trim()) {
+      errs.email = "Isi alamat email aktif pelanggan.";
+    } else if (!emailRegex.test(form.email.trim())) {
+      errs.email = "Format email tidak valid, contoh: nama@perusahaan.co.id.";
+    }
     if (!form.address.trim()) errs.address = "Isi alamat lengkap pelanggan.";
     return errs;
   };
@@ -173,17 +179,19 @@ export function CustomerFormView({
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="email" className="block text-xs font-semibold text-slate-800">Email</label>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#f0f4fa] text-slate-400 font-medium">Opsional</span>
+                <label htmlFor="email" className="block text-xs font-semibold text-slate-800">Email <span className="text-red-500">*</span></label>
+                <span className="text-[11px] text-slate-400">{form.email.length > 0 ? `${form.email.length}/${MAX_EMAIL_LENGTH} karakter` : `Maks. ${MAX_EMAIL_LENGTH} karakter`}</span>
               </div>
-              <div className="flex items-center h-11 px-4 rounded-xl bg-[#f0f4fa] focus-within:ring-1 focus-within:ring-[#19376d] transition-all">
+              <div className={`flex items-center h-11 px-4 rounded-xl transition-all relative ${errors.email ? "bg-white border-2 border-red-500 ring-2 ring-red-500/10" : "bg-[#f0f4fa] border border-transparent focus-within:ring-1 focus-within:ring-[#19376d]"}`}>
                 <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0 mr-3" />
                 <input
                   id="email" name="email" type="email" maxLength={MAX_EMAIL_LENGTH} value={form.email} onChange={handleChange} placeholder="nama@perusahaan.co.id"
-                  className="w-full bg-transparent border-0 outline-none text-xs text-slate-800 placeholder:text-slate-400"
+                  className="w-full bg-transparent border-0 outline-none text-xs text-slate-800 placeholder:text-slate-400 pr-8"
                 />
+                {errors.email && <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none"><AlertCircle className="w-4 h-4 text-red-500" /></div>}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">Alamat email untuk pengiriman invoice otomatis dan dokumen penawaran digital.</p>
+              {errors.email && <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 mt-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0" /><span>{errors.email}</span></div>}
+              <p className="text-[11px] text-slate-400 mt-1">Alamat email resmi untuk pengiriman invoice otomatis dan dokumen penawaran digital.</p>
             </div>
 
             <div>
@@ -241,8 +249,8 @@ export function CustomerFormView({
         subtitle={isEdit ? "Konfirmasi pembaruan informasi pelanggan" : "Konfirmasi penambahan data pelanggan"}
         description={
           isEdit
-            ? "Perubahan nama, kontak, atau alamat pelanggan ini akan langsung diterapkan pada daftar pelanggan serta dokumen penawaran berikutnya."
-            : "Pastikan informasi identitas, nomor telepon, dan alamat pelanggan di atas sudah sesuai sebelum disimpan ke daftar pelanggan."
+            ? "Perubahan nama, kontak, email, atau alamat pelanggan ini akan langsung diterapkan pada daftar pelanggan serta dokumen penawaran berikutnya."
+            : "Pastikan informasi identitas, nomor telepon, email, dan alamat pelanggan di atas sudah sesuai sebelum disimpan ke daftar pelanggan."
         }
         confirmLabel={isEdit ? "Ya, simpan perubahan" : "Ya, simpan"}
         variant={isEdit ? "primary" : "success"}
@@ -254,7 +262,7 @@ export function CustomerFormView({
           <div className="min-w-0">
             <div className="text-sm font-bold text-slate-900 truncate">{form.name.trim()}</div>
             <div className="text-[11px] font-mono text-slate-500">
-              {isEdit ? `${customerId} | ${formattedPhone}` : `${formattedPhone} | ${form.email.trim() || "Tanpa email"}`}
+              {isEdit ? `${customerId} | ${formattedPhone} | ${form.email.trim()}` : `${formattedPhone} | ${form.email.trim()}`}
             </div>
           </div>
         </div>
