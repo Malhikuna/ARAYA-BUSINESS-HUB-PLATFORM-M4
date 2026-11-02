@@ -21,6 +21,6 @@ export interface CustomerForm {
 export interface FormErrors {
   name?: string;
   phone?: string;
+  email?: string;
   address?: string;
 }
-
