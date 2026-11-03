@@ -265,6 +265,7 @@ Selain kontrak antarmodul publik di atas, Modul 4 menyediakan endpoint back-offi
 3. **`POST /api/m4/v1/invoices/{invoice_id}/payments`:** Customer memulai sesi pembayaran invoice untuk mendapatkan snap token Midtrans Sandbox.
 4. **`POST /api/m4/v1/webhooks/payments/midtrans`:** Webhook penerima status settlement dari Midtrans (Verifikasi signature SHA-512).
 5. **`GET & POST /api/m4/v1/customers` (M4-US1):** Manajemen data kontak dan alamat faktur pelanggan.
+6. **`PATCH /api/m4/v1/orders/{id}/status` (M4-US4):** Memperbarui status siklus pengerjaan pesanan (`baru`, `diproses`, `selesai`, `dibatalkan`).
 
 ---
 

@@ -668,6 +668,81 @@
         }
       }
     },
+    "/orders/{id}/status": {
+      "patch": {
+        "summary": "Memperbarui Status Pengerjaan Pesanan (M4-US4)",
+        "description": "Memperbarui status siklus pengerjaan pesanan (baru, diproses, selesai, dibatalkan).",
+        "operationId": "updateOrderStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 125
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "baru",
+                      "diproses",
+                      "selesai",
+                      "dibatalkan"
+                    ],
+                    "example": "diproses"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status order berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Order"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/products": {
       "get": {
         "summary": "Data produk/jasa aktif (Kontrak K-05, M4-US1, M5-US1, M6-US1)",

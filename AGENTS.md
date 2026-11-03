@@ -80,6 +80,9 @@ Setiap kontribusi kode harus mematuhi prinsip kebersihan kode:
   - Pisahkan logic presentasi (UI components) dengan domain/data logic (server actions, services, formatting).
   - Helper murni (seperti `src/lib/format.ts`) tidak boleh memiliki *side-effect* atau bergantung pada state UI.
 - **Kebersihan Kode:** Bebas dari kode mati (*dead/zombie code*), bebas dari `console.log` debug, dan tanpa *unused imports*.
+- **Batas Maksimal Baris Kode per File (Wajib < 400 Baris, Ideal < 300 Baris):**
+  - Setiap file kode (`page.tsx`, komponen UI, helper, data/service) **DILARANG KERAS melebihi 400 baris** (dan diutamakan di bawah **300 baris** sesuai [`docs/ATURAN_PR.md`](docs/ATURAN_PR.md)).
+  - Saat membuat halaman baru atau mengembangkan fitur pada halaman yang sudah ada, agen **WAJIB otomatis memecah kode** ke dalam komponen modular per domain (misal: `src/components/pelanggan/`, `src/components/produk/`, `src/components/penawaran/`, `src/components/common/`) serta memisahkan data/storage logic ke `src/lib/` agar seluruh struktur proyek seragam, rapi, dan mudah di-maintain.
 
 ---
 
