@@ -120,6 +120,15 @@ Modul 4 adalah otoritas tunggal atas penentuan harga dan pajak (*price authority
 
 ---
 
+## 📖 Dokumentasi API & Swagger UI
+
+Dokumentasi API interaktif dapat diakses langsung melalui browser saat server berjalan (pm run dev):
+- **Swagger UI Interaktif:** http://localhost:3000/docs (atau http://localhost:3000/api-docs)
+- **OpenAPI JSON Spec:** http://localhost:3000/api/v1/openapi.json\n- **File Spesifikasi:** [docs/openapi.yaml](docs/openapi.yaml) dan [docs/openapi.json](docs/openapi.json)
+- **Panduan Kontrak Integrasi:** [docs/api-contract.md](docs/api-contract.md)
+
+---
+
 ## 📁 Struktur Direktori
 
 ```
@@ -127,6 +136,9 @@ Modul 4 adalah otoritas tunggal atas penentuan harga dan pajak (*price authority
 ├── .github/
 │   └── pull_request_template.md  # Template standar pembukaan PR
 ├── docs/
+│   ├── api-contract.md           # Panduan lengkap integrasi API & Event
+│   ├── openapi.yaml              # Spesifikasi OpenAPI 3.0 (YAML)
+│   ├── openapi.json              # Spesifikasi OpenAPI 3.0 (JSON)
 │   ├── ATURAN_PR.md              # Panduan lengkap aturan PR (DeployHQ)
 │   └── GIT_WORKFLOW.md           # Panduan lengkap aturan branch & PR
 └── README.md                     # Dokumentasi utama proyek
