@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/*
+ * Token UI. Setiap warna ditulis light-dark(terang, gelap) sehingga tema
+ * mengikuti `color-scheme`: default ikut preferensi OS, dan bisa dipaksa
+ * dengan menambahkan class `light` atau `dark` pada <html> (atau elemen mana pun).
+ */
+:root {
+  color-scheme: light dark;
+
+  --background: light-dark(#f7f8fa, #0b1020);
+  --foreground: light-dark(#0f172a, #e6e9f2);
+  --surface: light-dark(#ffffff, #121829);
+  --surface-muted: light-dark(#f1f3f7, #1a2236);
+  --border: light-dark(#e2e6ee, #263049);
+  --muted-foreground: light-dark(#5b6578, #97a1b8);
+
+  --primary: light-dark(#1e4fd8, #6b93ff);
+  --primary-foreground: light-dark(#ffffff, #0b1020);
+
+  --success: light-dark(#15803d, #4ade80);
+  --warning: light-dark(#b45309, #fbbf24);
+  --danger: light-dark(#c62828, #f87171);
+  --info: light-dark(#0e7490, #22d3ee);
+
+  --ring: var(--primary);
+}
+
+.light {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-source-sans-3);
+  --font-heading: var(--font-plus-jakarta-sans);
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Animasi Halus Notifikasi Toast & Tombol Aksi */
+@keyframes toastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes toastSlideOut {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-toast-in {
+  animation: toastSlideIn 380ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-out {
+  animation: toastSlideOut 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 250ms ease-out forwards;
+}
+
+/* Custom Slim & Elegant Scrollbar (Aesthetic & Non-Intrusive) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+

@@ -21,8 +21,10 @@ Repository ini mengelola **Modul 4 (Sales & Invoicing)** yang bertanggung jawab 
 
 Seluruh anggota tim wajib mematuhi standar alur kerja Git berikut untuk menjaga kualitas kode, mencegah *merge conflict*, dan memastikan riwayat commit yang bersih. 
 
-> 📖 **Dokumentasi Lengkap:** Silakan baca panduan mendalam di [**docs/GIT_WORKFLOW.md**](docs/GIT_WORKFLOW.md).  
-> 📑 **Template Pull Request:** Otomatis tersedia di [**.github/pull_request_template.md**](.github/pull_request_template.md).
+> 📖 **Dokumentasi Lengkap:**  
+> - [**docs/ATURAN_PR.md**](docs/ATURAN_PR.md): Panduan lengkap penyusunan Pull Request (DeployHQ Standard).  
+> - [**docs/GIT_WORKFLOW.md**](docs/GIT_WORKFLOW.md): Panduan alur kerja Git & percabangan.  
+> - [**.github/pull_request_template.md**](.github/pull_request_template.md): Template otomatis deskripsi PR di GitHub.
 
 ### 1. Struktur & Hirarki Branch
 - **`main` (Protected):** Branch produksi stabil yang siap untuk rilis sprint/demo dosen. **Dilarang keras melakukan `git push` langsung ke `main`**.
@@ -125,6 +127,7 @@ Modul 4 adalah otoritas tunggal atas penentuan harga dan pajak (*price authority
 ├── .github/
 │   └── pull_request_template.md  # Template standar pembukaan PR
 ├── docs/
+│   ├── ATURAN_PR.md              # Panduan lengkap aturan PR (DeployHQ)
 │   └── GIT_WORKFLOW.md           # Panduan lengkap aturan branch & PR
 └── README.md                     # Dokumentasi utama proyek
 ```

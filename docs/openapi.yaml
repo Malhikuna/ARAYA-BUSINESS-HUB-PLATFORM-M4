@@ -1,0 +1,590 @@
+openapi: 3.0.3
+info:
+  title: Araya Business Hub — Modul 4 (Sales & Invoicing) Complete API & Events
+  description: >
+    Spesifikasi lengkap seluruh endpoint API dan Event keluar Modul 4 (Sales & Invoicing)
+    untuk integrasi dengan Modul 1, Modul 2, Modul 3, Modul 5, Modul 7, Modul 8, dan Payment Gateway Midtrans.
+  version: 1.0.0
+servers:
+  - url: https://api.araya-m4.unpas.ac.id/api/v1
+    description: Server Staging / Produksi
+  - url: http://localhost:3000/api/v1
+    description: Lingkungan Pengembangan Lokal
+
+paths:
+  /checkouts:
+    post:
+      summary: Terima Checkout Keranjang dari Modul 5 (M5-US4)
+      operationId: checkoutCart
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Request-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '201':
+          description: Order dan Invoice berhasil dibuat (status Order awal 'Baru')
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '409':
+          $ref: '#/components/responses/409Error'
+        '422':
+          $ref: '#/components/responses/422Error'
+
+  /invoices/{invoice_id}/payments:
+    post:
+      summary: Memulai Pembayaran Invoice Sandbox
+      operationId: createPaymentAttempt
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "inv_01J9ZR4B9K"
+      responses:
+        '201':
+          description: Snap Token dan Redirect URL Midtrans berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentInitiateResponse'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '409':
+          description: Invoice sudah lunas atau dibatalkan (INVOICE_NOT_PAYABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /webhooks/payments/midtrans:
+    post:
+      summary: Webhook Callback Payment Gateway Midtrans Sandbox
+      operationId: handleMidtransWebhook
+      description: >
+        Diverifikasi menggunakan signature SHA-512 (order_id + status_code + gross_amount + ServerKey).
+        Jika pembayaran sukses, status invoice dan order otomatis berubah menjadi PAID, lalu event invoice.paid diterbitkan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidtransWebhookPayload'
+      responses:
+        '200':
+          description: Webhook diterima dan diproses (idempoten)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          description: Signature tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{id}/status:
+    patch:
+      summary: Memperbarui Status Pengerjaan Pesanan (M4-US4)
+      operationId: updateOrderStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "ord_01J9ZR4B8J"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: ["Baru", "Diproses", "Selesai", "Dibatalkan"]
+                  example: "Diproses"
+      responses:
+        '200':
+          description: Status order berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                  status:
+                    type: string
+                  updated_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+
+  /products:
+    get:
+      summary: Mendapatkan Daftar Master Produk & Jasa
+      operationId: getProducts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: partner_id
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Daftar produk
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      summary: Menambahkan Produk / Jasa Baru
+      operationId: createProduct
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Produk berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /customers:
+    get:
+      summary: Mendapatkan Daftar Pelanggan
+      operationId: getCustomers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Daftar pelanggan
+    post:
+      summary: Mendaftarkan / Memperbarui Profil Pelanggan
+      operationId: createOrUpdateCustomer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInput'
+      responses:
+        '201':
+          description: Profil pelanggan berhasil disimpan
+
+  /quotations:
+    post:
+      summary: Membuat Dokumen Penawaran Baru (Quotation)
+      operationId: createQuotation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotationInput'
+      responses:
+        '201':
+          description: Quotation berhasil dibuat (status DRAFT)
+
+  /quotations/{id}/convert:
+    post:
+      summary: Mengonversi Quotation ACCEPTED menjadi Invoice
+      operationId: convertQuotationToInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Invoice berhasil diterbitkan dari quotation
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    400Error:
+      description: Validasi request gagal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    401Error:
+      description: Unauthorized (Token tidak valid / tidak ada)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    403Error:
+      description: Forbidden (Peran tidak berhak)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    409Error:
+      description: Konflik idempotensi atau selisih harga
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    422Error:
+      description: Aturan bisnis tidak terpenuhi
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    CheckoutRequest:
+      type: object
+      required:
+        - source
+        - customer
+        - partner_id
+        - business_unit_id
+        - currency
+        - items
+      properties:
+        source:
+          type: object
+          required: [module, cart_id]
+          properties:
+            module:
+              type: string
+              example: "M5"
+            cart_id:
+              type: string
+              example: "cart_01J9ZQ7K3M"
+            checkout_requested_at:
+              type: string
+              format: date-time
+        customer:
+          type: object
+          required: [user_id, full_name, email]
+          properties:
+            user_id:
+              type: string
+              example: "usr_01J9ZP2A8C"
+            full_name:
+              type: string
+              example: "Budi Santoso"
+            email:
+              type: string
+              example: "budi@example.com"
+            phone:
+              type: string
+              example: "+6281234567890"
+            billing_address:
+              type: object
+        partner_id:
+          type: string
+          example: "ptr_01J9ZN5R1D"
+        business_unit_id:
+          type: string
+          example: "bu_01J9ZM3T9E"
+        currency:
+          type: string
+          example: "IDR"
+        items:
+          type: array
+          items:
+            type: object
+            required: [product_id, quantity, unit_price_displayed]
+            properties:
+              product_id:
+                type: string
+                example: "prd_01J9ZK8W2F"
+              quantity:
+                type: integer
+                example: 2
+              unit_price_displayed:
+                type: string
+                example: "75000.00"
+
+    CheckoutResponse:
+      type: object
+      properties:
+        checkout_id:
+          type: string
+        order:
+          type: object
+          properties:
+            id:
+              type: string
+            order_number:
+              type: string
+            status:
+              type: string
+              example: "Baru"
+            grand_total:
+              type: string
+              example: "166500.00"
+        invoice:
+          type: object
+          properties:
+            id:
+              type: string
+            invoice_number:
+              type: string
+            status:
+              type: string
+              example: "ISSUED"
+            pay_url:
+              type: string
+              example: "/api/v1/invoices/inv_01J9ZR4B9K/payments"
+
+    PaymentInitiateResponse:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          example: "pay_01J9ZS1C2M"
+        invoice_id:
+          type: string
+        provider:
+          type: string
+          example: "midtrans"
+        gateway_order_id:
+          type: string
+          example: "INV-202610-0001-1"
+        amount:
+          type: string
+          example: "166500.00"
+        snap_token:
+          type: string
+        redirect_url:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    MidtransWebhookPayload:
+      type: object
+      required:
+        - order_id
+        - status_code
+        - gross_amount
+        - signature_key
+        - transaction_status
+      properties:
+        order_id:
+          type: string
+          example: "INV-202610-0001-1"
+        status_code:
+          type: string
+          example: "200"
+        gross_amount:
+          type: string
+          example: "166500.00"
+        signature_key:
+          type: string
+        transaction_status:
+          type: string
+          example: "settlement"
+        fraud_status:
+          type: string
+          example: "accept"
+        payment_type:
+          type: string
+          example: "bank_transfer"
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [PRODUCT, SERVICE]
+        price:
+          type: string
+        is_active:
+          type: boolean
+
+    ProductInput:
+      type: object
+      required: [sku, name, type, price]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [PRODUCT, SERVICE]
+        price:
+          type: string
+          example: "75000.00"
+
+    CustomerInput:
+      type: object
+      required: [full_name, email]
+      properties:
+        user_id:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+
+    QuotationInput:
+      type: object
+      required: [customer_id, items]
+      properties:
+        customer_id:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required: [product_id, quantity]
+            properties:
+              product_id:
+                type: string
+              quantity:
+                type: integer
+              discount:
+                type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details, trace_id]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+            trace_id:
+              type: string
+              example: "req_9f2c1a"
+
+    # Definisi Event Asinkron Keluar (M4 ke M7 dan M8)
+    InvoicePaidEvent:
+      type: object
+      description: Event yang dipublikasikan Modul 4 saat invoice lunas untuk dikonsumsi Modul 7 (Jurnal) dan Modul 8 (Notifikasi)
+      properties:
+        event_id:
+          type: string
+          example: "evt_01J9ZT3D4N"
+        event_type:
+          type: string
+          example: "invoice.paid"
+        occurred_at:
+          type: string
+          format: date-time
+          example: "2026-10-07T09:21:46Z"
+        data:
+          type: object
+          properties:
+            invoice_id:
+              type: string
+            invoice_number:
+              type: string
+            order_id:
+              type: string
+            partner_id:
+              type: string
+            business_unit_id:
+              type: string
+            customer_id:
+              type: string
+            subtotal:
+              type: string
+            tax_total:
+              type: string
+            grand_total:
+              type: string
+            currency:
+              type: string
+              example: "IDR"
+            payment:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  example: "midtrans"
+                payment_type:
+                  type: string
+                paid_at:
+                  type: string
+                  format: date-time

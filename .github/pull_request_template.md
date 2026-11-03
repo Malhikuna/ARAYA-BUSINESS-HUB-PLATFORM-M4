@@ -1,56 +1,43 @@
-## 📌 Deskripsi Singkat
-<!-- Jelaskan secara ringkas APA yang diubah dan MENGAPA perubahan ini dibuat -->
-
-## 🔗 Terkait Task / User Story
-- Closes / Relates to: #<!-- Masukkan nomor issue atau ID Story, misal: M4-US1, T-08 -->
-
-## 🛠️ Jenis Perubahan
-Pilih salah satu atau lebih dengan tanda `[x]`:
-- [ ] 🚀 `feat`: Penambahan fitur / endpoint baru
-- [ ] 🐛 `fix`: Perbaikan bug / logic error
-- [ ] ⚡ `refactor`: Perbaikan struktur kode (tanpa perubahan fitur)
-- [ ] 🧪 `test`: Penambahan / pembaruan test (unit/integration)
-- [ ] 📝 `docs`: Dokumentasi, README, atau OpenAPI spec
-- [ ] 🔧 `chore`: Konfigurasi dependency, linter, atau CI/CD
-
----
-
-## 🔍 Detail Perubahan Teknis
-<!-- Berikan poin-poin perubahan utama pada kode -->
-- 
+## 📝 What Changed?
+<!-- Rangkum secara jelas dan padat apa saja yang diubah dalam PR ini -->
 - 
 
----
+## 🎯 Why?
+<!-- Mengapa perubahan ini dibuat? Sebutkan kebutuhan, bug yang diperbaiki, atau tiket Scrum/Jira terkait -->
+- Resolves: #
+- Konteks & urgensi: 
 
-## 🧪 Panduan Pengujian (How to Test)
-<!-- Tulis langkah detail agar reviewer dapat menguji perubahan ini di lokal -->
-1. Jalankan migrasi / seed (jika ada):
+## 🛠️ How (Technical Approach)?
+<!-- Bagaimana cara kerjanya secara teknis? Jelaskan pendekatan arsitektur, logic baru, atau komponen yang disentuh -->
+- 
+
+## 🧪 How to Test?
+<!-- Langkah konkret bagi reviewer untuk memverifikasi PR ini di lokal -->
+1. Jalankan perintah instalasi / migrasi (jika ada):
    ```bash
-   # contoh: npm run db:migrate / npm run db:seed
+   # contoh: npm install
    ```
-2. Jalankan test suite:
+2. Jalankan test suite & linter:
    ```bash
-   # contoh: npm run test:unit
+   npm test
+   npm run lint
+   npm run build
    ```
-3. Endpoint / UI yang dapat dicoba:
-   - Endpoint: `POST /api/v1/...`
-   - Payload contoh:
-     ```json
-     {}
-     ```
+3. Langkah pengujian fungsional / API:
+   - 
 
----
+## 📊 Test Results & Verification
+<!-- Cantumkan bukti hasil pengujian: teks output test terminal, respons API, atau screenshot -->
+- [ ] Unit / Integration tests lolos hijau
+- [ ] Build dan lint lolos tanpa error
 
-## 📸 Bukti Pengujian (Screenshots / Test Output)
-<!-- Tempel screenshot hasil test passed di terminal atau respons API Postman/cURL -->
+## ⚠️ Risks & Breaking Changes
+<!-- Risiko teknis, potensi regresi, atau langkah migrasi jika ada -->
+- Risiko: 
+- Rencana rollback: Revert PR
 
-
----
-
-## ✅ Checklist Pra-Review (Definition of Done)
-Sebelum meminta review, pastikan:
-- [ ] Kode telah melalui *self-review* (tidak ada file sampah, debug log, atau kredensial rahasia).
-- [ ] Branch sudah *up-to-date* dengan branch target (`develop`).
-- [ ] Seluruh unit test dan linter berjalan sukses (hijau) di lokal.
-- [ ] Logika kalkulasi uang mematuhi aturan pembulatan (`ROUND_HALF_UP`) dan presisi desimal tanpa floating point.
-- [ ] Dokumentasi terkait (OpenAPI / Swagger / README) sudah diperbarui jika ada perubahan kontrak/skema.
+## ✅ Author Checklist
+- [ ] PR berukuran kecil dan fokus (atomic)
+- [ ] Sudah melakukan self-review diff (tidak ada console.log, file sampah, atau kredensial)
+- [ ] Target branch ditujukan ke `develop`
+- [ ] Semua test dan build di lokal berhasil hijau
