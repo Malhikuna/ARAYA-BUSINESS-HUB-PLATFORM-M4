@@ -83,7 +83,7 @@ export function ProductImportCsvModal({
       return;
     }
     if (parsedImportItems.length === 0) {
-      setImportError("Berkas CSV tidak memiliki baris data produk atau jasa yang dapat diimpor.");
+      setImportError("Berkas CSV tidak memiliki baris data katalog yang dapat diimpor.");
       return;
     }
     const itemsToImport = parsedImportItems;
@@ -94,9 +94,9 @@ export function ProductImportCsvModal({
   return (
     <ConfirmationModal
       open={open}
-      title="Impor data produk/jasa"
+      title="Impor data katalog"
       subtitle="Unggah berkas CSV katalog produk dan jasa"
-      description="Pastikan format berkas berekstensi .csv dengan susunan kolom: Nama, Kategori (Produk/Jasa), Harga, dan Deskripsi."
+      description="Pastikan format berkas berekstensi .csv dengan susunan kolom: Nama, Kategori (Produk/Jasa), Harga, Deskripsi, Stok (opsional), Satuan (opsional)."
       confirmLabel="Impor ke katalog"
       variant="primary"
       onConfirm={handleConfirm}
@@ -141,7 +141,10 @@ export function ProductImportCsvModal({
               <div key={item.sku} className="flex items-start justify-between gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-200/80">
                 <div className="min-w-0">
                   <div className="font-bold text-slate-900 truncate">{item.name}</div>
-                  <div className="text-[10px] font-mono text-slate-500">{item.sku} | {item.category} | {item.status}</div>
+                  <div className="text-[10px] font-mono text-slate-500">
+                    {item.sku} | {item.category} | {item.status}
+                    {item.category === "Produk" ? ` | Stok: ${item.stock ?? 0} ${item.unit || "Unit"}` : ` | Per ${item.unit || "Paket"}`}
+                  </div>
                 </div>
                 <div className="font-bold text-[#19376d] shrink-0">{formatRupiah(item.price)}</div>
               </div>
@@ -152,4 +155,3 @@ export function ProductImportCsvModal({
     </ConfirmationModal>
   );
 }
-

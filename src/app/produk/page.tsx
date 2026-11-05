@@ -7,15 +7,16 @@ import {
   initialProducts, subscribeProductStorage, getStoredProducts, getServerStoredProducts,
   getStoredUpdatedProducts, getServerStoredUpdatedProducts, getStoredDeletedProducts,
   getServerStoredDeletedProducts, saveImportedProductsToStorage, deleteProductFromStorage,
+  getStoredBusinessMode, getServerStoredBusinessMode, saveBusinessModeToStorage,
 } from "@/lib/data/mock-products";
-import { ProductItem } from "@/types/product";
+import { ProductItem, BusinessMode } from "@/types/product";
 import { formatRupiah } from "@/lib/format";
 import { downloadProductReportPdf } from "@/lib/export-product-pdf";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
-import { ProductTableCard } from "@/components/produk/ProductTableCard";
+import { ProductTableCard, ProductMetrics } from "@/components/produk/ProductTableCard";
 import { ProductImportCsvModal } from "@/components/produk/ProductImportCsvModal";
 
 const ITEMS_PER_PAGE = 10;
@@ -39,6 +40,7 @@ export default function ProdukPage() {
   const rawSavedProducts = useSyncExternalStore(subscribeProductStorage, getStoredProducts, getServerStoredProducts);
   const rawUpdatedProducts = useSyncExternalStore(subscribeProductStorage, getStoredUpdatedProducts, getServerStoredUpdatedProducts);
   const rawDeletedProducts = useSyncExternalStore(subscribeProductStorage, getStoredDeletedProducts, getServerStoredDeletedProducts);
+  const businessMode = useSyncExternalStore(subscribeProductStorage, getStoredBusinessMode, getServerStoredBusinessMode);
 
   const savedProducts = useMemo<ProductItem[]>(() => { try { return JSON.parse(rawSavedProducts); } catch { return []; } }, [rawSavedProducts]);
   const updatedProducts = useMemo<Record<string, ProductItem>>(() => { try { return JSON.parse(rawUpdatedProducts); } catch { return {}; } }, [rawUpdatedProducts]);
@@ -54,10 +56,15 @@ export default function ProdukPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [toastConfig, setToastConfig] = useState({
-    title: "Produk/jasa tersimpan",
+    title: "Item katalog tersimpan",
     description: "Item baru telah ditambahkan ke katalog penawaran dan tagihan.",
   });
   const [toastStatus, setToastStatus] = useState<ToastStatus>("hidden");
+
+  const handleBusinessModeChange = useCallback((mode: BusinessMode) => {
+    saveBusinessModeToStorage(mode);
+    setCurrentPage(1);
+  }, []);
 
   const showToast = useCallback((title: string, description: string) => {
     setToastConfig({ title, description });
@@ -70,13 +77,13 @@ export default function ProdukPage() {
       try {
         const flag = sessionStorage.getItem("araya_product_toast");
         if (!flag) return;
-        const toastName = sessionStorage.getItem("araya_product_toast_name") || "Produk/jasa";
+        const toastName = sessionStorage.getItem("araya_product_toast_name") || "Item katalog";
         sessionStorage.removeItem("araya_product_toast");
         sessionStorage.removeItem("araya_product_toast_name");
         if (flag === "updated") {
-          showToast("Perubahan produk/jasa tersimpan", `Data "${toastName}" berhasil diperbarui.`);
+          showToast("Perubahan katalog tersimpan", `Data "${toastName}" berhasil diperbarui.`);
         } else {
-          showToast("Produk/jasa berhasil ditambahkan", `Data "${toastName}" telah ditambahkan ke katalog penawaran dan tagihan.`);
+          showToast("Item katalog berhasil ditambahkan", `Data "${toastName}" telah ditambahkan ke katalog penawaran dan tagihan.`);
         }
       } catch { /* ignore */ }
     };
@@ -109,25 +116,36 @@ export default function ProdukPage() {
     });
   }, [savedProducts, deletedProductIds, currentTime]);
 
-  const metrics = useMemo(() => ({
-    totalCount: products.length,
-    physicalCount: products.filter((p) => p.category === "Produk").length,
-    serviceCount: products.filter((p) => p.category === "Jasa").length,
-    inactiveCount: products.filter((p) => p.status === "Nonaktif").length,
-    recentTotalCount: recentSavedProducts.length,
-    recentPhysicalCount: recentSavedProducts.filter((p) => p.category === "Produk").length,
-    recentServiceCount: recentSavedProducts.filter((p) => p.category === "Jasa").length,
-  }), [products, recentSavedProducts]);
+  const metrics = useMemo<ProductMetrics>(() => {
+    const physicalItems = products.filter((p) => p.category === "Produk");
+    const totalWarehouseUnits = physicalItems.reduce((acc, p) => acc + (p.stock ?? 0), 0);
+    const lowStockCount = physicalItems.filter((p) => (p.stock ?? 0) <= 5).length;
+
+    return {
+      totalCount: products.length,
+      physicalCount: physicalItems.length,
+      serviceCount: products.filter((p) => p.category === "Jasa").length,
+      inactiveCount: products.filter((p) => p.status === "Nonaktif").length,
+      recentTotalCount: recentSavedProducts.length,
+      recentPhysicalCount: recentSavedProducts.filter((p) => p.category === "Produk").length,
+      recentServiceCount: recentSavedProducts.filter((p) => p.category === "Jasa").length,
+      totalWarehouseUnits,
+      lowStockCount,
+    };
+  }, [products, recentSavedProducts]);
 
   const filteredProducts = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     return products.filter((item) => {
+      if (businessMode === "Produk" && item.category !== "Produk") return false;
+      if (businessMode === "Jasa" && item.category !== "Jasa") return false;
+
       const matchSearch = !query || item.name.toLowerCase().includes(query) || item.sku.toLowerCase().includes(query) || item.description.toLowerCase().includes(query);
-      const matchCategory = selectedCategory === "Semua kategori" || item.category === selectedCategory;
+      const matchCategory = businessMode !== "Semua" ? true : selectedCategory === "Semua kategori" || item.category === selectedCategory;
       const matchStatus = selectedStatus === "Semua status" || item.status === selectedStatus;
       return matchSearch && matchCategory && matchStatus;
     });
-  }, [products, searchTerm, selectedCategory, selectedStatus]);
+  }, [products, businessMode, searchTerm, selectedCategory, selectedStatus]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -140,7 +158,7 @@ export default function ProdukPage() {
     const target = productToDelete;
     deleteProductFromStorage(target.id);
     setProductToDelete(null);
-    showToast("Produk/jasa berhasil dihapus", `Data "${target.name}" telah dihapus dari katalog produk/jasa.`);
+    showToast("Item berhasil dihapus", `Data "${target.name}" telah dihapus dari katalog.`);
   };
 
   const handleImportItems = (parsedItems: Omit<ProductItem, "id" | "createdAt">[]) => {
@@ -153,7 +171,7 @@ export default function ProdukPage() {
     }));
     saveImportedProductsToStorage(newItems);
     setIsImportModalOpen(false);
-    showToast("Data produk/jasa berhasil diimpor", `${newItems.length} item katalog baru telah ditambahkan ke daftar produk/jasa.`);
+    showToast("Data katalog berhasil diimpor", `${newItems.length} item baru telah ditambahkan ke katalog.`);
   };
 
   const handleConfirmExportProductPdf = () => {
@@ -161,12 +179,12 @@ export default function ProdukPage() {
       products: filteredProducts,
       totalCount: metrics.totalCount,
       activeCount: metrics.totalCount - metrics.inactiveCount,
-      selectedCategory,
+      selectedCategory: businessMode === "Semua" ? selectedCategory : businessMode,
       selectedStatus,
       searchTerm,
     });
     setIsExportPreviewOpen(false);
-    showToast("Laporan PDF berhasil diunduh", `${filteredProducts.length} item produk/jasa telah diekspor ke dalam dokumen PDF.`);
+    showToast("Laporan PDF berhasil diunduh", `${filteredProducts.length} item katalog telah diekspor ke dalam dokumen PDF.`);
   };
 
   const previewDateLabel = useMemo(() => {
@@ -174,32 +192,43 @@ export default function ProdukPage() {
     return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(refTime);
   }, [currentTime]);
 
+  const pageTitle = businessMode === "Produk" ? "Katalog Produk" : businessMode === "Jasa" ? "Katalog Jasa & Layanan" : "Katalog Produk & Jasa";
+  const pageSubtitle = businessMode === "Produk"
+    ? "Kelola katalog produk fisik, kuantitas stok persediaan gudang, dan harga jual"
+    : businessMode === "Jasa"
+    ? "Kelola daftar paket layanan jasa profesional, tarif acuan, dan penawaran"
+    : "Kelola katalog produk fisik dan layanan jasa untuk penawaran dan tagihan";
+
   return (
     <>
-      <Breadcrumb separator="/" items={[{ label: "Produk/jasa" }]} />
+      <Breadcrumb separator="/" items={[{ label: "Katalog" }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-16.5">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight">Daftar produk/jasa</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">Kelola katalog produk fisik dan layanan jasa untuk penawaran dan tagihan</p>
+          <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight">{pageTitle}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">{pageSubtitle}</p>
         </div>
 
         <div className="w-full sm:w-auto flex items-center justify-end min-h-13">
           {toastStatus !== "hidden" ? (
             <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismissToast} />
           ) : (
-            <Link href="/produk/tambah" className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto shrink-0 animate-fade-in">
+            <Link
+              href={`/produk/tambah${businessMode !== "Semua" ? `?mode=${businessMode}` : ""}`}
+              className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto shrink-0 animate-fade-in"
+            >
               <Plus className="w-4 h-4" />
-              <span>Tambah produk/jasa</span>
+              <span>{businessMode === "Produk" ? "Tambah produk" : businessMode === "Jasa" ? "Tambah layanan jasa" : "Tambah item katalog"}</span>
             </Link>
           )}
         </div>
       </div>
 
       <ProductTableCard
-        metrics={metrics} searchTerm={searchTerm} selectedCategory={selectedCategory} selectedStatus={selectedStatus}
+        metrics={metrics} businessMode={businessMode} searchTerm={searchTerm} selectedCategory={selectedCategory} selectedStatus={selectedStatus}
         currentData={currentData} filteredCount={filteredProducts.length} safeCurrentPage={safeCurrentPage}
         totalPages={totalPages} startIndex={startIndex} endIndex={endIndex}
+        onBusinessModeChange={handleBusinessModeChange}
         onSearchChange={(val) => { setSearchTerm(val); setCurrentPage(1); }}
         onCategoryChange={(val) => { setSelectedCategory(val); setCurrentPage(1); }}
         onStatusChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}
@@ -211,23 +240,24 @@ export default function ProdukPage() {
 
       <ExportPdfPreviewModal
         open={isExportPreviewOpen}
-        title="Pratinjau laporan PDF katalog produk/jasa"
-        documentSubtitle="Laporan Katalog Produk & Jasa — Modul Penawaran & Tagihan Penjualan"
+        title="Pratinjau laporan PDF katalog"
+        documentSubtitle="Laporan Katalog — Modul Penawaran & Tagihan Penjualan"
         printedAtLabel={previewDateLabel}
         filters={[
-          { label: "Kategori", value: selectedCategory },
+          { label: "Tipe Usaha", value: businessMode },
+          { label: "Kategori", value: businessMode === "Semua" ? selectedCategory : businessMode },
           { label: "Status", value: selectedStatus },
           { label: "Cari", value: searchTerm.trim() ? `"${searchTerm.trim()}"` : "Semua" },
         ]}
         summaryCards={[
-          { label: "Total Produk & Jasa", value: `${metrics.totalCount} Item terdaftar`, accent: "navy" },
+          { label: "Total Item Terdaftar", value: `${metrics.totalCount} Item katalog`, accent: "navy" },
           { label: "Item Katalog Aktif", value: `${metrics.totalCount - metrics.inactiveCount} Siap ditransaksikan`, accent: "teal" },
           { label: "Data Terekspor (Sesuai Filter)", value: `${filteredProducts.length} Item katalog`, accent: "navy", highlightValue: true },
         ]}
         columns={[
           { header: "No", className: "w-9 text-slate-500" },
           { header: "Nama & SKU", className: "font-bold text-slate-900" },
-          { header: "Kategori", className: "text-slate-700 whitespace-nowrap" },
+          { header: "Kategori / Stok", className: "text-slate-700 whitespace-nowrap" },
           { header: "Harga Acuan", align: "right", className: "font-bold text-slate-900 whitespace-nowrap" },
           { header: "Status", className: "text-slate-700 whitespace-nowrap" },
           { header: "Deskripsi", className: "text-slate-700" },
@@ -238,20 +268,21 @@ export default function ProdukPage() {
             <div className="font-bold text-slate-900">{item.name}</div>
             <div className="text-[10px] font-mono text-slate-500 font-normal">{item.sku}</div>
           </div>,
-          item.category, formatRupiah(item.price), item.status, item.description,
+          item.category === "Produk" ? `Produk (${item.stock ?? 0} ${item.unit || "Unit"})` : `Jasa (Per ${item.unit || "Paket"})`,
+          formatRupiah(item.price), item.status, item.description,
         ])}
-        emptyMessage="Tidak ada data produk atau jasa yang sesuai dengan filter pencarian."
+        emptyMessage="Tidak ada data item katalog yang sesuai dengan filter pencarian."
         totalItems={filteredProducts.length}
-        itemLabel="produk/jasa"
+        itemLabel="item katalog"
         onClose={() => setIsExportPreviewOpen(false)}
         onConfirmDownload={handleConfirmExportProductPdf}
       />
 
       <ConfirmationModal
         open={Boolean(productToDelete)}
-        title="Hapus data produk/jasa?"
+        title="Hapus item katalog?"
         subtitle="Konfirmasi penghapusan item dari katalog"
-        description="Apakah Anda yakin ingin menghapus produk/jasa ini? Item yang telah dihapus tidak akan tampil lagi pada pemilihan katalog di dokumen penawaran maupun invoice baru."
+        description="Apakah Anda yakin ingin menghapus item ini? Item yang telah dihapus tidak akan tampil lagi pada pemilihan katalog di dokumen penawaran maupun invoice baru."
         confirmLabel="Ya, hapus"
         variant="danger"
         onConfirm={handleConfirmDeleteProduct}

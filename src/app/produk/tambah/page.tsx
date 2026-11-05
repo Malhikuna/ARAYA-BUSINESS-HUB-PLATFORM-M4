@@ -1,18 +1,22 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import { generateProductSku, saveNewProductToStorage } from "@/lib/data/mock-products";
-import { ProductCategory, ProductItem } from "@/types/product";
+import React, { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { generateProductSku, saveNewProductToStorage, getStoredBusinessMode } from "@/lib/data/mock-products";
+import { ProductCategory, ProductItem, BusinessMode } from "@/types/product";
 import { ProductFormView, ProductFormValues } from "@/components/produk/ProductFormView";
 
-export default function TambahProdukPage() {
+function TambahProdukContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryMode = searchParams.get("mode") as BusinessMode | null;
+  const businessMode: BusinessMode = queryMode === "Produk" || queryMode === "Jasa" ? queryMode : getStoredBusinessMode();
 
   const handleConfirmSave = (form: ProductFormValues) => {
     const validCategory = form.category as ProductCategory;
     const cleanName = form.name.trim();
     const cleanPrice = form.price.trim();
+    const isProduct = validCategory === "Produk";
 
     const newItem: ProductItem = {
       id: `ITEM-${Date.now()}`,
@@ -24,6 +28,8 @@ export default function TambahProdukPage() {
         form.description.trim() ||
         `Item ${validCategory.toLowerCase()} terdaftar untuk transaksi penawaran dan faktur.`,
       status: "Aktif",
+      stock: isProduct ? (parseInt(form.stock || "0", 10) || 0) : undefined,
+      unit: form.unit?.trim() || (isProduct ? "Unit" : "Paket"),
       createdAt: new Date().toISOString(),
     };
 
@@ -34,8 +40,17 @@ export default function TambahProdukPage() {
   return (
     <ProductFormView
       mode="create"
+      businessMode={businessMode}
       onCancel={() => router.push("/produk")}
       onConfirmSave={handleConfirmSave}
     />
+  );
+}
+
+export default function TambahProdukPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs text-slate-500 text-center">Memuat formulir katalog...</div>}>
+      <TambahProdukContent />
+    </Suspense>
   );
 }
