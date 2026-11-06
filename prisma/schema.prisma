@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -6,4 +5,210 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model connection_test {
+  id         Int      @id @default(autoincrement())
+  checked_at DateTime @default(now()) @db.Timestamptz(3)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model customers {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String       @db.VarChar(150)
+  email      String       @unique @db.VarChar(255)
+  phone      String       @unique @db.VarChar(20)
+  address    String?
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at DateTime     @default(now()) @db.Timestamptz(6)
+  invoices   invoices[]
+  orders     orders[]
+  quotations quotations[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model document_sequences {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  document_type String   @db.VarChar(20)
+  period        String   @db.VarChar(6)
+  last_number   BigInt   @default(0)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([document_type, period], map: "uq_document_sequence")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model invoice_items {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_id         String            @db.Uuid
+  product_service_id String            @db.Uuid
+  description        String?
+  quantity           Decimal           @db.Decimal(15, 2)
+  unit_price         Decimal           @db.Decimal(15, 2)
+  discount_amount    Decimal           @default(0) @db.Decimal(15, 2)
+  tax_rate           Decimal           @default(0) @db.Decimal(5, 2)
+  tax_amount         Decimal           @default(0) @db.Decimal(15, 2)
+  subtotal           Decimal           @db.Decimal(15, 2)
+  total_amount       Decimal           @db.Decimal(15, 2)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  invoices           invoices          @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_invoice_items_invoice")
+  products_services  products_services @relation(fields: [product_service_id], references: [id], onUpdate: NoAction, map: "fk_invoice_items_product")
+
+  @@index([invoice_id], map: "idx_invoice_items_invoice")
+  @@index([product_service_id], map: "idx_invoice_items_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model invoices {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_number  String          @unique @db.VarChar(30)
+  quotation_id    String?         @unique @db.Uuid
+  order_id        String?         @unique @db.Uuid
+  customer_id     String          @db.Uuid
+  partner_id      String          @db.Uuid
+  invoice_date    DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  due_date        DateTime?       @db.Date
+  status          String          @default("UNPAID") @db.VarChar(20)
+  subtotal        Decimal         @default(0) @db.Decimal(15, 2)
+  discount_amount Decimal         @default(0) @db.Decimal(15, 2)
+  tax_amount      Decimal         @default(0) @db.Decimal(15, 2)
+  total_amount    Decimal         @default(0) @db.Decimal(15, 2)
+  paid_at         DateTime?       @db.Timestamptz(6)
+  payment_method  String?         @db.VarChar(50)
+  snap_token      String?
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  invoice_items   invoice_items[]
+  customers       customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_invoices_customer")
+  orders          orders?         @relation(fields: [order_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_invoices_order")
+  quotations      quotations?     @relation(fields: [quotation_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_invoices_quotation")
+
+  @@index([customer_id], map: "idx_invoices_customer")
+  @@index([partner_id], map: "idx_invoices_partner")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model order_items {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id           String            @db.Uuid
+  product_service_id String            @db.Uuid
+  quantity           Decimal           @db.Decimal(15, 2)
+  unit_price         Decimal           @db.Decimal(15, 2)
+  discount_amount    Decimal           @default(0) @db.Decimal(15, 2)
+  tax_rate           Decimal           @default(0) @db.Decimal(5, 2)
+  tax_amount         Decimal           @default(0) @db.Decimal(15, 2)
+  subtotal           Decimal           @db.Decimal(15, 2)
+  total_amount       Decimal           @db.Decimal(15, 2)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  orders             orders            @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_items_order")
+  products_services  products_services @relation(fields: [product_service_id], references: [id], onUpdate: NoAction, map: "fk_order_items_product")
+
+  @@index([order_id], map: "idx_order_items_order")
+  @@index([product_service_id], map: "idx_order_items_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model orders {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_number      String        @unique @db.VarChar(30)
+  customer_id       String        @db.Uuid
+  partner_id        String        @db.Uuid
+  status            String        @default("baru") @db.VarChar(20)
+  subtotal          Decimal       @default(0) @db.Decimal(15, 2)
+  discount_amount   Decimal       @default(0) @db.Decimal(15, 2)
+  tax_amount        Decimal       @default(0) @db.Decimal(15, 2)
+  total_amount      Decimal       @default(0) @db.Decimal(15, 2)
+  created_at        DateTime      @default(now()) @db.Timestamptz(6)
+  status_updated_at DateTime      @default(now()) @db.Timestamptz(6)
+  invoices          invoices?
+  order_items       order_items[]
+  customers         customers     @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_orders_customer")
+
+  @@index([customer_id], map: "idx_orders_customer")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model products_services {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku             String            @unique @db.VarChar(50)
+  name            String            @db.VarChar(150)
+  description     String?
+  type            String            @db.VarChar(20)
+  price           Decimal           @db.Decimal(15, 2)
+  tax_rate_id     String?           @db.Uuid
+  is_active       Boolean           @default(true)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+  partner_id      String            @db.Uuid
+  invoice_items   invoice_items[]
+  order_items     order_items[]
+  tax_rates       tax_rates?        @relation(fields: [tax_rate_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_products_tax_rate")
+  quotation_items quotation_items[]
+
+  @@index([tax_rate_id], map: "idx_products_tax_rate")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model quotation_items {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quotation_id       String            @db.Uuid
+  product_service_id String            @db.Uuid
+  description        String?
+  quantity           Decimal           @db.Decimal(15, 2)
+  unit_price         Decimal           @db.Decimal(15, 2)
+  discount_amount    Decimal           @default(0) @db.Decimal(15, 2)
+  tax_rate           Decimal           @default(0) @db.Decimal(5, 2)
+  tax_amount         Decimal           @default(0) @db.Decimal(15, 2)
+  subtotal           Decimal           @db.Decimal(15, 2)
+  total_amount       Decimal           @db.Decimal(15, 2)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  products_services  products_services @relation(fields: [product_service_id], references: [id], onUpdate: NoAction, map: "fk_quotation_items_product")
+  quotations         quotations        @relation(fields: [quotation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_quotation_items_quotation")
+
+  @@index([product_service_id], map: "idx_quotation_items_product")
+  @@index([quotation_id], map: "idx_quotation_items_quotation")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model quotations {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quotation_number String            @unique @db.VarChar(30)
+  customer_id      String            @db.Uuid
+  partner_id       String            @db.Uuid
+  quotation_date   DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
+  valid_until      DateTime?         @db.Date
+  status           String            @default("PENDING_APPROVAL") @db.VarChar(30)
+  subtotal         Decimal           @default(0) @db.Decimal(15, 2)
+  discount_amount  Decimal           @default(0) @db.Decimal(15, 2)
+  tax_amount       Decimal           @default(0) @db.Decimal(15, 2)
+  total_amount     Decimal           @default(0) @db.Decimal(15, 2)
+  notes            String?
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @db.Timestamptz(6)
+  invoices         invoices?
+  quotation_items  quotation_items[]
+  customers        customers         @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_quotations_customer")
+
+  @@index([customer_id], map: "idx_quotations_customer")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tax_rates {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String              @db.VarChar(100)
+  rate              Decimal             @db.Decimal(5, 2)
+  description       String?
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @db.Timestamptz(6)
+  products_services products_services[]
 }

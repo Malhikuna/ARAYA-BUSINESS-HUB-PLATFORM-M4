@@ -130,6 +130,42 @@ Dokumentasi API interaktif dapat diakses langsung melalui browser saat server be
 
 ---
 
+## 🗄️ Setup Database Lokal
+
+Proyek ini menyediakan konfigurasi PostgreSQL 17 berbasis Docker pada [docker-compose.yml](docker-compose.yml) dan mendukung koneksi ke Supabase melalui Prisma.
+
+### 1. Salin File Environment
+```bash
+cp .env.example .env
+```
+Secara default, `.env.example` sudah dikonfigurasi langsung untuk **Database Lokal (Docker Port 5433)** beserta `DIRECT_URL` dan `JWT_SECRET`. Jika ingin menggunakan **Supabase (Remote)**, sesuaikan `<PROJECT_REF>` dan `<PASSWORD>` pada variabel Supabase di `.env`.
+
+### 2. Jalankan Container PostgreSQL Lokal
+Pastikan Docker Desktop sudah berjalan, lalu jalankan perintah berikut di root project:
+```bash
+docker compose up -d
+```
+Container `araya-postgres` akan berjalan di `127.0.0.1:5433` (user: `araya`, password: `araya_local_dev_only`, database: `araya_business_hub`).
+
+Untuk memeriksa status container:
+```bash
+docker compose ps
+```
+
+### 3. Sinkronisasi Skema & Prisma Client
+Jalankan migrasi dan generate Prisma Client:
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+Untuk menghentikan database lokal:
+```bash
+docker compose down
+```
+
+---
+
 ## 📁 Struktur Direktori Dokumentasi
 
 ```
