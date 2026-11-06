@@ -69,7 +69,34 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
       assert.equal(res.status, 400); // Zod array min(1) validation error
     });
 
-    it('POST /api/m4/v1/quotations harus berhasil membuat penawaran baru dengan nomor urut unik (201)', async () => {
+    it('POST /api/m4/v1/quotations harus menolak item dengan product_service_id yang tidak terdaftar (400)', async () => {
+      const customer = await prisma.customers.findFirst();
+      assert.ok(customer, 'Customer seeder harus ada');
+
+      const req = new Request('http://localhost:3000/api/m4/v1/quotations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: customer.id,
+          items: [
+            {
+              product_service_id: 'a0000000-0000-4000-8000-000000000099',
+              quantity: 1,
+              unit_price: 100000,
+            },
+          ],
+        }),
+      });
+
+      const res = await createQuotationHandler(req);
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.equal(json.success, false);
+      assert.equal(json.error.code, 'VALIDATION_ERROR');
+      assert.ok(json.error.fields?.product_service_id);
+    });
+
+    it('POST /api/m4/v1/quotations harus berhasil membuat penawaran baru dengan nomor urut unik period bulanan (201)', async () => {
       // Ambil customer dan product yang ada dari seeder
       const [customer, product] = await Promise.all([
         prisma.customers.findFirst(),
@@ -104,7 +131,8 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
       const json = await res.json();
       assert.equal(json.success, true);
       assert.ok(json.data.id);
-      assert.ok(json.data.quotation_number.startsWith('PNW-'));
+      // Format nomor unik harus PNW-YYYYMM-XXXX (contoh: PNW-202611-0001) agar tidak bentrok saat ganti bulan
+      assert.match(json.data.quotation_number, /^PNW-\d{6}-\d{4}$/);
       assert.equal(json.data.status, 'PENDING_APPROVAL');
       assert.equal(json.data.quotation_items.length, 1);
 

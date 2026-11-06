@@ -104,7 +104,7 @@ export async function generateQuotationNumber(tx: Parameters<Parameters<typeof p
   });
 
   const paddedSequence = String(seq.last_number).padStart(4, '0');
-  return `PNW-${year}-${paddedSequence}`;
+  return `PNW-${period}-${paddedSequence}`;
 }
 
 export async function getQuotations(query: {
@@ -217,10 +217,25 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
     });
   }
 
-  // 2. Kalkulasi Finansial (Round-Half-Up, Non-Float) via Calculation Service (PRO-48)
+  // 2. Verifikasi Keberadaan Seluruh Produk/Jasa
+  const productIds = Array.from(new Set(data.items.map((it) => it.product_service_id)));
+  const existingProducts = await prisma.products_services.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, name: true, is_active: true },
+  });
+  const foundProductIds = new Set(existingProducts.map((p) => p.id));
+  const missingProductIds = productIds.filter((id) => !foundProductIds.has(id));
+
+  if (missingProductIds.length > 0) {
+    throw new QuotationValidationError('Produk atau jasa tidak ditemukan.', {
+      product_service_id: `Produk/jasa dengan ID '${missingProductIds.join(', ')}' tidak terdaftar di sistem.`,
+    });
+  }
+
+  // 3. Kalkulasi Finansial (Round-Half-Up, Non-Float) via Calculation Service (PRO-48)
   const totals = calculateQuotationTotals(data.items);
 
-  // 3. Simpan dalam Prisma Transaction Atomik
+  // 4. Simpan dalam Prisma Transaction Atomik
   return prisma.$transaction(async (tx) => {
     const quotationNumber = await generateQuotationNumber(tx);
 
