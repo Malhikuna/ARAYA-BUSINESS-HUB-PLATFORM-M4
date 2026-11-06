@@ -9,6 +9,6 @@ export default defineConfig({
   },
 
   datasource: {
-    url: env('SUPABASE_DATABASE_URL'),
+    url: env('DIRECT_URL') ?? env('SUPABASE_DATABASE_URL'),
   },
 });
