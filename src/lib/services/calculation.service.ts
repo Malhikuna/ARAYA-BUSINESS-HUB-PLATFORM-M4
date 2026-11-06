@@ -54,11 +54,21 @@ export interface CalculationSummary<T extends CalculationLineItemInput> {
     tax_amount: number;
     total_amount: number;
   }>;
+  calculatedItems: Array<T & {
+    subtotal: number;
+    discount_amount: number;
+    tax_rate: number;
+    tax_amount: number;
+    total_amount: number;
+  }>;
   subtotal: number;
   total_discount: number;
+  discount_amount: number;
   tax_total: number;
+  tax_amount: number;
   document_discount: number;
   grand_total: number;
+  total_amount: number;
   formatted: {
     subtotal: string;
     total_discount: string;
@@ -181,11 +191,15 @@ export function calculateQuotationTotals<T extends CalculationLineItemInput>(
 
   return {
     items: calculatedItems,
+    calculatedItems,
     subtotal,
     total_discount: totalLineDiscount,
+    discount_amount: totalLineDiscount,
     tax_total: totalTax,
+    tax_amount: totalTax,
     document_discount: docDiscount,
     grand_total: grandTotal,
+    total_amount: grandTotal,
     formatted: {
       subtotal: formatFinancialDecimal(subtotal),
       total_discount: formatFinancialDecimal(totalLineDiscount),

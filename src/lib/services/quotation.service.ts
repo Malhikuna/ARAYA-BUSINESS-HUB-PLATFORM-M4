@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { prisma } from '../prisma';
+import { calculateQuotationTotals, roundHalfUp } from './calculation.service';
+
+export { calculateQuotationTotals, roundHalfUp };
 
 export const DEFAULT_PARTNER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -76,59 +79,6 @@ export class InvalidQuotationStatusError extends Error {
   }
 }
 
-export function roundHalfUp(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-export function calculateQuotationTotals<
-  T extends {
-    quantity: number;
-    unit_price: number;
-    discount_amount?: number;
-    tax_rate?: number;
-  }
->(items: T[]) {
-  let subtotal = 0;
-  let totalDiscount = 0;
-  let totalTax = 0;
-
-  const calculatedItems = items.map((item) => {
-    const qty = item.quantity;
-    const price = item.unit_price;
-    const itemSubtotal = roundHalfUp(qty * price);
-    const itemDiscount = Math.min(itemSubtotal, roundHalfUp(item.discount_amount || 0));
-    const netAmount = roundHalfUp(itemSubtotal - itemDiscount);
-    const rate = item.tax_rate || 0;
-    const itemTax = roundHalfUp(netAmount * (rate / 100));
-    const itemTotal = roundHalfUp(netAmount + itemTax);
-
-    subtotal = roundHalfUp(subtotal + itemSubtotal);
-    totalDiscount = roundHalfUp(totalDiscount + itemDiscount);
-    totalTax = roundHalfUp(totalTax + itemTax);
-
-    return {
-      ...item,
-      quantity: qty,
-      unit_price: price,
-      discount_amount: itemDiscount,
-      tax_rate: rate,
-      subtotal: itemSubtotal,
-      tax_amount: itemTax,
-      total_amount: itemTotal,
-    };
-  });
-
-  const grandTotal = roundHalfUp(subtotal - totalDiscount + totalTax);
-
-  return {
-    calculatedItems,
-    subtotal,
-    discount_amount: totalDiscount,
-    tax_amount: totalTax,
-    total_amount: grandTotal,
-  };
-}
-
 export async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
@@ -149,12 +99,12 @@ export async function generateQuotationNumber(tx: Parameters<Parameters<typeof p
     create: {
       document_type: 'QUOTATION',
       period,
-      last_number: BigInt(1),
+      last_number: 1,
     },
   });
 
-  const formattedNum = String(seq.last_number).padStart(4, '0');
-  return `PNW-${year}-${formattedNum}`;
+  const paddedSequence = String(seq.last_number).padStart(4, '0');
+  return `PNW-${year}-${paddedSequence}`;
 }
 
 export async function getQuotations(query: {
@@ -267,7 +217,7 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
     });
   }
 
-  // 2. Kalkulasi Finansial (Round-Half-Up, Non-Float)
+  // 2. Kalkulasi Finansial (Round-Half-Up, Non-Float) via Calculation Service (PRO-48)
   const totals = calculateQuotationTotals(data.items);
 
   // 3. Simpan dalam Prisma Transaction Atomik
