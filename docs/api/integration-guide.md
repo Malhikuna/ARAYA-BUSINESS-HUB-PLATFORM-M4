@@ -3,7 +3,7 @@
 
 - **Versi Dokumen:** v1.0 (Mengacu pada *Panduan API Bersama v1.0 Draf 28 Okt 2026*)
 - **Status:** Wajib dan Berlaku untuk Seluruh Integrasi Antarmodul (M1–M14)
-- **Spesifikasi Mesin (OpenAPI):** [`docs/openapi.yaml`](openapi.yaml) & [`docs/openapi.json`](openapi.json)
+- **Spesifikasi Mesin (OpenAPI):** [`docs/api/openapi.yaml`](openapi.yaml) & [`docs/api/openapi.json`](openapi.json)
 - **Halaman Dokumentasi Interaktif (Swagger UI):** `/api/m4/v1/docs` dan `/docs`
 
 ---
@@ -279,4 +279,4 @@ Selain kontrak antarmodul publik di atas, Modul 4 menyediakan endpoint back-offi
 - [x] Kode status HTTP sesuai standar (daftar kosong dijawab 200, bukan error)
 - [x] Tanggal ISO 8601, uang bilangan bulat rupiah tanpa desimal, status huruf kecil snake_case
 - [x] Event memiliki `event_id` unik dan penerima melakukan deduplikasi
-- [x] File `docs/openapi.yaml` sudah sesuai kode dan bisa dibuka di `/api/m4/v1/docs` dan `/docs`
+- [x] File `docs/api/openapi.yaml` sudah sesuai kode dan bisa dibuka di `/api/m4/v1/docs` dan `/docs`

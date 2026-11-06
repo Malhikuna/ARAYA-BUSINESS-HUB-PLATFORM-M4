@@ -17,8 +17,8 @@ Dokumen ini adalah acuan instruksi wajib bagi seluruh AI coding agent dan pengem
 ## 🚨 WAJIB: Baca Folder `docs/` Sebelum Eksekusi Tugas
 
 Sebelum merencanakan, membuat abstraksi, atau menulis kode, setiap agen **WAJIB membaca seluruh isi dan referensi pada folder [`docs/`](docs/)**:
-1. [**`docs/SKILL.md`**](docs/SKILL.md): Panduan utama filosofi Ponytail & tangga keputusan 7-Rung Hierarchy.
-2. [**`docs/GIT_WORKFLOW.md`**](docs/GIT_WORKFLOW.md): Aturan branching, standar Pull Request, batasan baris perubahan (100–300 baris), dan commit message konvensional.
+1. [**`docs/workflows/coding-standards.md`**](docs/workflows/coding-standards.md): Panduan utama filosofi Ponytail & tangga keputusan 7-Rung Hierarchy.
+2. [**`docs/workflows/git-workflow.md`**](docs/workflows/git-workflow.md): Aturan branching, standar Pull Request, batasan baris perubahan (100–300 baris), dan commit message konvensional.
 3. **Dokumen Produk & Bisnis (PRD, BRD, API Contract, dsb.)**: Seluruh file spesifikasi atau dokumen kebutuhan yang diletakkan di dalam folder `docs/` adalah acuan batas lingkup (*scope*) kerja. Jangan berasumsi di luar dokumen yang ada di `docs/`.
 
 ---
@@ -81,7 +81,7 @@ Setiap kontribusi kode harus mematuhi prinsip kebersihan kode:
   - Helper murni (seperti `src/lib/format.ts`) tidak boleh memiliki *side-effect* atau bergantung pada state UI.
 - **Kebersihan Kode:** Bebas dari kode mati (*dead/zombie code*), bebas dari `console.log` debug, dan tanpa *unused imports*.
 - **Batas Maksimal Baris Kode per File (Wajib < 400 Baris, Ideal < 300 Baris):**
-  - Setiap file kode (`page.tsx`, komponen UI, helper, data/service) **DILARANG KERAS melebihi 400 baris** (dan diutamakan di bawah **300 baris** sesuai [`docs/ATURAN_PR.md`](docs/ATURAN_PR.md)).
+  - Setiap file kode (`page.tsx`, komponen UI, helper, data/service) **DILARANG KERAS melebihi 400 baris** (dan diutamakan di bawah **300 baris** sesuai [`docs/workflows/pr-guidelines.md`](docs/workflows/pr-guidelines.md)).
   - Saat membuat halaman baru atau mengembangkan fitur pada halaman yang sudah ada, agen **WAJIB otomatis memecah kode** ke dalam komponen modular per domain (misal: `src/components/pelanggan/`, `src/components/produk/`, `src/components/penawaran/`, `src/components/common/`) serta memisahkan data/storage logic ke `src/lib/` agar seluruh struktur proyek seragam, rapi, dan mudah di-maintain.
 
 ---
