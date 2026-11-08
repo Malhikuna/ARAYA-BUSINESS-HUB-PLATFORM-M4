@@ -373,7 +373,7 @@ Tabel berikut menetapkan 12 Aturan Bisnis (*Business Rules*) dari dokumen BRD be
 
 **KEPUTUSAN ARSITEKTUR RESMI UNTUK MENYELARASKAN BRD, UI, API & DATABASE SUPABASE 1. Resolusi Tampilan SKU & Stok pada Partner Jasa (`BRD TB-06` vs Database `products_services`):** 
 
-• **Aturan di Lapisan UI (Frontend):** Sesuai `TB-06` dan skenario uji `TC-M4US1-05` , ketika Partner bertipe usaha **Jasa** (atau saat pengguna memilih tab/filter **Jasa** di halaman Katalog), **komponen UI (`ProductTableCard.tsx` & `ProductFormView.tsx`) WAJIB menyembunyikan kolom Stok, kode SKU (`SRV-...`), dan Berat** . Partner Jasa hanya melihat dan mengisi: *Nama Jasa, Satuan Layanan, Harga, dan Deskripsi*. 
+• **Aturan di Lapisan UI (Frontend):** Sesuai `TB-06` dan skenario uji `TC-M4US1-05` , ketika Partner bertipe usaha **Jasa** (atau saat pengguna memilih tab/filter **Jasa** di halaman Katalog), **komponen UI (`ProductTableCard.tsx` & `ProductFormView.tsx`) WAJIB menyembunyikan kolom Stok, kode SKU (`SRV-...`), dan Berat** . Partner Jasa hanya melihat dan mengisi: *Nama Jasa, Satuan Layanan, Harga, dan Deskripsi*. Sebaliknya, pada tab **Semua Katalog** (hanya dapat diakses Administrator), kode SKU ditampilkan untuk seluruh item, baik Produk (`PRD-...`) maupun Jasa (`SRV-...`). 
 
 • **Aturan di Lapisan Backend & Database (`products_services`):** Karena kolom `sku` di tabel Supabase `products_services` memiliki constraint `NOT NULL UNIQUE` , apabila payload pembuatan Jasa dari UI tidak menyertakan `sku` , maka **`product.service.ts` di Backend secara otomatis men-generate kode `sku` internal** (format `SRV-YYYYMM-XXXX` ) dan menetapkan `stock = 0` . Dengan demikian, ujian `TC-M4US1-05` di UI lulus 100% dan integritas database Supabase tetap terjaga 100%. 
 
@@ -434,7 +434,7 @@ Basis data Modul 4 menggunakan **PostgreSQL 17** yang dikelola melalui **Prisma 
 
 ##### **SINKRONISASI SKEMA SUPABASE TERHADAP ATURAN BISNIS BRD (TB-01 s/d TB-06 & BR-01 s/d BR-12)** 
 
-1. **Tabel `products_services` & Aturan Partner Jasa (`TB-06`):** Menyimpan item Produk ( `type = 'PRODUCT'` ) maupun Jasa ( `type = 'SERVICE'` ) . Kolom `sku` ( `NOT NULL UNIQUE` ) diisi manual oleh Partner Produk atau di-generate otomatis ( `SRV-YYYYMM-XXXX` ) di backend untuk Partner Jasa sehingga Partner Jasa tidak pernah melihat/mengisi SKU, Stok, atau Berat di UI ( `TC-M4US1-05` ) . 
+1. **Tabel `products_services` & Aturan Partner Jasa (`TB-06`):** Menyimpan item Produk ( `type = 'PRODUCT'` ) maupun Jasa ( `type = 'SERVICE'` ) . Kolom `sku` ( `NOT NULL UNIQUE` ) di-generate otomatis oleh sistem untuk semua tipe item ( `PRD-...` untuk Produk dan `SRV-YYYYMM-XXXX` untuk Jasa) sehingga SKU tidak pernah diketik manual oleh pengguna. Partner Jasa tidak pernah melihat/mengisi SKU, Stok, atau Berat di UI ( `TC-M4US1-05` ); pada tab **Semua Katalog** (khusus Administrator) SKU Produk maupun Jasa tetap ditampilkan. 
 
 2. **Tabel `customers` & Pencocokan Customer Tamu (`BR-10`, `BR-12`, `U-03`):** Menyimpan biodata pelanggan ( `name` , `phone` / WhatsApp, `email` , `address` ) . Saat Customer Tamu melakukan checkout tanpa akun dari M5, sistem melakukan *upsert*/pencocokan berdasarkan nomor WhatsApp ( `phone` ) , dan 4 digit terakhir `phone` dipakai untuk verifikasi pelacakan pesanan ( `BR-12` ) . 
 
@@ -589,7 +589,7 @@ pesanan (BR-12)
 |**Dimensi Desain UI**|**Spesifikasi Teknis Wajib pada Modul 4**|
 |---|---|
 |**Tata Letak & Navigasi**|Navbar atas tetap (`sticky`), Sidebar kiri (`240px`,`sticky`), grup menu**"Penawaran & tagihan penjualan"**<br>memuat:**Katalog**,**Pelanggan**,**Penawaran**,**Invoice**, dan**Order**, ditambah<br>halaman publik**Lacak Pesanan**untuk Customer Tamu.|
-|**Tampilan Adaptif Tipe**<br>**Usaha Partner (`TB-06` &**<br>**`TC-M4US1-05`)**|•**Mode / Partner Produk:**Tabel dan form menampilkan `SKU` (otomatis dari sistem),<br>`Nama Produk`,`Stok`,`Satuan`,`Harga`,`Status`,dan `Deskripsi`.<br>•**Mode / Partner Jasa:**Tabel dan form**wajib menyembunyikan kolom `Stok`,**<br>**`SKU`, dan `Berat`**(hanya menampilkan `Nama Jasa`,`Satuan Layanan`,`Harga`,<br>`Status`,dan `Deskripsi`).|
+|**Tampilan Adaptif Tipe**<br>**Usaha Partner (`TB-06` &**<br>**`TC-M4US1-05`)**|•**Mode / Partner Produk:**Tabel dan form menampilkan `SKU` (otomatis dari sistem),<br>`Nama Produk`,`Stok`,`Satuan`,`Harga`,`Status`,dan `Deskripsi`.<br>•**Mode / Partner Jasa:**Tabel dan form**wajib menyembunyikan kolom `Stok`,**<br>**`SKU`, dan `Berat`**(hanya menampilkan `Nama Jasa`,`Satuan Layanan`,`Harga`,<br>`Status`,dan `Deskripsi`).<br>•**Tab Semua Katalog (Administrator):**Tabel menampilkan `SKU` untuk seluruh item, baik Produk (`PRD-...`) maupun Jasa (`SRV-...`).|
 |**Lima Warna Status Baku**|•**Abu-abu:**Nonaktif / Draft<br>•**Kuning:**Menunggu persetujuan (Quotation), Belum lunas (Invoice), Baru (Order)<br>•**Biru Muda:**Diproses (Order)<br>•**Hijau:**Disetujui (Quotation), Lunas (Invoice), Selesai (Order), Aktif<br>•**Merah:**Ditolak / Gagal|
 |**Format Data & Ikonografi**|Mata uang `Rp 1.250.000` (rata kanan); tanggal `7 Nov 2026, 17.01 WIB`;telepon<br>`0812-3456-7890`.Menggunakan ikon**Lucide React**(dilarang keras memakai ikon<br>keyboard fisik dan ikon bintang Gemini).|
 
