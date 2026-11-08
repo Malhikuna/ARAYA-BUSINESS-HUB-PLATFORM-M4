@@ -68,7 +68,7 @@ export function ProductCatalogSidebar({
           <h3 className="text-xs font-heading font-bold text-slate-900">
             Ketentuan integrasi buku besar
           </h3>
-          {mode === "detail" ? (
+          {mode === "detail" && sku ? (
             <p className="text-[11px] text-slate-600 leading-relaxed">
               Entri ini terhubung ke kode akun pendapatan (Akun 4-4000) dengan kode referensi{" "}
               <span className="font-mono font-semibold text-slate-800">{sku}</span>.

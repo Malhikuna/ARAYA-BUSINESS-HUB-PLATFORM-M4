@@ -2,10 +2,10 @@
 
 import React, { useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { findProductById, saveUpdatedProductToStorage } from "@/lib/data/mock-products";
-import { ProductCategory, ProductItem } from "@/types/product";
+import { findProductById, saveUpdatedProductToStorage, getStoredBusinessMode } from "@/lib/data/mock-products";
+import { ProductCategory, ProductItem, BusinessMode } from "@/types/product";
 import { ProductFormView, ProductFormValues } from "@/components/produk/ProductFormView";
 
 const MAX_PRICE_DIGITS = 15;
@@ -21,15 +21,19 @@ function useIsMounted(): boolean {
 
 function UbahProdukContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMounted = useIsMounted();
   const routeParams = useParams<{ id: string }>();
   const productId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
+  const queryMode = searchParams.get("mode") as BusinessMode | null;
+  const businessMode: BusinessMode =
+    queryMode === "Produk" || queryMode === "Jasa" ? queryMode : getStoredBusinessMode();
 
   if (!isMounted) {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
-        <p className="text-xs text-slate-500 font-medium">Memuat data produk/jasa...</p>
+        <p className="text-xs text-slate-500 font-medium">Memuat data item katalog...</p>
       </div>
     );
   }
@@ -43,16 +47,16 @@ function UbahProdukContent() {
           <AlertCircle className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-base font-heading font-bold text-slate-900">Produk/Jasa Tidak Ditemukan</h2>
+          <h2 className="text-base font-heading font-bold text-slate-900">Item Katalog Tidak Ditemukan</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Data produk atau jasa dengan ID tersebut tidak ditemukan di katalog.
+            Data item dengan ID tersebut tidak ditemukan di katalog.
           </p>
         </div>
         <Link
           href="/produk"
           className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
         >
-          Kembali ke daftar produk/jasa
+          Kembali ke katalog
         </Link>
       </div>
     );
@@ -62,12 +66,15 @@ function UbahProdukContent() {
 
   const handleConfirmSave = (form: ProductFormValues) => {
     const validCategory = form.category as ProductCategory;
+    const isProduct = validCategory === "Produk";
     const updatedItem: ProductItem = {
       ...product,
       name: form.name.trim(),
       category: validCategory,
       status: form.status,
       price: `${form.price.trim()}.00`,
+      stock: isProduct ? (parseInt(form.stock || "0", 10) || 0) : undefined,
+      unit: form.unit?.trim() || (isProduct ? "Unit" : "Paket"),
       description:
         form.description.trim() ||
         `Item ${validCategory.toLowerCase()} terdaftar untuk transaksi penawaran dan faktur.`,
@@ -80,6 +87,7 @@ function UbahProdukContent() {
     <ProductFormView
       key={product.id}
       mode="edit"
+      businessMode={businessMode}
       sku={product.sku}
       initialValues={{
         name: product.name,
@@ -87,6 +95,8 @@ function UbahProdukContent() {
         status: product.status,
         price: initialIntegerPrice,
         description: product.description,
+        stock: product.stock !== undefined ? String(product.stock) : "0",
+        unit: product.unit || (product.category === "Produk" ? "Unit" : "Paket"),
       }}
       onCancel={() => router.push("/produk")}
       onConfirmSave={handleConfirmSave}
@@ -99,7 +109,7 @@ export default function UbahProdukPage() {
     <Suspense
       fallback={
         <div className="p-8 text-xs text-slate-500 flex items-center justify-center">
-          Memuat data produk/jasa...
+          Memuat data item katalog...
         </div>
       }
     >

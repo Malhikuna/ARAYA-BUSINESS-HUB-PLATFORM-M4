@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Package,
+  BookOpen,
   Users,
   FileText,
   Receipt,
@@ -20,9 +20,9 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    name: "Produk/jasa",
+    name: "Katalog",
     href: "/produk",
-    icon: Package,
+    icon: BookOpen,
     matchPrefix: "/produk",
   },
   {

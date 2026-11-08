@@ -28,10 +28,12 @@ export type AggregateProducts_services = {
 }
 
 export type Products_servicesAvgAggregateOutputType = {
+  stock: number | null
   price: runtime.Decimal | null
 }
 
 export type Products_servicesSumAggregateOutputType = {
+  stock: number | null
   price: runtime.Decimal | null
 }
 
@@ -41,6 +43,8 @@ export type Products_servicesMinAggregateOutputType = {
   name: string | null
   description: string | null
   type: string | null
+  unit: string | null
+  stock: number | null
   price: runtime.Decimal | null
   tax_rate_id: string | null
   is_active: boolean | null
@@ -55,6 +59,8 @@ export type Products_servicesMaxAggregateOutputType = {
   name: string | null
   description: string | null
   type: string | null
+  unit: string | null
+  stock: number | null
   price: runtime.Decimal | null
   tax_rate_id: string | null
   is_active: boolean | null
@@ -69,6 +75,8 @@ export type Products_servicesCountAggregateOutputType = {
   name: number
   description: number
   type: number
+  unit: number
+  stock: number
   price: number
   tax_rate_id: number
   is_active: number
@@ -80,10 +88,12 @@ export type Products_servicesCountAggregateOutputType = {
 
 
 export type Products_servicesAvgAggregateInputType = {
+  stock?: true
   price?: true
 }
 
 export type Products_servicesSumAggregateInputType = {
+  stock?: true
   price?: true
 }
 
@@ -93,6 +103,8 @@ export type Products_servicesMinAggregateInputType = {
   name?: true
   description?: true
   type?: true
+  unit?: true
+  stock?: true
   price?: true
   tax_rate_id?: true
   is_active?: true
@@ -107,6 +119,8 @@ export type Products_servicesMaxAggregateInputType = {
   name?: true
   description?: true
   type?: true
+  unit?: true
+  stock?: true
   price?: true
   tax_rate_id?: true
   is_active?: true
@@ -121,6 +135,8 @@ export type Products_servicesCountAggregateInputType = {
   name?: true
   description?: true
   type?: true
+  unit?: true
+  stock?: true
   price?: true
   tax_rate_id?: true
   is_active?: true
@@ -222,6 +238,8 @@ export type Products_servicesGroupByOutputType = {
   name: string
   description: string | null
   type: string
+  unit: string
+  stock: number
   price: runtime.Decimal
   tax_rate_id: string | null
   is_active: boolean
@@ -259,6 +277,8 @@ export type products_servicesWhereInput = {
   name?: Prisma.StringFilter<"products_services"> | string
   description?: Prisma.StringNullableFilter<"products_services"> | string | null
   type?: Prisma.StringFilter<"products_services"> | string
+  unit?: Prisma.StringFilter<"products_services"> | string
+  stock?: Prisma.IntFilter<"products_services"> | number
   price?: Prisma.DecimalFilter<"products_services"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.UuidNullableFilter<"products_services"> | string | null
   is_active?: Prisma.BoolFilter<"products_services"> | boolean
@@ -277,6 +297,8 @@ export type products_servicesOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tax_rate_id?: Prisma.SortOrderInput | Prisma.SortOrder
   is_active?: Prisma.SortOrder
@@ -298,6 +320,8 @@ export type products_servicesWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"products_services"> | string
   description?: Prisma.StringNullableFilter<"products_services"> | string | null
   type?: Prisma.StringFilter<"products_services"> | string
+  unit?: Prisma.StringFilter<"products_services"> | string
+  stock?: Prisma.IntFilter<"products_services"> | number
   price?: Prisma.DecimalFilter<"products_services"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.UuidNullableFilter<"products_services"> | string | null
   is_active?: Prisma.BoolFilter<"products_services"> | boolean
@@ -316,6 +340,8 @@ export type products_servicesOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tax_rate_id?: Prisma.SortOrderInput | Prisma.SortOrder
   is_active?: Prisma.SortOrder
@@ -338,6 +364,8 @@ export type products_servicesScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"products_services"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"products_services"> | string | null
   type?: Prisma.StringWithAggregatesFilter<"products_services"> | string
+  unit?: Prisma.StringWithAggregatesFilter<"products_services"> | string
+  stock?: Prisma.IntWithAggregatesFilter<"products_services"> | number
   price?: Prisma.DecimalWithAggregatesFilter<"products_services"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.UuidNullableWithAggregatesFilter<"products_services"> | string | null
   is_active?: Prisma.BoolWithAggregatesFilter<"products_services"> | boolean
@@ -352,6 +380,8 @@ export type products_servicesCreateInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -369,6 +399,8 @@ export type products_servicesUncheckedCreateInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: string | null
   is_active?: boolean
@@ -386,6 +418,8 @@ export type products_servicesUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -403,6 +437,8 @@ export type products_servicesUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -420,6 +456,8 @@ export type products_servicesCreateManyInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: string | null
   is_active?: boolean
@@ -434,6 +472,8 @@ export type products_servicesUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -447,6 +487,8 @@ export type products_servicesUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -466,6 +508,8 @@ export type products_servicesCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tax_rate_id?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
@@ -475,6 +519,7 @@ export type products_servicesCountOrderByAggregateInput = {
 }
 
 export type products_servicesAvgOrderByAggregateInput = {
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
 }
 
@@ -484,6 +529,8 @@ export type products_servicesMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tax_rate_id?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
@@ -498,6 +545,8 @@ export type products_servicesMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tax_rate_id?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
@@ -507,6 +556,7 @@ export type products_servicesMinOrderByAggregateInput = {
 }
 
 export type products_servicesSumOrderByAggregateInput = {
+  stock?: Prisma.SortOrder
   price?: Prisma.SortOrder
 }
 
@@ -614,6 +664,8 @@ export type products_servicesCreateWithoutInvoice_itemsInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -630,6 +682,8 @@ export type products_servicesUncheckedCreateWithoutInvoice_itemsInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: string | null
   is_active?: boolean
@@ -662,6 +716,8 @@ export type products_servicesUpdateWithoutInvoice_itemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -678,6 +734,8 @@ export type products_servicesUncheckedUpdateWithoutInvoice_itemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -694,6 +752,8 @@ export type products_servicesCreateWithoutOrder_itemsInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -710,6 +770,8 @@ export type products_servicesUncheckedCreateWithoutOrder_itemsInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: string | null
   is_active?: boolean
@@ -742,6 +804,8 @@ export type products_servicesUpdateWithoutOrder_itemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -758,6 +822,8 @@ export type products_servicesUncheckedUpdateWithoutOrder_itemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -774,6 +840,8 @@ export type products_servicesCreateWithoutQuotation_itemsInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -790,6 +858,8 @@ export type products_servicesUncheckedCreateWithoutQuotation_itemsInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: string | null
   is_active?: boolean
@@ -822,6 +892,8 @@ export type products_servicesUpdateWithoutQuotation_itemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -838,6 +910,8 @@ export type products_servicesUncheckedUpdateWithoutQuotation_itemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -854,6 +928,8 @@ export type products_servicesCreateWithoutTax_ratesInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -870,6 +946,8 @@ export type products_servicesUncheckedCreateWithoutTax_ratesInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -915,6 +993,8 @@ export type products_servicesScalarWhereInput = {
   name?: Prisma.StringFilter<"products_services"> | string
   description?: Prisma.StringNullableFilter<"products_services"> | string | null
   type?: Prisma.StringFilter<"products_services"> | string
+  unit?: Prisma.StringFilter<"products_services"> | string
+  stock?: Prisma.IntFilter<"products_services"> | number
   price?: Prisma.DecimalFilter<"products_services"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   tax_rate_id?: Prisma.UuidNullableFilter<"products_services"> | string | null
   is_active?: Prisma.BoolFilter<"products_services"> | boolean
@@ -929,6 +1009,8 @@ export type products_servicesCreateManyTax_ratesInput = {
   name: string
   description?: string | null
   type: string
+  unit?: string
+  stock?: number
   price: runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: boolean
   created_at?: Date | string
@@ -942,6 +1024,8 @@ export type products_servicesUpdateWithoutTax_ratesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -958,6 +1042,8 @@ export type products_servicesUncheckedUpdateWithoutTax_ratesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -974,6 +1060,8 @@ export type products_servicesUncheckedUpdateManyWithoutTax_ratesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1036,6 +1124,8 @@ export type products_servicesSelect<ExtArgs extends runtime.Types.Extensions.Int
   name?: boolean
   description?: boolean
   type?: boolean
+  unit?: boolean
+  stock?: boolean
   price?: boolean
   tax_rate_id?: boolean
   is_active?: boolean
@@ -1055,6 +1145,8 @@ export type products_servicesSelectCreateManyAndReturn<ExtArgs extends runtime.T
   name?: boolean
   description?: boolean
   type?: boolean
+  unit?: boolean
+  stock?: boolean
   price?: boolean
   tax_rate_id?: boolean
   is_active?: boolean
@@ -1070,6 +1162,8 @@ export type products_servicesSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   name?: boolean
   description?: boolean
   type?: boolean
+  unit?: boolean
+  stock?: boolean
   price?: boolean
   tax_rate_id?: boolean
   is_active?: boolean
@@ -1085,6 +1179,8 @@ export type products_servicesSelectScalar = {
   name?: boolean
   description?: boolean
   type?: boolean
+  unit?: boolean
+  stock?: boolean
   price?: boolean
   tax_rate_id?: boolean
   is_active?: boolean
@@ -1093,7 +1189,7 @@ export type products_servicesSelectScalar = {
   partner_id?: boolean
 }
 
-export type products_servicesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sku" | "name" | "description" | "type" | "price" | "tax_rate_id" | "is_active" | "created_at" | "updated_at" | "partner_id", ExtArgs["result"]["products_services"]>
+export type products_servicesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sku" | "name" | "description" | "type" | "unit" | "stock" | "price" | "tax_rate_id" | "is_active" | "created_at" | "updated_at" | "partner_id", ExtArgs["result"]["products_services"]>
 export type products_servicesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   invoice_items?: boolean | Prisma.products_services$invoice_itemsArgs<ExtArgs>
   order_items?: boolean | Prisma.products_services$order_itemsArgs<ExtArgs>
@@ -1122,6 +1218,8 @@ export type $products_servicesPayload<ExtArgs extends runtime.Types.Extensions.I
     name: string
     description: string | null
     type: string
+    unit: string
+    stock: number
     price: runtime.Decimal
     tax_rate_id: string | null
     is_active: boolean
@@ -1560,6 +1658,8 @@ export interface products_servicesFieldRefs {
   readonly name: Prisma.FieldRef<"products_services", 'String'>
   readonly description: Prisma.FieldRef<"products_services", 'String'>
   readonly type: Prisma.FieldRef<"products_services", 'String'>
+  readonly unit: Prisma.FieldRef<"products_services", 'String'>
+  readonly stock: Prisma.FieldRef<"products_services", 'Int'>
   readonly price: Prisma.FieldRef<"products_services", 'Decimal'>
   readonly tax_rate_id: Prisma.FieldRef<"products_services", 'String'>
   readonly is_active: Prisma.FieldRef<"products_services", 'Boolean'>

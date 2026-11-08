@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertCircle, Package, Pencil } from "lucide-react";
 import { formatRupiah, formatRibuan } from "@/lib/format";
-import { findProductById } from "@/lib/data/mock-products";
-import { ProductItem } from "@/types/product";
+import { findProductById, getStoredBusinessMode } from "@/lib/data/mock-products";
+import { ProductItem, BusinessMode } from "@/types/product";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { ProductCatalogSidebar } from "@/components/produk/ProductCatalogSidebar";
@@ -21,18 +21,20 @@ function useIsMounted(): boolean {
   );
 }
 
-function LihatProdukDetailView({ product }: { product: ProductItem }) {
+function LihatProdukDetailView({ product, businessMode = "Semua" }: { product: ProductItem; businessMode?: BusinessMode }) {
   const integerPrice = product.price.split(".")[0].replace(/\D/g, "");
   const isActive = product.status === "Aktif";
+  const isProduct = product.category === "Produk";
+  const isServiceOnly = businessMode === "Jasa";
 
   return (
     <>
-      <Breadcrumb separator="/" items={[{ label: "Produk/jasa", href: "/produk" }, { label: "Lihat" }]} className="mb-3" />
-      <BackLink href="/produk" label="Kembali ke daftar produk/jasa" />
+      <Breadcrumb separator="/" items={[{ label: "Katalog", href: "/produk" }, { label: "Lihat" }]} className="mb-3" />
+      <BackLink href="/produk" label="Kembali ke katalog" />
 
       <div className="mb-6">
         <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight">
-          Detail produk/jasa
+          Detail item katalog
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Rincian informasi item produk fisik atau layanan jasa pada katalog penawaran dan faktur.
@@ -47,7 +49,11 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
               <span>Rincian item katalog</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="text-xs text-slate-500 font-mono font-semibold">SKU: {product.sku}</span>
+              {!isServiceOnly && (
+                <span className="text-xs text-slate-500 font-mono font-semibold">
+                  {isProduct ? `SKU: ${product.sku}` : `Kode: ${product.sku}`}
+                </span>
+              )}
               {isActive ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -63,7 +69,7 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
           </div>
 
           <div>
-            <span className="block text-xs font-bold text-slate-800 mb-2">Nama produk/jasa</span>
+            <span className="block text-xs font-bold text-slate-800 mb-2">Nama item katalog</span>
             <div className="w-full min-h-11 px-4 py-2.5 rounded-lg bg-[#f8fafc] border border-slate-200 text-xs sm:text-sm font-semibold text-slate-900 flex items-center">
               {product.name}
             </div>
@@ -73,7 +79,7 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
             <div>
               <span className="block text-xs font-bold text-slate-800 mb-2">Kategori</span>
               <div className="w-full h-11 px-4 rounded-lg bg-[#f8fafc] border border-slate-200 text-xs sm:text-sm text-slate-800 flex items-center">
-                {product.category}
+                {product.category === "Produk" ? "Produk (Barang Fisik)" : "Jasa (Layanan)"}
               </div>
             </div>
             <div>
@@ -84,8 +90,35 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
             </div>
           </div>
 
+          {/* Stok Fisik atau Satuan Layanan */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {isProduct ? (
+              <>
+                <div>
+                  <span className="block text-xs font-bold text-slate-800 mb-2">Stok Tersedia</span>
+                  <div className="w-full h-11 px-4 rounded-lg bg-[#f8fafc] border border-slate-200 text-xs sm:text-sm font-bold text-[#19376d] flex items-center">
+                    {product.stock ?? 0} {product.unit || "Unit"}
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-xs font-bold text-slate-800 mb-2">Satuan Barang</span>
+                  <div className="w-full h-11 px-4 rounded-lg bg-[#f8fafc] border border-slate-200 text-xs sm:text-sm text-slate-800 flex items-center">
+                    {product.unit || "Unit"}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <span className="block text-xs font-bold text-slate-800 mb-2">Satuan Layanan</span>
+                <div className="w-full h-11 px-4 rounded-lg bg-[#f8fafc] border border-slate-200 text-xs sm:text-sm text-slate-800 flex items-center">
+                  Per {product.unit || "Paket"}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
-            <span className="block text-xs font-bold text-slate-800 mb-2">Harga (Rp)</span>
+            <span className="block text-xs font-bold text-slate-800 mb-2">Harga Satuan Acuan (Rp)</span>
             <div className="flex items-center h-11 rounded-lg overflow-hidden bg-[#f8fafc] border border-slate-200">
               <div className="h-full px-3.5 bg-[#f0f4fa] border-r border-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700 select-none shrink-0">
                 Rp
@@ -95,7 +128,7 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
               </div>
             </div>
             <p className="text-[11px] text-slate-500 mt-1.5">
-              Harga satuan dasar sebelum pengenaan PPN 11% dan diskon transaksi.
+              Harga dasar sebelum pengenaan PPN 11% dan diskon transaksi.
             </p>
           </div>
 
@@ -118,7 +151,7 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
               className="px-5 h-10 rounded-lg bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold inline-flex items-center justify-center gap-2 transition-all shadow-xs"
             >
               <Pencil className="w-3.5 h-3.5" />
-              <span>Ubah produk/jasa</span>
+              <span>Ubah item katalog</span>
             </Link>
           </div>
         </div>
@@ -130,7 +163,7 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
           isNameFilled
           descriptionText={product.description}
           previewPrice={formatRupiah(product.price)}
-          sku={product.sku}
+          sku={isProduct ? product.sku : undefined}
         />
       </div>
     </>
@@ -146,7 +179,7 @@ function LihatProdukContent() {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
-        <p className="text-xs text-slate-500 font-medium">Memuat detail produk/jasa...</p>
+        <p className="text-xs text-slate-500 font-medium">Memuat detail item katalog...</p>
       </div>
     );
   }
@@ -160,22 +193,23 @@ function LihatProdukContent() {
           <AlertCircle className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-base font-heading font-bold text-slate-900">Produk/Jasa Tidak Ditemukan</h2>
+          <h2 className="text-base font-heading font-bold text-slate-900">Item Katalog Tidak Ditemukan</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Data produk atau jasa dengan ID tersebut tidak ditemukan di katalog.
+            Data item katalog dengan ID tersebut tidak ditemukan.
           </p>
         </div>
         <Link
           href="/produk"
           className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
         >
-          Kembali ke daftar produk/jasa
+          Kembali ke katalog
         </Link>
       </div>
     );
   }
 
-  return <LihatProdukDetailView product={product} />;
+  const businessMode = getStoredBusinessMode();
+  return <LihatProdukDetailView product={product} businessMode={businessMode} />;
 }
 
 export default function LihatProdukPage() {
@@ -183,7 +217,7 @@ export default function LihatProdukPage() {
     <Suspense
       fallback={
         <div className="p-8 text-xs text-slate-500 flex items-center justify-center">
-          Memuat detail produk/jasa...
+          Memuat detail item katalog...
         </div>
       }
     >
