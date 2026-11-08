@@ -46,7 +46,7 @@ export function ProductTableRow({
         <div className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs sm:text-sm">
           {item.name}
         </div>
-        {isItemProduct && !isServiceOnly && (
+        {!isServiceOnly && (
           <div className="text-[11px] font-mono text-slate-500 mt-0.5">{item.sku}</div>
         )}
       </td>
