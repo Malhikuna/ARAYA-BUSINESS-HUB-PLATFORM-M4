@@ -19,7 +19,7 @@ export default function TambahPelangganPage() {
       name: form.name.trim(),
       initials: getCustomerInitials(form.name, 1),
       avatarBg: "bg-blue-100 text-blue-700",
-      phone: form.phone.trim() ? `+62 ${form.phone.trim()}` : "0812 3456 7890",
+      phone: form.phone.trim() || "0812 3456 7890",
       email: form.email.trim() || "-",
       address: form.address.trim(),
       city: detectCityFromAddress(form.address.trim(), "Bandung"),

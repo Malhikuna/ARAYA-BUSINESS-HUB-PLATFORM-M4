@@ -12,8 +12,8 @@ import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { CustomerProfileSidebar } from "@/components/pelanggan/CustomerProfileSidebar";
 
 const MAX_NAME_LENGTH = 100;
-const MIN_PHONE_DIGITS = 9;
-const MAX_PHONE_DIGITS = 13;
+const MIN_PHONE_DIGITS = 8;
+const MAX_PHONE_LENGTH = 20;
 const MAX_EMAIL_LENGTH = 100;
 const MAX_ADDRESS_LENGTH = 250;
 
@@ -42,10 +42,12 @@ export function CustomerFormView({
   const validate = (): FormErrors => {
     const errs: FormErrors = {};
     if (!form.name.trim()) errs.name = "Isi nama pelanggan, misalnya PT Maju Bersama.";
-    if (!form.phone.trim()) {
-      errs.phone = "Isi nomor telepon aktif pelanggan.";
-    } else if (form.phone.trim().length < MIN_PHONE_DIGITS) {
-      errs.phone = `Nomor telepon minimal ${MIN_PHONE_DIGITS} digit setelah +62.`;
+    const trimmedPhone = form.phone.trim();
+    const phoneDigitCount = trimmedPhone.replace(/\D/g, "").length;
+    if (!trimmedPhone) {
+      errs.phone = "Isi nomor telepon / WhatsApp aktif pelanggan.";
+    } else if (phoneDigitCount < MIN_PHONE_DIGITS || !/^[+0-9\s-]{8,20}$/.test(trimmedPhone)) {
+      errs.phone = `Nomor telepon minimal ${MIN_PHONE_DIGITS} digit (contoh: 081234567890 atau +62 812-3456-7890).`;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.email.trim()) {
@@ -75,7 +77,7 @@ export function CustomerFormView({
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cleanNumber = e.target.value.replace(/\D/g, "").slice(0, MAX_PHONE_DIGITS);
+    const cleanNumber = e.target.value.replace(/[^+0-9\s-]/g, "").slice(0, MAX_PHONE_LENGTH);
     setForm((prev) => ({ ...prev, phone: cleanNumber }));
     clearFieldError("phone");
   };
@@ -107,7 +109,7 @@ export function CustomerFormView({
   };
 
   const initials = getCustomerInitials(isEdit ? form.name || fallbackName || "Pelanggan" : form.name, isEdit ? 2 : 1);
-  const formattedPhone = form.phone ? `+62 ${form.phone}` : "Belum diisi";
+  const formattedPhone = form.phone.trim() || "Belum diisi";
 
   return (
     <>
@@ -160,21 +162,19 @@ export function CustomerFormView({
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="phone" className="block text-xs font-semibold text-slate-800">Nomor telepon <span className="text-red-500">*</span></label>
-                <span className="text-[11px] text-slate-400">{form.phone.length > 0 ? `${form.phone.length}/${MAX_PHONE_DIGITS} digit` : `${MIN_PHONE_DIGITS}–${MAX_PHONE_DIGITS} digit`}</span>
+                <label htmlFor="phone" className="block text-xs font-semibold text-slate-800">Nomor telepon / WhatsApp <span className="text-red-500">*</span></label>
+                <span className="text-[11px] text-slate-400">{form.phone.length > 0 ? `${form.phone.length}/${MAX_PHONE_LENGTH} karakter` : `Min. ${MIN_PHONE_DIGITS} digit`}</span>
               </div>
               <div className={`flex items-center h-11 px-4 rounded-xl transition-all relative ${errors.phone ? "bg-white border-2 border-red-500 ring-2 ring-red-500/10" : "bg-[#f0f4fa] border border-transparent focus-within:ring-1 focus-within:ring-[#19376d]"}`}>
-                <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium pr-3 border-r border-slate-300/80">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" /><span>+62</span>
-                </div>
+                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0 mr-3" />
                 <input
-                  id="phone" name="phone" type="tel" inputMode="numeric" maxLength={MAX_PHONE_DIGITS} value={form.phone} onChange={handlePhoneChange} placeholder="812 3456 7890"
-                  className="w-full bg-transparent border-0 outline-none pl-3 pr-8 text-xs text-slate-800 placeholder:text-slate-400"
+                  id="phone" name="phone" type="tel" maxLength={MAX_PHONE_LENGTH} value={form.phone} onChange={handlePhoneChange} placeholder="Contoh: 0812-3456-7890 atau +62 812 3456 7890"
+                  className="w-full bg-transparent border-0 outline-none pr-8 text-xs text-slate-800 placeholder:text-slate-400"
                 />
                 {errors.phone && <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none"><AlertCircle className="w-4 h-4 text-red-500" /></div>}
               </div>
               {errors.phone && <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 mt-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0" /><span>{errors.phone}</span></div>}
-              <p className="text-[11px] text-slate-400 mt-1">Format nomor telepon aktif untuk konfirmasi penawaran dan bukti terima.</p>
+              <p className="text-[11px] text-slate-400 mt-1">Mendukung format lokal (08...) maupun kode negara (+62...) untuk WhatsApp dan konfirmasi penawaran.</p>
             </div>
 
             <div>

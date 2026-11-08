@@ -8,6 +8,7 @@ import {
   initialCustomers, getCustomerInitials, detectCityFromAddress, subscribeCustomerStorage,
   getStoredCustomers, getServerStoredCustomers, getStoredCustomerUpdates, getServerStoredCustomerUpdates,
   getStoredDeletedCustomers, getServerStoredDeletedCustomers, saveNewCustomerToStorage, deleteCustomerFromStorage,
+  syncCustomersFromDatabase,
 } from "@/lib/data/mock-customers";
 import { Customer } from "@/types/customer";
 import { downloadCustomerReportPdf } from "@/lib/export-customer-pdf";
@@ -64,6 +65,10 @@ function DaftarPelangganContent() {
   }, []);
 
   useEffect(() => {
+    syncCustomersFromDatabase();
+  }, []);
+
+  useEffect(() => {
     const consumeFlashToast = () => {
       try {
         const flag = sessionStorage.getItem("araya_show_toast");
@@ -74,7 +79,7 @@ function DaftarPelangganContent() {
         if (flag === "updated") {
           showToast("Perubahan pelanggan tersimpan", `Data "${toastName}" berhasil diperbarui.`);
         } else {
-          showToast("Pelanggan berhasil ditambahkan", `Data "${toastName}" sudah tersedia untuk penawaran, invoice, dan order.`);
+          showToast("Pelanggan tersimpan", `Data "${toastName}" sudah tersedia untuk penawaran, invoice, dan order.`);
         }
       } catch { /* ignore */ }
     };
@@ -117,7 +122,18 @@ function DaftarPelangganContent() {
 
   const customerList = useMemo(() => {
     const baseList = savedCustomers.length > 0
-      ? [...savedCustomers, ...initialCustomers.filter((c) => !savedCustomers.some((s) => s.id === c.id || s.name === c.name))]
+      ? [
+          ...savedCustomers,
+          ...initialCustomers.filter(
+            (c) =>
+              !savedCustomers.some(
+                (s) =>
+                  s.id === c.id ||
+                  s.name.toLowerCase() === c.name.toLowerCase() ||
+                  (s.email && c.email && s.email.toLowerCase() === c.email.toLowerCase())
+              )
+          ),
+        ]
       : initialCustomers;
     const afterUpdates = Object.keys(updatedCustomers).length > 0
       ? baseList.map((item) => (updatedCustomers[item.id] ? { ...item, ...updatedCustomers[item.id] } : item))
@@ -144,6 +160,7 @@ function DaftarPelangganContent() {
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
     return savedCustomers.filter((c) => {
       if (deletedCustomerIds.includes(c.id)) return false;
+      if (!c.id.startsWith("CUST-")) return false;
       if (!c.createdAt) return true;
       const createdTime = new Date(c.createdAt).getTime();
       return !isNaN(createdTime) && currentTime - createdTime < ONE_DAY_MS;
@@ -151,8 +168,8 @@ function DaftarPelangganContent() {
   }, [savedCustomers, deletedCustomerIds, currentTime]);
 
   const totalCount = customerList.length;
-  const activeAddedCount = savedCustomers.filter((c) => !deletedCustomerIds.includes(c.id)).length;
-  const newThisMonthCount = 3 + activeAddedCount;
+  const newlyCreatedCount = savedCustomers.filter((c) => !deletedCustomerIds.includes(c.id) && c.id.startsWith("CUST-")).length;
+  const newThisMonthCount = 3 + newlyCreatedCount;
 
   const handleConfirmExportPdf = () => {
     downloadCustomerReportPdf({ customers: filteredCustomers, totalRegistered: totalCount, activeCustomers: 15, selectedCity, searchTerm });
