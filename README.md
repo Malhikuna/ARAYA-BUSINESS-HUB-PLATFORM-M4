@@ -134,6 +134,11 @@ Dokumentasi API interaktif dapat diakses langsung melalui browser saat server be
 
 Proyek ini menyediakan konfigurasi PostgreSQL 17 berbasis Docker pada [docker-compose.yml](docker-compose.yml) dan mendukung koneksi ke Supabase melalui Prisma.
 
+> [!IMPORTANT]
+> **Aturan Pemisahan Lingkungan Database (Docker vs Supabase):**
+> - 🐳 **Docker (Lokal & Testing):** Wajib digunakan untuk seluruh aktivitas pengembangan, pengujian (*automated & manual testing*), operasi CRUD coba-coba (tambah, ubah, hapus data), serta eksekusi seeder dummy.
+> - ⚡ **Supabase (Production Only):** Khusus dialokasikan untuk server **Production / Live Deployment**. **DILARANG KERAS** menggunakan Supabase untuk testing atau memasukkan data sampah/dummy agar tabel produksi tetap bersih, rapi, dan valid.
+
 ### 1. Salin File Environment
 ```bash
 cp .env.example .env

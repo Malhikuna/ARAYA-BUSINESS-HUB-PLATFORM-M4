@@ -4,7 +4,7 @@ import {
   createProductSchema,
 } from '../src/lib/services/product.service';
 import { GET as getProductsHandler, POST as createProductHandler } from '../src/app/api/m4/v1/products/route';
-import { GET as getProductByIdHandler } from '../src/app/api/m4/v1/products/[id]/route';
+import { GET as getProductByIdHandler, DELETE as deleteProductByIdHandler } from '../src/app/api/m4/v1/products/[id]/route';
 
 describe('Product & Service CRUD API Test Suite (M4-US1 / PRO-12)', () => {
   describe('1. Zod Schema Validation', () => {
@@ -136,6 +136,33 @@ describe('Product & Service CRUD API Test Suite (M4-US1 / PRO-12)', () => {
       const json = await res.json();
       assert.equal(json.success, false);
       assert.equal(json.error.code, 'PRODUCT_NOT_FOUND');
+    });
+
+    it('POST /api/m4/v1/products dengan type SERVICE tanpa SKU harus auto-generate SKU SRV- (TB-06)', async () => {
+      const req = new Request('http://localhost:3000/api/m4/v1/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Jasa Audit Infrastruktur Cloud',
+          type: 'SERVICE',
+          price: 4500000,
+          unit: 'Sesi',
+        }),
+      });
+
+      const res = await createProductHandler(req);
+      assert.equal(res.status, 201);
+      const json = await res.json();
+      assert.equal(json.success, true);
+      assert.ok(json.data.sku.startsWith('SRV-'));
+      assert.equal(json.data.stock, 0);
+
+      // Bersihkan item uji coba agar database tetap konsisten 4 item (2 Jasa, 2 Produk)
+      if (json.data?.id) {
+        await deleteProductByIdHandler(new Request(`http://localhost:3000/api/m4/v1/products/${json.data.id}`), {
+          params: Promise.resolve({ id: json.data.id }),
+        });
+      }
     });
   });
 });

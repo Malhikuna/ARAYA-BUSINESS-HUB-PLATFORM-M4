@@ -140,6 +140,8 @@ model products_services {
   name            String            @db.VarChar(150)
   description     String?
   type            String            @db.VarChar(20)
+  unit            String            @default("pcs") @db.VarChar(20)
+  stock           Int               @default(0)
   price           Decimal           @db.Decimal(15, 2)
   tax_rate_id     String?           @db.Uuid
   is_active       Boolean           @default(true)

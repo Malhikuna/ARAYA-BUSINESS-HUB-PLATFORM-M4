@@ -1394,6 +1394,8 @@ export const Products_servicesScalarFieldEnum = {
   name: 'name',
   description: 'description',
   type: 'type',
+  unit: 'unit',
+  stock: 'stock',
   price: 'price',
   tax_rate_id: 'tax_rate_id',
   is_active: 'is_active',

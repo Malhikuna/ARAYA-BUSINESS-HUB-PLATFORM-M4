@@ -40,3 +40,31 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# certificates, keys, and credentials
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+service-account*.json
+*credentials*.json
+
+# ide and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# os files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+
+# database dumps / local sqlite
+*.sqlite
+*.sqlite3
+*.db
+*.dump

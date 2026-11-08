@@ -16,8 +16,8 @@ interface QuickMenuLink {
 const QUICK_MENU_LINKS: QuickMenuLink[] = [
   { id: "nav-pelanggan", label: "Daftar pelanggan", subtitle: "Modul Penjualan | Direktori pelanggan & mitra", href: "/pelanggan", category: "Pelanggan", keywords: "pelanggan customer daftar klien partner" },
   { id: "nav-pelanggan-tambah", label: "Tambah pelanggan baru", subtitle: "Formulir | Pendaftaran pelanggan baru", href: "/pelanggan/tambah", category: "Pelanggan", keywords: "tambah buat registrasi pelanggan baru" },
-  { id: "nav-produk", label: "Daftar produk/jasa", subtitle: "Katalog | Item fisik & layanan jasa", href: "/produk", category: "Produk/Jasa", keywords: "produk jasa katalog daftar item tarif" },
-  { id: "nav-produk-tambah", label: "Tambah produk/jasa baru", subtitle: "Formulir | Penambahan katalog baru", href: "/produk/tambah", category: "Produk/Jasa", keywords: "tambah buat produk jasa item baru" },
+  { id: "nav-produk", label: "Katalog produk & jasa", subtitle: "Katalog | Item fisik & layanan jasa", href: "/produk", category: "Katalog", keywords: "katalog produk jasa daftar item tarif stok" },
+  { id: "nav-produk-tambah", label: "Tambah item katalog baru", subtitle: "Formulir | Penambahan katalog baru", href: "/produk/tambah", category: "Katalog", keywords: "tambah buat produk jasa katalog baru" },
   { id: "nav-penawaran", label: "Penawaran penjualan", subtitle: "Transaksi | Dokumen penawaran harga", href: "/penawaran", category: "Transaksi", keywords: "penawaran quotation surat penawaran harga" },
   { id: "nav-invoice", label: "Invoice & penagihan", subtitle: "Transaksi | Faktur & status pembayaran", href: "/invoice", category: "Transaksi", keywords: "invoice tagihan faktur bayar piutang" },
   { id: "nav-order", label: "Order penjualan", subtitle: "Transaksi | Pesanan & pengiriman barang", href: "/order", category: "Transaksi", keywords: "order pesanan surat jalan sales order" },
