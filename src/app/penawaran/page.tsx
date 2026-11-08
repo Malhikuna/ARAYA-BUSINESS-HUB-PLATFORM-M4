@@ -16,6 +16,7 @@ import {
 } from "@/types/quotation";
 import {
   getStoredQuotations,
+  fetchQuotationsListFromDatabase,
   subscribeQuotationStorage,
   formatTanggalIndo,
 } from "@/lib/data/mock-quotations";
@@ -46,6 +47,14 @@ export default function PenawaranPage() {
   useEffect(() => {
     setPreviewDateLabel(new Date().toLocaleDateString("id-ID", { dateStyle: "long" }));
     setQuotations(getStoredQuotations());
+
+    // Ambil data resmi dari database PostgreSQL
+    fetchQuotationsListFromDatabase().then((dbList) => {
+      if (dbList.length > 0) {
+        setQuotations(dbList);
+      }
+    });
+
     const unsubscribe = subscribeQuotationStorage(() => {
       setQuotations(getStoredQuotations());
     });
@@ -55,15 +64,15 @@ export default function PenawaranPage() {
       if (toastType === "created") {
         setToastState({
           status: "visible",
-          title: "Penawaran tersimpan",
-          description: "Status: menunggu persetujuan.",
+          title: "Penawaran berhasil dibuat",
+          description: "Menunggu persetujuan.",
         });
         sessionStorage.removeItem("araya_show_quotation_toast");
       } else if (toastType === "approved") {
         setToastState({
           status: "visible",
           title: "Penawaran disetujui",
-          description: "Status penawaran berhasil disetujui.",
+          description: "Invoice sekarang dapat dibuat.",
         });
         sessionStorage.removeItem("araya_show_quotation_toast");
       }
@@ -117,12 +126,7 @@ export default function PenawaranPage() {
       />
 
       {/* Breadcrumb Navigasi */}
-      <Breadcrumb
-        items={[
-          { label: "Penawaran & tagihan penjualan" },
-          { label: "Penawaran" },
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Penawaran" }]} />
 
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -179,7 +183,15 @@ export default function PenawaranPage() {
         documentSubtitle="Laporan Daftar Penawaran (Quotation) — Modul Penawaran & Tagihan Penjualan"
         printedAtLabel={previewDateLabel}
         filters={[
-          { label: "Filter Status", value: statusFilter === "ALL" ? "Semua Status" : statusFilter },
+          {
+            label: "Filter Status",
+            value:
+              statusFilter === "APPROVED"
+                ? "Disetujui"
+                : statusFilter === "PENDING_APPROVAL"
+                ? "Menunggu persetujuan"
+                : "Semua status",
+          },
           { label: "Cari", value: searchQuery.trim() ? `"${searchQuery.trim()}"` : "Semua" },
         ]}
         summaryCards={[

@@ -1,28 +1,35 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useParams } from "next/navigation";
-import { CheckCircle2, Download, User, Calendar, FileText } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Clock, CheckCircle2, ReceiptText } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
+import { FormAlertBanner } from "@/components/common/FormAlertBanner";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
-import { QuotationSummarySidebar } from "@/components/penawaran/QuotationSummarySidebar";
+import { QuotationDetailInfoCard } from "@/components/penawaran/QuotationDetailInfoCard";
+import { QuotationDetailSidebar } from "@/components/penawaran/QuotationDetailSidebar";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
 import {
   findQuotationById,
+  fetchQuotationDetailFromDatabase,
   approveQuotationInStorage,
   formatTanggalIndo,
+  formatWaktuPembaruan,
 } from "@/lib/data/mock-quotations";
 
 function LihatPenawaranContent() {
+  const router = useRouter();
   const params = useParams();
   const quotationId = typeof params?.id === "string" ? params.id : "";
 
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [previewDateLabel, setPreviewDateLabel] = useState("28 Oktober 2026");
+  const [showInvoiceAlert, setShowInvoiceAlert] = useState(false);
+  const [alertKey, setAlertKey] = useState(0);
   const [toastState, setToastState] = useState<{
     status: ToastStatus;
     title: string;
@@ -36,15 +43,20 @@ function LihatPenawaranContent() {
   useEffect(() => {
     setPreviewDateLabel(new Date().toLocaleDateString("id-ID", { dateStyle: "long" }));
     if (quotationId) {
-      const item = findQuotationById(quotationId);
-      setQuotation(item);
+      const localItem = findQuotationById(quotationId);
+      if (localItem) setQuotation(localItem);
+
+      // Ambil data terbaru langsung dari database PostgreSQL
+      fetchQuotationDetailFromDatabase(quotationId).then((dbItem) => {
+        if (dbItem) setQuotation(dbItem);
+      });
     }
   }, [quotationId]);
 
   if (!quotation) {
     return (
       <div className="space-y-6 pb-12">
-        <BackLink href="/penawaran" label="Kembali ke daftar penawaran" />
+        <Breadcrumb items={[{ label: "Penawaran", href: "/penawaran" }, { label: "Tidak Ditemukan" }]} />
         <div className="p-12 text-center bg-white rounded-2xl border border-slate-100">
           <p className="text-sm font-semibold text-slate-600">
             Penawaran harga tidak ditemukan.
@@ -59,11 +71,21 @@ function LihatPenawaranContent() {
   const handleApprove = () => {
     approveQuotationInStorage(quotation.id);
     setQuotation((prev) => (prev ? { ...prev, status: "APPROVED" } : null));
+    setShowInvoiceAlert(false);
     setToastState({
       status: "visible",
       title: "Penawaran disetujui",
-      description: "Status penawaran berhasil disetujui.",
+      description: "Invoice sekarang dapat dibuat.",
     });
+  };
+
+  const handleCreateInvoice = () => {
+    if (!isApproved) {
+      setShowInvoiceAlert(true);
+      setAlertKey((prev) => prev + 1);
+      return;
+    }
+    router.push(`/invoice?quotation_id=${quotation.id}`);
   };
 
   return (
@@ -75,165 +97,96 @@ function LihatPenawaranContent() {
         onDismiss={() => setToastState((prev) => ({ ...prev, status: "hidden" }))}
       />
 
-      {/* Navigasi Breadcrumb & BackLink */}
-      <Breadcrumb
-        items={[
-          { label: "Penawaran & tagihan penjualan" },
-          { label: "Penawaran", href: "/penawaran" },
-          { label: quotation.quotation_number },
-        ]}
-      />
+      {/* Top Bar: Breadcrumb di kiri, Terakhir diperbarui di kanan */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <Breadcrumb
+          items={[
+            { label: "Penawaran", href: "/penawaran" },
+            { label: quotation.quotation_number },
+          ]}
+          separator="/"
+          className="mb-0"
+        />
+
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <span>
+            Terakhir diperbarui: {formatWaktuPembaruan(quotation.updated_at || quotation.createdAt)}
+          </span>
+        </div>
+      </div>
+
+      {/* Navigasi Kembali ke Daftar Penawaran */}
       <BackLink href="/penawaran" label="Kembali ke daftar penawaran" />
 
-      {/* Header Halaman & Aksi Persetujuan */}
+      {/* Header Halaman: Judul, Status Badge & Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              {quotation.quotation_number}
-            </h1>
-            {isApproved ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e8f7fa] text-[#0e7490]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0e7490]" />
-                <span>Disetujui</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fef3eb] text-[#c25e1a]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c25e1a]" />
-                <span>Menunggu persetujuan</span>
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Diterbitkan untuk {quotation.customer_name} pada {formatTanggalIndo(quotation.quotation_date)}
-          </p>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight">
+            Penawaran {quotation.quotation_number}
+          </h1>
+          {isApproved ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e8f7fa] text-[#0e7490]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0e7490]" />
+              <span>Disetujui</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fef3eb] text-[#c25e1a]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c25e1a]" />
+              <span>Menunggu persetujuan</span>
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          {/* Tombol Buat Invoice */}
           <button
             type="button"
-            onClick={() => setIsExportOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
+            onClick={handleCreateInvoice}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
           >
-            <Download className="w-4 h-4 text-slate-500" />
-            <span>Ekspor PDF</span>
+            <ReceiptText className="w-4 h-4 text-slate-500" />
+            <span>Buat invoice</span>
           </button>
 
+          {/* Tombol Setujui */}
           {!isApproved && (
             <button
               type="button"
               onClick={handleApprove}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#19376d] hover:bg-[#122852] shadow-sm transition-colors cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Setujui penawaran</span>
+              <span>Setujui</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Grid Layout Detail & Sidebar */}
+      {/* Banner Peringatan: Invoice Belum Dapat Dibuat (Auto-dismiss 5 detik standar UX) */}
+      <FormAlertBanner
+        key={alertKey}
+        visible={showInvoiceAlert}
+        title="Invoice belum dapat dibuat"
+        description={"Penawaran belum disetujui.\nSetujui penawaran terlebih dahulu."}
+        autoDismissMs={5000}
+        onClose={() => setShowInvoiceAlert(false)}
+        className=""
+      />
+
+      {/* Grid Layout Detail 2 Kolom (8 vs 4) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Kolom Kiri: Informasi Pelanggan & Tabel Rincian */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Card Info Pelanggan & Tanggal */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
-              Informasi penerima penawaran
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="flex items-start gap-3">
-                <User className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div className="space-y-0.5">
-                  <span className="text-[11px] text-slate-400 block">Nama Pelanggan</span>
-                  <span className="font-bold text-slate-800">{quotation.customer_name}</span>
-                  {quotation.customer_email && (
-                    <span className="text-slate-500 block">{quotation.customer_email}</span>
-                  )}
-                  {quotation.customer_phone && (
-                    <span className="text-slate-500 block">{quotation.customer_phone}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                <div className="space-y-0.5">
-                  <span className="text-[11px] text-slate-400 block">Masa Berlaku</span>
-                  <span className="font-semibold text-slate-800">
-                    {formatTanggalIndo(quotation.quotation_date)} s/d {formatTanggalIndo(quotation.valid_until || quotation.quotation_date)}
-                  </span>
-                  <span className="text-slate-500 block">Validitas 14 hari kalender</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card Rincian Item */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
-              Rincian item penawaran
-            </h2>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#f0f4fa] text-slate-700 font-semibold border-b border-slate-200/80">
-                    <th scope="col" className="px-4 py-3">Produk / Jasa</th>
-                    <th scope="col" className="px-4 py-3 text-center">Jumlah</th>
-                    <th scope="col" className="px-4 py-3 text-right">Harga satuan</th>
-                    <th scope="col" className="px-4 py-3 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {quotation.items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/70">
-                      <td className="px-4 py-3.5">
-                        <span className="font-bold text-slate-800 block">{item.name}</span>
-                        <span className="text-[11px] text-slate-400">
-                          {item.category} • Satuan: {item.unit || "Unit"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-center font-medium text-slate-700">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-medium text-slate-700">
-                        {formatRupiah(item.unit_price)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-bold text-slate-900">
-                        {formatRupiah(item.subtotal)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Catatan Operasional */}
-            {quotation.notes && (
-              <div className="bg-[#f0f4fa] rounded-xl p-4 flex items-start gap-3 text-xs">
-                <FileText className="w-4 h-4 text-[#19376d] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-slate-800 block text-[11px]">
-                    Catatan operasional
-                  </span>
-                  <p className="text-slate-600 mt-0.5">{quotation.notes}</p>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Kolom Kiri: Informasi Penawaran & Tabel Rincian */}
+        <div className="lg:col-span-8">
+          <QuotationDetailInfoCard quotation={quotation} />
         </div>
 
-        {/* Kolom Kanan: Sidebar Ringkasan */}
+        {/* Kolom Kanan: Ringkasan Dokumen & Riwayat Aktivitas */}
         <div className="lg:col-span-4">
-          <QuotationSummarySidebar
-            itemsCount={quotation.items.length}
-            subtotal={quotation.subtotal}
-            taxAmount={quotation.tax_amount}
-            totalAmount={quotation.total_amount}
-            statusLabel={isApproved ? "Disetujui" : "Menunggu"}
-            activeStep={isApproved ? 3 : 2}
+          <QuotationDetailSidebar
+            quotation={quotation}
+            onDownloadPdf={() => setIsExportOpen(true)}
+            onPrint={() => window.print()}
           />
         </div>
       </div>

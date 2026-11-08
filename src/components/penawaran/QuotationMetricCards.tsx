@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FileText, ShieldCheck, Clock } from "lucide-react";
+import { FileText, BadgeCheck, Clock } from "lucide-react";
 
 export interface QuotationMetricCardsProps {
   totalCount: number;
@@ -28,7 +28,7 @@ export function QuotationMetricCards({
             <span className="text-xs text-slate-400">penawaran terdaftar</span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#eef4ff] text-[#19376d] flex items-center justify-center shrink-0">
           <FileText className="w-5 h-5" />
         </div>
       </div>
@@ -42,8 +42,8 @@ export function QuotationMetricCards({
             <span className="text-xs text-slate-400">penawaran disetujui</span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
-          <ShieldCheck className="w-5 h-5" />
+        <div className="w-10 h-10 rounded-xl bg-[#eef4ff] text-[#0284c7] flex items-center justify-center shrink-0">
+          <BadgeCheck className="w-5 h-5" />
         </div>
       </div>
 
@@ -56,10 +56,11 @@ export function QuotationMetricCards({
             <span className="text-xs text-slate-400">penawaran menunggu</span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#fef3eb] text-[#c25e1a] flex items-center justify-center shrink-0">
           <Clock className="w-5 h-5" />
         </div>
       </div>
     </div>
   );
 }
+

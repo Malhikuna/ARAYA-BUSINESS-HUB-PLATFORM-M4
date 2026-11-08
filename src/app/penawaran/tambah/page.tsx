@@ -18,6 +18,14 @@ import {
   generateNextQuotationNumber,
 } from "@/lib/data/mock-quotations";
 
+function getTodayDateStr(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Halaman Pembuatan Penawaran Baru (Quotation).
  * Sesuai PRD M4-US2 & BRD (UC-03, BRQ-04).
@@ -25,43 +33,29 @@ import {
 export default function TambahPenawaranPage() {
   const router = useRouter();
 
-  // Master Data Pelanggan & Produk
+  // Master Data Pelanggan & Produk (Aktif selalu di atas)
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [products] = useState<ProductItem[]>(initialProducts);
-
-  // Form State
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("CUST-001");
-  const [quotationNumber, setQuotationNumber] = useState<string>("PNW-0006");
-  const [quotationDate, setQuotationDate] = useState<string>("2026-10-24");
-  const [notes, setNotes] = useState<string>(
-    "Harga belum termasuk bea materai fisik jika diperlukan legalitas basah."
+  const [products] = useState<ProductItem[]>(() =>
+    [...initialProducts].sort((a, b) => (a.status === "Aktif" ? -1 : 1))
   );
 
-  // Items State (Default sesuai desain screenshot)
-  const [items, setItems] = useState<QuotationFormItem[]>([
-    {
-      product_service_id: "ITEM-001",
-      name: "Paket konsultasi bisnis",
-      quantity: 2,
-      unit_price: 1500000,
-      subtotal: 3000000,
-      unit: "Jam",
-      category: "Jasa",
-    },
-    {
-      product_service_id: "ITEM-002",
-      name: "Jasa desain logo",
-      quantity: 1,
-      unit_price: 750000,
-      subtotal: 750000,
-      unit: "Paket",
-      category: "Jasa",
-    },
-  ]);
+  // Form State: Awal kosong untuk penawaran baru
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [quotationNumber, setQuotationNumber] = useState<string>("");
+  const [quotationDate, setQuotationDate] = useState<string>("");
+  const [isDateManuallyChanged, setIsDateManuallyChanged] = useState<boolean>(false);
+  const [notes, setNotes] = useState<string>("");
 
+  // Items State: Dimulai kosong tanpa dummy data
+  const [items, setItems] = useState<QuotationFormItem[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Inisialisasi tanggal hari ini & nomor penawaran berikutnya
+    const today = getTodayDateStr();
+    setQuotationDate(today);
+    setQuotationNumber(generateNextQuotationNumber());
+
     try {
       const stored = getStoredCustomers();
       const parsed: Customer[] = typeof stored === "string" ? JSON.parse(stored) : stored;
@@ -71,35 +65,54 @@ export default function TambahPenawaranPage() {
     } catch {
       // ignore
     }
-    setQuotationNumber(generateNextQuotationNumber());
+
+    // Interval rollover tengah malam: jika user buka form 23:59 dan melewati 00:00,
+    // otomatis sinkronkan ke tanggal hari berikutnya jika tanggal belum diubah manual.
+    const midnightTimer = setInterval(() => {
+      const currentToday = getTodayDateStr();
+      setIsDateManuallyChanged((manual) => {
+        if (!manual) {
+          setQuotationDate(currentToday);
+        }
+        return manual;
+      });
+    }, 10000);
+
+    return () => clearInterval(midnightTimer);
   }, []);
 
   const handleAddItem = () => {
-    const defaultProduct = products[0];
-    if (!defaultProduct) return;
-    const priceNum = Math.round(parseFloat(defaultProduct.price) || 0);
     setItems((prev) => [
       ...prev,
       {
-        product_service_id: defaultProduct.id,
-        name: defaultProduct.name,
+        product_service_id: "",
+        name: "",
         quantity: 1,
-        unit_price: priceNum,
-        subtotal: priceNum,
-        unit: defaultProduct.unit || "Unit",
-        category: defaultProduct.category,
+        unit_price: 0,
+        subtotal: 0,
+        unit: "Unit",
+        category: "Jasa",
       },
     ]);
+    setErrorMessage(null);
   };
 
   const handleRemoveItem = (index: number) => {
-    if (items.length <= 1) return;
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleProductChange = (index: number, productId: string) => {
     const selected = products.find((p) => p.id === productId);
-    if (!selected) return;
+    if (!selected) {
+      setItems((prev) =>
+        prev.map((item, i) =>
+          i === index
+            ? { ...item, product_service_id: "", name: "", unit_price: 0, subtotal: 0, unit: "Unit" }
+            : item
+        )
+      );
+      return;
+    }
     const priceNum = Math.round(parseFloat(selected.price) || 0);
 
     setItems((prev) =>
@@ -110,7 +123,7 @@ export default function TambahPenawaranPage() {
           product_service_id: selected.id,
           name: selected.name,
           unit_price: priceNum,
-          subtotal: priceNum * item.quantity,
+          subtotal: priceNum * (item.quantity || 1),
           unit: selected.unit || "Unit",
           category: selected.category,
         };
@@ -119,7 +132,7 @@ export default function TambahPenawaranPage() {
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
-    const safeQty = Math.max(1, quantity);
+    const safeQty = Math.max(0, quantity);
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, quantity: safeQty, subtotal: item.unit_price * safeQty } : item))
     );
@@ -140,17 +153,36 @@ export default function TambahPenawaranPage() {
       return;
     }
 
+    const unselectedItem = items.some((it) => !it.product_service_id);
+    if (unselectedItem) {
+      setErrorMessage("Silakan pilih produk atau jasa untuk semua baris item penawaran.");
+      return;
+    }
+
+    // Evaluasi tanggal transaksi saat tombol simpan ditekan:
+    // Jika melewati tengah malam (misal dibuka 23:59, disimpan 00:00/00:01) dan tanggal belum diubah manual,
+    // atau jika tanggal form lebih lampau dari tanggal hari ini, gunakan tanggal aktual saat disimpan!
+    const currentToday = getTodayDateStr();
+    const effectiveDate = (!isDateManuallyChanged || quotationDate < currentToday)
+      ? currentToday
+      : quotationDate;
+
+    // Hitung masa berlaku 14 hari kalender dari tanggal efektif
+    const [y, m, d] = effectiveDate.split("-").map(Number);
+    const validUntilObj = new Date(y, m - 1, d + 14);
+    const validUntilStr = `${validUntilObj.getFullYear()}-${String(validUntilObj.getMonth() + 1).padStart(2, "0")}-${String(validUntilObj.getDate()).padStart(2, "0")}`;
+
     const selectedCust = customers.find((c) => c.id === selectedCustomerId);
     const newQuo: Quotation = {
       id: `QUO-${Date.now()}`,
-      quotation_number: quotationNumber,
+      quotation_number: quotationNumber || generateNextQuotationNumber(),
       customer_id: selectedCustomerId,
       customer_name: selectedCust?.name || "Pelanggan",
       customer_phone: selectedCust?.phone,
       customer_email: selectedCust?.email,
       customer_address: selectedCust?.address,
-      quotation_date: quotationDate,
-      valid_until: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      quotation_date: effectiveDate,
+      valid_until: validUntilStr,
       status: "PENDING_APPROVAL",
       subtotal,
       discount_amount: 0,
@@ -177,14 +209,7 @@ export default function TambahPenawaranPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <Breadcrumb
-        items={[
-          { label: "Penawaran & tagihan penjualan" },
-          { label: "Penawaran", href: "/penawaran" },
-          { label: "Tambah" },
-        ]}
-      />
-
+      <Breadcrumb items={[{ label: "Penawaran", href: "/penawaran" }, { label: "Tambah" }]} />
       <BackLink href="/penawaran" label="Kembali ke daftar penawaran" />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -219,7 +244,10 @@ export default function TambahPenawaranPage() {
                   setSelectedCustomerId(id);
                   setErrorMessage(null);
                 }}
-                onDateChange={setQuotationDate}
+                onDateChange={(val) => {
+                  setQuotationDate(val);
+                  setIsDateManuallyChanged(true);
+                }}
               />
 
               <QuotationItemTable

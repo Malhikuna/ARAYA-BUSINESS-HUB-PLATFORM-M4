@@ -47,9 +47,9 @@ export function QuotationFilterBar({
             className="h-10 pl-8 pr-8 rounded-xl bg-[#f0f4fa] hover:bg-slate-200/80 text-xs font-semibold text-slate-700 outline-none cursor-pointer transition-colors appearance-none"
             aria-label="Filter status penawaran"
           >
-            <option value="Semua status">Semua status</option>
-            <option value="Menunggu persetujuan">Menunggu persetujuan</option>
-            <option value="Disetujui">Disetujui</option>
+            <option value="ALL">Semua status</option>
+            <option value="PENDING_APPROVAL">Menunggu persetujuan</option>
+            <option value="APPROVED">Disetujui</option>
           </select>
           <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -69,3 +69,4 @@ export function QuotationFilterBar({
     </div>
   );
 }
+
