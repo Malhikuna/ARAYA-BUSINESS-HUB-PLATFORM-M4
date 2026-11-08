@@ -96,3 +96,24 @@ Setiap kontribusi kode harus mematuhi prinsip kebersihan kode:
    - Dilarang menyertakan icon yang merepresentasikan AI Gemini di seluruh antarmuka aplikasi.
 3. **Standar Iconografi yang Diizinkan:**
    - Gunakan icon set standar industri (seperti Lucide React / SVG inline) yang hanya merepresentasikan konteks fungsional ERP/Sales (contoh: dokumen, tagihan, printer, unduh, search, kalender, uang/rupiah, checklist, user, filter).
+
+---
+
+## 4. Aturan Pemisahan Lingkungan Database (Docker vs Supabase)
+
+Untuk menjaga integritas, keamanan, dan kerapian data, seluruh agen AI dan pengembang **WAJIB mematuhi pemisahan lingkungan database secara ketat**:
+
+1. **Docker PostgreSQL (Lokal & Testing Environment):**
+   - **Fungsi Wajib:** Digunakan untuk seluruh aktivitas pengembangan (*development*), *automated testing*, pengujian manual formulir, penambahan data uji coba (*insert/create*), pengubahan data (*update*), penghapusan data (*delete*), serta eksekusi database seeder dummy.
+   - Berjalan pada container lokal port **`5433`** (`araya:araya_local_dev_only@localhost:5433/araya_business_hub`) melalui `docker-compose.yml`.
+   - Setiap kali melakukan pengujian modul atau verifikasi endpoint CRUD, **WAJIB** menggunakan database Docker lokal ini.
+2. **Supabase (Production Database Environment):**
+   - **Fungsi Eksklusif:** Hanya dialokasikan untuk kebutuhan **Production / Live Deployment**.
+   - **DILARANG KERAS** menggunakan koneksi Supabase untuk:
+     - Melakukan testing fungsional, simulasi error, atau *automated unit/integration test*.
+     - Menambahkan data sampah/dummy, mengubah data sembarangan, atau menghapus record eksperimental.
+     - Menjalankan script *reset* atau seeder coba-coba.
+   - Seluruh tabel di Supabase harus selalu rapi, bersih, valid, dan mencerminkan data riil operasional usaha.
+3. **Guardrail Eksekusi Agen:**
+   - Agen dilarang keras mengarahkan variabel `DATABASE_URL` atau `DIRECT_URL` pengujian ke Supabase Production.
+   - Segala bentuk manipulasi data uji coba harus selalu diarahkan ke PostgreSQL Docker lokal port `5433`.
