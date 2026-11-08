@@ -14,6 +14,7 @@ export interface ProductMetrics {
   recentServiceCount: number;
   totalWarehouseUnits: number;
   lowStockCount: number;
+  serviceUnits?: string[];
 }
 
 interface ProductMetricCardsProps {
@@ -106,8 +107,14 @@ export function ProductMetricCards({ metrics, businessMode }: ProductMetricCards
             <span className="text-xs font-medium text-slate-600">Tipe penagihan</span>
             <Layers aria-hidden="true" className="w-4 h-4 text-[#19376d] shrink-0" />
           </div>
-          <div className="text-3xl font-heading font-bold text-[#19376d]">5</div>
-          <div className="text-xs text-slate-500">Jam, Sesi, Bulan, Proyek, Paket</div>
+          <div className="text-3xl font-heading font-bold text-[#19376d]">
+            {metrics.serviceUnits?.length || 0}
+          </div>
+          <div className="text-xs text-slate-500 truncate" title={metrics.serviceUnits?.join(", ")}>
+            {metrics.serviceUnits && metrics.serviceUnits.length > 0
+              ? metrics.serviceUnits.slice(0, 5).join(", ") + (metrics.serviceUnits.length > 5 ? ` +${metrics.serviceUnits.length - 5} lainnya` : "")
+              : "Jam, Sesi, Bulan, Proyek, Paket"}
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-2">

@@ -2,10 +2,10 @@
 
 import React, { useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { findProductById, saveUpdatedProductToStorage } from "@/lib/data/mock-products";
-import { ProductCategory, ProductItem } from "@/types/product";
+import { findProductById, saveUpdatedProductToStorage, getStoredBusinessMode } from "@/lib/data/mock-products";
+import { ProductCategory, ProductItem, BusinessMode } from "@/types/product";
 import { ProductFormView, ProductFormValues } from "@/components/produk/ProductFormView";
 
 const MAX_PRICE_DIGITS = 15;
@@ -21,9 +21,13 @@ function useIsMounted(): boolean {
 
 function UbahProdukContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMounted = useIsMounted();
   const routeParams = useParams<{ id: string }>();
   const productId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
+  const queryMode = searchParams.get("mode") as BusinessMode | null;
+  const businessMode: BusinessMode =
+    queryMode === "Produk" || queryMode === "Jasa" ? queryMode : getStoredBusinessMode();
 
   if (!isMounted) {
     return (
@@ -83,6 +87,7 @@ function UbahProdukContent() {
     <ProductFormView
       key={product.id}
       mode="edit"
+      businessMode={businessMode}
       sku={product.sku}
       initialValues={{
         name: product.name,

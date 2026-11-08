@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Search, Upload, Download, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import React, { useMemo } from "react";
+import { Search, Upload, Download } from "lucide-react";
 import { ProductItem, BusinessMode } from "@/types/product";
-import { formatRupiah } from "@/lib/format";
 import { Pagination } from "@/components/common/Pagination";
+import { FilterSelect } from "@/components/common/FilterSelect";
 import { ProductMetricCards, ProductMetrics } from "@/components/produk/ProductMetricCards";
+import { ProductTableRow } from "@/components/produk/ProductTableRow";
 
 export type { ProductMetrics };
 
@@ -17,6 +16,9 @@ export interface ProductTableCardProps {
   searchTerm: string;
   selectedCategory: string;
   selectedStatus: string;
+  selectedStock: string;
+  selectedUnit: string;
+  selectedPrice: string;
   currentData: ProductItem[];
   filteredCount: number;
   safeCurrentPage: number;
@@ -27,6 +29,9 @@ export interface ProductTableCardProps {
   onSearchChange: (val: string) => void;
   onCategoryChange: (val: string) => void;
   onStatusChange: (val: string) => void;
+  onStockChange: (val: string) => void;
+  onUnitChange: (val: string) => void;
+  onPriceChange: (val: string) => void;
   onPageChange: (page: number) => void;
   onOpenImportModal: () => void;
   onOpenExportModal: () => void;
@@ -39,6 +44,9 @@ export function ProductTableCard({
   searchTerm,
   selectedCategory,
   selectedStatus,
+  selectedStock,
+  selectedUnit,
+  selectedPrice,
   currentData,
   filteredCount,
   safeCurrentPage,
@@ -49,15 +57,24 @@ export function ProductTableCard({
   onSearchChange,
   onCategoryChange,
   onStatusChange,
+  onStockChange,
+  onUnitChange,
+  onPriceChange,
   onPageChange,
   onOpenImportModal,
   onOpenExportModal,
   onRequestDelete,
 }: ProductTableCardProps) {
-  const router = useRouter();
-
   const isProductOnly = businessMode === "Produk";
   const isServiceOnly = businessMode === "Jasa";
+  const isServiceCategory = isServiceOnly || (businessMode === "Semua" && selectedCategory === "Jasa");
+
+  const serviceUnitOptions = useMemo(() => {
+    const list = metrics.serviceUnits && metrics.serviceUnits.length > 0
+      ? metrics.serviceUnits
+      : ["Jam", "Sesi", "Bulan", "Proyek", "Paket"];
+    return ["Semua satuan", ...list.map((u) => `Per ${u}`)];
+  }, [metrics.serviceUnits]);
 
   return (
     <>
@@ -76,7 +93,7 @@ export function ProductTableCard({
           <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
             {(["Semua", "Produk", "Jasa"] as BusinessMode[]).map((mode) => {
               const isSelected = businessMode === mode;
-              const label = mode === "Semua" ? "Semua Katalog" : mode === "Produk" ? "Khusus Produk (Barang)" : "Khusus Jasa (Layanan)";
+              const label = mode === "Semua" ? "Semua Katalog" : mode === "Produk" ? "Produk (Barang)" : "Jasa (Layanan)";
               return (
                 <button
                   key={mode}
@@ -96,11 +113,11 @@ export function ProductTableCard({
         </div>
 
         {/* Search, Filter, & Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-            <div className="relative w-full sm:w-80">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search aria-hidden="true" className="w-4 h-4" />
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-1 min-w-0">
+            <div className="relative w-full sm:w-44 lg:w-48 xl:w-52 shrink-0">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Search aria-hidden="true" className="w-3.5 h-3.5" />
               </div>
               <input
                 type="text"
@@ -108,46 +125,67 @@ export function ProductTableCard({
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={isProductOnly ? "Cari produk barang..." : isServiceOnly ? "Cari layanan jasa..." : "Cari item katalog..."}
-                className="w-full h-10 pl-9 pr-4 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
+                className="w-full h-9.5 pl-8.5 pr-3 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
               />
             </div>
 
-            {businessMode === "Semua" && (
-              <div className="relative">
-                <select
-                  aria-label="Filter kategori item katalog"
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              {businessMode === "Semua" && (
+                <FilterSelect
+                  ariaLabel="Filter kategori item katalog"
                   value={selectedCategory}
-                  onChange={(e) => onCategoryChange(e.target.value)}
-                  className="w-full sm:w-auto h-10 pl-3.5 pr-9 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none"
-                >
-                  <option value="Semua kategori">Semua kategori</option>
-                  <option value="Produk">Produk</option>
-                  <option value="Jasa">Jasa</option>
-                </select>
-                <ChevronDown aria-hidden="true" className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            )}
+                  onChange={onCategoryChange}
+                  options={["Semua kategori", "Produk", "Jasa"]}
+                />
+              )}
 
-            <div className="relative">
-              <select
-                aria-label="Filter status item katalog"
+              {/* Dropdown Ketersediaan Stok (Produk/Semua) atau Satuan Penagihan (Jasa) */}
+              {isServiceCategory ? (
+                <FilterSelect
+                  ariaLabel="Filter satuan penagihan layanan jasa"
+                  value={selectedUnit}
+                  onChange={onUnitChange}
+                  options={serviceUnitOptions}
+                />
+              ) : (
+                <FilterSelect
+                  ariaLabel="Filter ketersediaan stok produk"
+                  value={selectedStock}
+                  onChange={onStockChange}
+                  options={["Semua stok", "Tersedia (≥ 10)", "Stok menipis (≤ 5)", "Stok habis (0)"]}
+                />
+              )}
+
+              {/* Dropdown Rentang & Urutan Harga */}
+              <FilterSelect
+                ariaLabel="Filter dan urutan harga item katalog"
+                value={selectedPrice}
+                onChange={onPriceChange}
+                options={[
+                  "Semua harga",
+                  "Di bawah Rp 1 Jt",
+                  "Rp 1 Jt - Rp 5 Jt",
+                  "Di atas Rp 5 Jt",
+                  "Harga: Terendah",
+                  "Harga: Tertinggi",
+                ]}
+              />
+
+              {/* Dropdown Status */}
+              <FilterSelect
+                ariaLabel="Filter status item katalog"
                 value={selectedStatus}
-                onChange={(e) => onStatusChange(e.target.value)}
-                className="w-full sm:w-auto h-10 pl-3.5 pr-9 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none"
-              >
-                <option value="Semua status">Semua status</option>
-                <option value="Aktif">Aktif</option>
-                <option value="Nonaktif">Nonaktif</option>
-              </select>
-              <ChevronDown aria-hidden="true" className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                onChange={onStatusChange}
+                options={["Semua status", "Aktif", "Nonaktif"]}
+              />
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 self-end md:self-auto">
+          <div className="flex items-center gap-2 self-end xl:self-auto shrink-0">
             <button
               type="button"
               onClick={onOpenImportModal}
-              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 h-9.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
             >
               <Upload aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
               <span>Impor data</span>
@@ -158,7 +196,7 @@ export function ProductTableCard({
               onClick={onOpenExportModal}
               aria-label="Ekspor data katalog ke PDF"
               title="Pratinjau & ekspor katalog ke PDF"
-              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 h-9.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
             >
               <Download aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
               <span>Ekspor</span>
@@ -185,103 +223,15 @@ export function ProductTableCard({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {currentData.length > 0 ? (
-                currentData.map((item) => {
-                  const isActive = item.status === "Aktif";
-                  const isItemProduct = item.category === "Produk";
-                  const stockCount = item.stock ?? 0;
-                  const isLowStock = isItemProduct && stockCount <= 5;
-
-                  return (
-                    <tr
-                      key={item.id}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`Lihat detail item ${item.name}`}
-                      title="Klik baris untuk melihat detail item katalog"
-                      onClick={() => router.push(`/produk/lihat/${item.id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          router.push(`/produk/lihat/${item.id}`);
-                        }
-                      }}
-                      className="hover:bg-[#f5f8ff] focus:bg-[#f5f8ff] outline-none transition-colors cursor-pointer group"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs sm:text-sm">{item.name}</div>
-                        <div className="text-[11px] font-mono text-slate-500 mt-0.5">{item.sku}</div>
-                      </td>
-
-                      {!isProductOnly && !isServiceOnly && (
-                        <td className="px-6 py-4 whitespace-nowrap text-slate-700">{item.category}</td>
-                      )}
-
-                      {!isServiceOnly && (
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {isItemProduct ? (
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                              stockCount === 0
-                                ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                : isLowStock
-                                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                : "bg-blue-50 text-blue-700"
-                            }`}>
-                              <span>{stockCount} {item.unit || "Unit"}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 select-none text-[11px]">— (Layanan)</span>
-                          )}
-                        </td>
-                      )}
-
-                      {isServiceOnly && (
-                        <td className="px-6 py-4 whitespace-nowrap text-slate-700">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-medium text-slate-700">
-                            Per {item.unit || "Paket"}
-                          </span>
-                        </td>
-                      )}
-
-                      <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-slate-900">{formatRupiah(item.price)}</td>
-                      <td className="px-6 py-4 text-slate-600 leading-relaxed max-w-md">{item.description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span>Aktif</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                            <span>Nonaktif</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          <Link
-                            href={`/produk/ubah/${item.id}`}
-                            aria-label={`Ubah item ${item.name}`}
-                            title="Ubah item katalog"
-                            className="p-1.5 rounded-lg text-[#19376d] hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Link>
-                          <span aria-hidden="true" className="text-slate-300 select-none text-xs">|</span>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onRequestDelete(item); }}
-                            aria-label={`Hapus item ${item.name}`}
-                            title="Hapus item katalog"
-                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                currentData.map((item) => (
+                  <ProductTableRow
+                    key={item.id}
+                    item={item}
+                    isProductOnly={isProductOnly}
+                    isServiceOnly={isServiceOnly}
+                    onRequestDelete={onRequestDelete}
+                  />
+                ))
               ) : (
                 <tr>
                   <td colSpan={isServiceOnly || isProductOnly ? 6 : 7} className="px-6 py-12 text-center text-slate-400 text-xs">

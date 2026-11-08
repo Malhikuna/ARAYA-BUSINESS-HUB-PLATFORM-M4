@@ -27,7 +27,7 @@ function TambahProdukContent() {
       description:
         form.description.trim() ||
         `Item ${validCategory.toLowerCase()} terdaftar untuk transaksi penawaran dan faktur.`,
-      status: "Aktif",
+      status: form.status || "Aktif",
       stock: isProduct ? (parseInt(form.stock || "0", 10) || 0) : undefined,
       unit: form.unit?.trim() || (isProduct ? "Unit" : "Paket"),
       createdAt: new Date().toISOString(),

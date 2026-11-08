@@ -142,7 +142,7 @@ export function ProductImportCsvModal({
                 <div className="min-w-0">
                   <div className="font-bold text-slate-900 truncate">{item.name}</div>
                   <div className="text-[10px] font-mono text-slate-500">
-                    {item.sku} | {item.category} | {item.status}
+                    {item.category === "Produk" ? `${item.sku} | ` : ""}{item.category} | {item.status}
                     {item.category === "Produk" ? ` | Stok: ${item.stock ?? 0} ${item.unit || "Unit"}` : ` | Per ${item.unit || "Paket"}`}
                   </div>
                 </div>

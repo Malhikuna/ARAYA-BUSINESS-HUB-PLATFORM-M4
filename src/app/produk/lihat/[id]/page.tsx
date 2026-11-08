@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertCircle, Package, Pencil } from "lucide-react";
 import { formatRupiah, formatRibuan } from "@/lib/format";
-import { findProductById } from "@/lib/data/mock-products";
-import { ProductItem } from "@/types/product";
+import { findProductById, getStoredBusinessMode } from "@/lib/data/mock-products";
+import { ProductItem, BusinessMode } from "@/types/product";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { ProductCatalogSidebar } from "@/components/produk/ProductCatalogSidebar";
@@ -21,10 +21,11 @@ function useIsMounted(): boolean {
   );
 }
 
-function LihatProdukDetailView({ product }: { product: ProductItem }) {
+function LihatProdukDetailView({ product, businessMode = "Semua" }: { product: ProductItem; businessMode?: BusinessMode }) {
   const integerPrice = product.price.split(".")[0].replace(/\D/g, "");
   const isActive = product.status === "Aktif";
   const isProduct = product.category === "Produk";
+  const isServiceOnly = businessMode === "Jasa";
 
   return (
     <>
@@ -48,7 +49,11 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
               <span>Rincian item katalog</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="text-xs text-slate-500 font-mono font-semibold">SKU: {product.sku}</span>
+              {!isServiceOnly && (
+                <span className="text-xs text-slate-500 font-mono font-semibold">
+                  {isProduct ? `SKU: ${product.sku}` : `Kode: ${product.sku}`}
+                </span>
+              )}
               {isActive ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -158,7 +163,7 @@ function LihatProdukDetailView({ product }: { product: ProductItem }) {
           isNameFilled
           descriptionText={product.description}
           previewPrice={formatRupiah(product.price)}
-          sku={product.sku}
+          sku={isProduct ? product.sku : undefined}
         />
       </div>
     </>
@@ -203,7 +208,8 @@ function LihatProdukContent() {
     );
   }
 
-  return <LihatProdukDetailView product={product} />;
+  const businessMode = getStoredBusinessMode();
+  return <LihatProdukDetailView product={product} businessMode={businessMode} />;
 }
 
 export default function LihatProdukPage() {
