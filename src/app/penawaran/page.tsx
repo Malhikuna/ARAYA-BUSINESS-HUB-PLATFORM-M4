@@ -34,7 +34,9 @@ export default function PenawaranPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [previewDateLabel] = useState<string>(() =>
-    new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
+    typeof window === "undefined"
+      ? ""
+      : new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
   );
   const [toastState, setToastState] = useState<{
     status: ToastStatus;

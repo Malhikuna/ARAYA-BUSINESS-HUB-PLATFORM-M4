@@ -29,7 +29,9 @@ function LihatPenawaranContent() {
   );
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [previewDateLabel] = useState<string>(() =>
-    new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
+    typeof window === "undefined"
+      ? ""
+      : new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
   );
   const [showInvoiceAlert, setShowInvoiceAlert] = useState(false);
   const [alertKey, setAlertKey] = useState(0);

@@ -54,7 +54,7 @@ export function hitungMasaBerlaku(quotationDateStr: string, validUntilStr?: stri
   const validUntilFormatted = formatTanggalIndo(vDate.toISOString().split("T")[0]);
   const labelMasaBerlaku = `${durasiHari} hari (hingga ${validUntilFormatted})`;
 
-  const todayMs = Date.now();
+  const todayMs = typeof window === "undefined" ? vDate.getTime() : Date.now();
   const sisaMs = vDate.getTime() - todayMs;
   const sisaHari = Math.ceil(sisaMs / (1000 * 60 * 60 * 24));
 
@@ -79,10 +79,11 @@ export function getQuotationActivities(quotation: Quotation) {
   }
 
   const list = [];
-  const updatedDate = quotation.updated_at ? new Date(quotation.updated_at) : new Date();
+  const fallbackDate = quotation.quotation_date || "2026-03-01";
+  const updatedDate = quotation.updated_at ? new Date(quotation.updated_at) : new Date(fallbackDate);
   const createdDate = quotation.created_at || quotation.createdAt
     ? new Date(quotation.created_at || quotation.createdAt!)
-    : new Date();
+    : new Date(fallbackDate);
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const updatedTime = `${pad(updatedDate.getHours())}:${pad(updatedDate.getMinutes())}`;
