@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Package,
+  BookOpen,
   Users,
   FileText,
   Receipt,
@@ -20,9 +20,9 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    name: "Produk/jasa",
+    name: "Katalog",
     href: "/produk",
-    icon: Package,
+    icon: BookOpen,
     matchPrefix: "/produk",
   },
   {
@@ -97,13 +97,13 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop Collapsible Sidebar */}
+      {/* Desktop Collapsible Sticky Sidebar */}
       <aside
         aria-hidden={!isOpen}
-        className={`bg-white shrink-0 hidden md:block overflow-hidden transition-[width,border-color] duration-300 ease-in-out ${
+        className={`bg-white shrink-0 hidden md:block sticky top-16 h-[calc(100vh-4rem)] self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${
           isOpen
             ? "w-60 border-r border-slate-200/90"
-            : "w-0 border-r border-transparent"
+            : "w-0 border-r-0 overflow-hidden"
         }`}
       >
         <div

@@ -1,11 +1,14 @@
-export type Role = 'Admin' | 'Partner' | 'Customer';
+export type Role = 'Admin' | 'Partner' | 'Customer' | 'kasir' | 'admin' | 'partner' | 'customer';
 
 export interface JwtPayload {
-  sub: string;
-  role: Role;
-  partner_id?: string;
+  sub?: string;
+  user_id?: number | string;
+  name?: string;
+  role: Role | string;
+  division?: string;
+  unit_usaha_id?: number | string;
+  partner_id?: number | string;
   email?: string;
-  business_unit_id?: string;
   iat?: number;
   exp?: number;
   [key: string]: unknown;
@@ -13,16 +16,31 @@ export interface JwtPayload {
 
 export interface AuthUser {
   userId: string;
-  role: Role;
+  role: Role | string;
   partnerId?: string;
+  unitUsahaId?: number;
+  name?: string;
   email?: string;
 }
 
 export interface UniformErrorResponse {
+  success: false;
   error: {
-    code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'VALIDATION_ERROR' | string;
+    code: string;
     message: string;
-    details: Array<{ field?: string; issue: string }>;
-    trace_id: string;
+    fields?: Record<string, string> | null;
   };
+}
+
+export interface PaginationMeta {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface UniformSuccessResponse<T = unknown> {
+  success: true;
+  data: T;
+  meta?: PaginationMeta;
 }

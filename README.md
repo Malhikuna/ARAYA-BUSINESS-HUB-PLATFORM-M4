@@ -22,8 +22,8 @@ Repository ini mengelola **Modul 4 (Sales & Invoicing)** yang bertanggung jawab 
 Seluruh anggota tim wajib mematuhi standar alur kerja Git berikut untuk menjaga kualitas kode, mencegah *merge conflict*, dan memastikan riwayat commit yang bersih. 
 
 > 📖 **Dokumentasi Lengkap:**  
-> - [**docs/ATURAN_PR.md**](docs/ATURAN_PR.md): Panduan lengkap penyusunan Pull Request (DeployHQ Standard).  
-> - [**docs/GIT_WORKFLOW.md**](docs/GIT_WORKFLOW.md): Panduan alur kerja Git & percabangan.  
+> - [**docs/workflows/pr-guidelines.md**](docs/workflows/pr-guidelines.md): Panduan lengkap penyusunan Pull Request (DeployHQ Standard).  
+> - [**docs/workflows/git-workflow.md**](docs/workflows/git-workflow.md): Panduan alur kerja Git & percabangan.  
 > - [**.github/pull_request_template.md**](.github/pull_request_template.md): Template otomatis deskripsi PR di GitHub.
 
 ### 1. Struktur & Hirarki Branch
@@ -120,14 +120,69 @@ Modul 4 adalah otoritas tunggal atas penentuan harga dan pajak (*price authority
 
 ---
 
-## 📁 Struktur Direktori
+## 📖 Dokumentasi API & Swagger UI
+
+Dokumentasi API interaktif dapat diakses langsung melalui browser saat server berjalan (`npm run dev`):
+- **Swagger UI Interaktif:** http://localhost:3000/docs (atau http://localhost:3000/api-docs)
+- **OpenAPI JSON Spec:** http://localhost:3000/api/v1/openapi.json
+- **File Spesifikasi:** [docs/api/openapi.yaml](docs/api/openapi.yaml) dan [docs/api/openapi.json](docs/api/openapi.json)
+- **Panduan Kontrak Integrasi:** [docs/api/integration-guide.md](docs/api/integration-guide.md)
+
+---
+
+## 🗄️ Setup Database Lokal
+
+Proyek ini menyediakan konfigurasi PostgreSQL 17 berbasis Docker pada [docker-compose.yml](docker-compose.yml) dan mendukung koneksi ke Supabase melalui Prisma.
+
+> [!IMPORTANT]
+> **Aturan Pemisahan Lingkungan Database (Docker vs Supabase):**
+> - 🐳 **Docker (Lokal & Testing):** Wajib digunakan untuk seluruh aktivitas pengembangan, pengujian (*automated & manual testing*), operasi CRUD coba-coba (tambah, ubah, hapus data), serta eksekusi seeder dummy.
+> - ⚡ **Supabase (Production Only):** Khusus dialokasikan untuk server **Production / Live Deployment**. **DILARANG KERAS** menggunakan Supabase untuk testing atau memasukkan data sampah/dummy agar tabel produksi tetap bersih, rapi, dan valid.
+
+### 1. Salin File Environment
+```bash
+cp .env.example .env
+```
+Secara default, `.env.example` sudah dikonfigurasi langsung untuk **Database Lokal (Docker Port 5433)** beserta `DIRECT_URL` dan `JWT_SECRET`. Jika ingin menggunakan **Supabase (Remote)**, sesuaikan `<PROJECT_REF>` dan `<PASSWORD>` pada variabel Supabase di `.env`.
+
+### 2. Jalankan Container PostgreSQL Lokal
+Pastikan Docker Desktop sudah berjalan, lalu jalankan perintah berikut di root project:
+```bash
+docker compose up -d
+```
+Container `araya-postgres` akan berjalan di `127.0.0.1:5433` (user: `araya`, password: `araya_local_dev_only`, database: `araya_business_hub`).
+
+Untuk memeriksa status container:
+```bash
+docker compose ps
+```
+
+### 3. Sinkronisasi Skema & Prisma Client
+Jalankan migrasi dan generate Prisma Client:
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+Untuk menghentikan database lokal:
+```bash
+docker compose down
+```
+
+---
+
+## 📁 Struktur Direktori Dokumentasi
 
 ```
-.
-├── .github/
-│   └── pull_request_template.md  # Template standar pembukaan PR
-├── docs/
-│   ├── ATURAN_PR.md              # Panduan lengkap aturan PR (DeployHQ)
-│   └── GIT_WORKFLOW.md           # Panduan lengkap aturan branch & PR
-└── README.md                     # Dokumentasi utama proyek
+docs/
+├── api/
+│   ├── integration-guide.md   # Panduan lengkap integrasi API & Event
+│   ├── openapi.json           # Spesifikasi OpenAPI 3.0 (JSON)
+│   └── openapi.yaml           # Spesifikasi OpenAPI 3.0 (YAML)
+├── design/
+│   └── ui-guidelines.md       # Pedoman desain, navbar, sidebar, dan token UI
+└── workflows/
+    ├── coding-standards.md    # Filosofi Ponytail & standar clean code
+    ├── git-workflow.md        # Panduan alur kerja Git & percabangan
+    └── pr-guidelines.md       # Panduan lengkap aturan PR (DeployHQ)
 ```

@@ -6,18 +6,24 @@ const DEFAULT_DEV_SECRET = process.env.JWT_SECRET || 'araya-m1-jwt-dev-secret-ke
 const MOCK_TOKENS: Record<string, JwtPayload> = {
   'mock-admin-token': {
     sub: 'usr_mock_admin_001',
+    user_id: 1,
     role: 'Admin',
+    name: 'Administrator BPU',
     email: 'admin@araya.unpas.ac.id',
   },
   'mock-partner-token': {
     sub: 'usr_mock_partner_001',
+    user_id: 2,
     role: 'Partner',
+    name: 'Mitra Usaha Unpas',
     partner_id: 'ptr_01J9ZN5R1D',
     email: 'partner@unpas.ac.id',
   },
   'mock-customer-token': {
     sub: 'usr_01J9ZP2A8C',
+    user_id: 17,
     role: 'Customer',
+    name: 'Budi Santoso',
     email: 'budi@example.com',
   },
 };
@@ -54,14 +60,17 @@ async function getCryptoKey(secret: string): Promise<CryptoKey> {
  * Buat JWT bertanda tangan HMAC-SHA256 menggunakan Web Crypto API native
  */
 export async function createJwtToken(
-  payload: Partial<JwtPayload> & { sub: string; role: Role },
+  payload: Partial<JwtPayload> & { sub?: string; user_id?: number | string; role: Role | string },
   secret: string = DEFAULT_DEV_SECRET,
   expiresInSeconds: number = 3600
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
+  const subValue = payload.sub || (payload.user_id !== undefined ? String(payload.user_id) : 'usr_default');
+
   const fullPayload: JwtPayload = {
     iat: now,
     exp: now + expiresInSeconds,
+    sub: subValue,
     ...payload,
   };
 
@@ -114,13 +123,18 @@ export async function verifyJwt(
     return { valid: false, error: 'Token telah kedaluwarsa' };
   }
 
+  // Format token M1 (user_id) dan standar sub
+  if (!payload.sub && payload.user_id !== undefined) {
+    payload.sub = String(payload.user_id);
+  }
+
   // 4. Validasi sub dan role wajib
   if (!payload.sub || !payload.role) {
     return { valid: false, error: 'Klaim sub atau role tidak ditemukan pada token' };
   }
 
-  const validRoles: Role[] = ['Admin', 'Partner', 'Customer'];
-  if (!validRoles.includes(payload.role)) {
+  const validRoles: string[] = ['admin', 'partner', 'customer', 'kasir'];
+  if (!validRoles.includes(String(payload.role).toLowerCase())) {
     return { valid: false, error: `Role '${payload.role}' tidak dikenali sistem` };
   }
 
