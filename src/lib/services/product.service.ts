@@ -135,7 +135,7 @@ export async function getProducts(query: GetProductsQuery = {}) {
           },
         },
       },
-      orderBy: { created_at: "desc" },
+      orderBy: [{ is_active: "desc" }, { created_at: "desc" }],
     }),
     prisma.products_services.count({ where }),
   ]);

@@ -1,177 +1,7 @@
-import { Quotation, QuotationStatus } from "@/types/quotation";
+import { Quotation, QuotationStatus, DbQuotationRow, DbQuotationItemRow } from "@/types/quotation";
+import { initialQuotations } from "./mock-quotations-data";
 
-export const initialQuotations: Quotation[] = [
-  {
-    id: "QUO-005",
-    quotation_number: "PNW-0005",
-    customer_id: "CUST-001",
-    customer_name: "PT Maju Bersama",
-    customer_phone: "081234567890",
-    customer_email: "procurement@majubersama.co.id",
-    customer_address: "Jl. Asia Afrika No. 120, Bandung, Jawa Barat",
-    quotation_date: "2026-10-28",
-    valid_until: "2026-11-11",
-    status: "PENDING_APPROVAL",
-    subtotal: 3750000,
-    discount_amount: 0,
-    tax_amount: 0,
-    total_amount: 3750000,
-    notes: "Harga belum termasuk bea materai fisik jika diperlukan legalitas basah.",
-    items: [
-      {
-        id: "QI-001",
-        product_service_id: "ITEM-001",
-        name: "Paket konsultasi bisnis",
-        quantity: 2,
-        unit_price: 1500000,
-        subtotal: 3000000,
-        unit: "Jam",
-        category: "Jasa",
-      },
-      {
-        id: "QI-002",
-        product_service_id: "ITEM-002",
-        name: "Jasa desain logo",
-        quantity: 1,
-        unit_price: 750000,
-        subtotal: 750000,
-        unit: "Paket",
-        category: "Jasa",
-      },
-    ],
-    createdAt: "2026-10-28T09:00:00.000Z",
-  },
-  {
-    id: "QUO-004",
-    quotation_number: "PNW-0004",
-    customer_id: "CUST-002",
-    customer_name: "CV Karya Mandiri",
-    customer_phone: "081398765432",
-    customer_email: "finance@karyamandiri.com",
-    customer_address: "Jl. Dago No. 45, Bandung, Jawa Barat",
-    quotation_date: "2026-10-26",
-    valid_until: "2026-11-09",
-    status: "APPROVED",
-    subtotal: 8900000,
-    discount_amount: 0,
-    tax_amount: 0,
-    total_amount: 8900000,
-    notes: "Garansi resmi distributor 1 tahun untuk unit laptop.",
-    items: [
-      {
-        id: "QI-003",
-        product_service_id: "ITEM-003",
-        name: "Laptop kantor 14 inci",
-        quantity: 1,
-        unit_price: 8900000,
-        subtotal: 8900000,
-        unit: "Unit",
-        category: "Produk",
-      },
-    ],
-    createdAt: "2026-10-26T10:30:00.000Z",
-  },
-  {
-    id: "QUO-003",
-    quotation_number: "PNW-0003",
-    customer_id: "CUST-003",
-    customer_name: "Budi Santoso",
-    customer_phone: "081711223344",
-    customer_email: "dudi.santoso@gmail.com",
-    customer_address: "Jl. Buah Batu No. 88, Bandung, Jawa Barat",
-    quotation_date: "2026-10-24",
-    valid_until: "2026-11-07",
-    status: "APPROVED",
-    subtotal: 750000,
-    discount_amount: 0,
-    tax_amount: 0,
-    total_amount: 750000,
-    notes: "Termasuk 2 kali revisi minor desain logo.",
-    items: [
-      {
-        id: "QI-004",
-        product_service_id: "ITEM-002",
-        name: "Jasa desain logo",
-        quantity: 1,
-        unit_price: 750000,
-        subtotal: 750000,
-        unit: "Paket",
-        category: "Jasa",
-      },
-    ],
-    createdAt: "2026-10-24T14:15:00.000Z",
-  },
-  {
-    id: "QUO-002",
-    quotation_number: "PNW-0002",
-    customer_id: "CUST-001",
-    customer_name: "PT Maju Bersama",
-    customer_phone: "081234567890",
-    customer_email: "procurement@majubersama.co.id",
-    customer_address: "Jl. Asia Afrika No. 120, Bandung, Jawa Barat",
-    quotation_date: "2026-10-20",
-    valid_until: "2026-11-03",
-    status: "PENDING_APPROVAL",
-    subtotal: 1500000,
-    discount_amount: 0,
-    tax_amount: 0,
-    total_amount: 1500000,
-    notes: "Sesi evaluasi finansial dan operasional awal.",
-    items: [
-      {
-        id: "QI-005",
-        product_service_id: "ITEM-001",
-        name: "Paket konsultasi bisnis",
-        quantity: 1,
-        unit_price: 1500000,
-        subtotal: 1500000,
-        unit: "Jam",
-        category: "Jasa",
-      },
-    ],
-    createdAt: "2026-10-20T11:00:00.000Z",
-  },
-  {
-    id: "QUO-001",
-    quotation_number: "PNW-0001",
-    customer_id: "CUST-002",
-    customer_name: "CV Karya Mandiri",
-    customer_phone: "081398765432",
-    customer_email: "finance@karyamandiri.com",
-    customer_address: "Jl. Dago No. 45, Bandung, Jawa Barat",
-    quotation_date: "2026-10-15",
-    valid_until: "2026-10-29",
-    status: "APPROVED",
-    subtotal: 4250000,
-    discount_amount: 0,
-    tax_amount: 0,
-    total_amount: 4250000,
-    notes: "Pengadaan perangkat kerja penunjang divisi kreatif.",
-    items: [
-      {
-        id: "QI-006",
-        product_service_id: "ITEM-001",
-        name: "Paket konsultasi bisnis",
-        quantity: 2,
-        unit_price: 1500000,
-        subtotal: 3000000,
-        unit: "Jam",
-        category: "Jasa",
-      },
-      {
-        id: "QI-007",
-        product_service_id: "ITEM-002",
-        name: "Jasa desain logo",
-        quantity: 1,
-        unit_price: 750000,
-        subtotal: 750000,
-        unit: "Paket",
-        category: "Jasa",
-      },
-    ],
-    createdAt: "2026-10-15T08:30:00.000Z",
-  },
-];
+export { initialQuotations };
 
 const DEV_AUTH_HEADER = "Bearer mock-admin-token";
 
@@ -184,6 +14,109 @@ export function formatTanggalIndo(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+/**
+ * Format timestamp database (updated_at) ke format teks waktu Indonesia (WIB).
+ */
+export function formatWaktuPembaruan(dateInput?: string | Date): string {
+  if (!dateInput) return "Baru saja";
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+  } catch {
+    return "Baru saja";
+  }
+}
+
+/**
+ * Menghitung masa berlaku dan sisa hari aktif dari tanggal penawaran dan valid_until database.
+ */
+export function hitungMasaBerlaku(quotationDateStr: string, validUntilStr?: string): {
+  durasiHari: number;
+  labelMasaBerlaku: string;
+  sisaHariLabel: string;
+} {
+  const qDate = new Date(quotationDateStr);
+  const vDate = validUntilStr
+    ? new Date(validUntilStr)
+    : new Date(qDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  const diffMs = vDate.getTime() - qDate.getTime();
+  const durasiHari = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+  const validUntilFormatted = formatTanggalIndo(vDate.toISOString().split("T")[0]);
+  const labelMasaBerlaku = `${durasiHari} hari (hingga ${validUntilFormatted})`;
+
+  const todayMs = Date.now();
+  const sisaMs = vDate.getTime() - todayMs;
+  const sisaHari = Math.ceil(sisaMs / (1000 * 60 * 60 * 24));
+
+  let sisaHariLabel = `${durasiHari} hari`;
+  if (sisaHari > 0) {
+    sisaHariLabel = `${sisaHari} hari`;
+  } else if (sisaHari === 0) {
+    sisaHariLabel = "Hari terakhir";
+  } else {
+    sisaHariLabel = "Kedaluwarsa";
+  }
+
+  return { durasiHari, labelMasaBerlaku, sisaHariLabel };
+}
+
+/**
+ * Menghasilkan riwayat aktivitas dinamis berdasarkan status, timestamp, dan detail email pelanggan.
+ */
+export function getQuotationActivities(quotation: Quotation) {
+  if (quotation.activities && quotation.activities.length > 0) {
+    return quotation.activities;
+  }
+
+  const list = [];
+  const updatedDate = quotation.updated_at ? new Date(quotation.updated_at) : new Date();
+  const createdDate = quotation.created_at || quotation.createdAt
+    ? new Date(quotation.created_at || quotation.createdAt!)
+    : new Date();
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const updatedTime = `${pad(updatedDate.getHours())}:${pad(updatedDate.getMinutes())}`;
+  const createdTime = `${pad(createdDate.getHours())}:${pad(createdDate.getMinutes())}`;
+
+  if (quotation.status === "APPROVED") {
+    list.push({
+      id: "ACT-APPROVE",
+      title: "Penawaran disetujui",
+      time: "Baru saja",
+      description: "",
+      status: "completed" as const,
+    });
+  }
+
+  list.push({
+    id: "ACT-SEND",
+    title: "Terkirim ke pelanggan",
+    time: updatedTime,
+    description: quotation.customer_email
+      ? `Surel penawaran dikirim otomatis ke ${quotation.customer_email}`
+      : `Dokumen penawaran dikirim ke ${quotation.customer_name}`,
+    status: "completed" as const,
+  });
+
+  list.push({
+    id: "ACT-CREATE",
+    title: "Dokumen dibuat",
+    time: createdTime,
+    description: `Dibuat untuk ${quotation.customer_name} (${quotation.quotation_number}) melalui generator draf penjualan`,
+    status: "completed" as const,
+  });
+
+  return list;
 }
 
 export function subscribeQuotationStorage(callback: () => void) {
@@ -204,7 +137,10 @@ export function getStoredQuotations(): Quotation[] {
     const updatedRaw = sessionStorage.getItem("araya_updated_quotations");
     const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
 
-    const base = [...addedList, ...initialQuotations.filter((q) => !addedList.some((a) => a.id === q.id || a.quotation_number === q.quotation_number))];
+    const base = [
+      ...addedList,
+      ...initialQuotations.filter((q) => !addedList.some((a) => a.id === q.id || a.quotation_number === q.quotation_number)),
+    ];
     return base.map((q) => (updatedMap[q.id] ? { ...q, ...updatedMap[q.id] } : q));
   } catch {
     return initialQuotations;
@@ -220,6 +156,71 @@ export function findQuotationById(id: string): Quotation | null {
   return all.find((q) => q.id === id || q.quotation_number === id) || null;
 }
 
+function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
+  return {
+    id: row.id,
+    quotation_number: row.quotation_number,
+    customer_id: row.customer_id,
+    customer_name: row.customers?.name || "Pelanggan",
+    customer_phone: row.customers?.phone,
+    customer_email: row.customers?.email,
+    customer_address: row.customers?.address,
+    quotation_date: row.quotation_date ? String(row.quotation_date).split("T")[0] : "",
+    valid_until: row.valid_until ? String(row.valid_until).split("T")[0] : undefined,
+    status: row.status as QuotationStatus,
+    subtotal: Number(row.subtotal) || 0,
+    discount_amount: Number(row.discount_amount) || 0,
+    tax_amount: Number(row.tax_amount) || 0,
+    total_amount: Number(row.total_amount) || 0,
+    notes: row.notes || "",
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    items: Array.isArray(row.quotation_items)
+      ? row.quotation_items.map((it: DbQuotationItemRow) => ({
+          id: it.id,
+          product_service_id: it.product_service_id,
+          name: it.products_services?.name || it.description || "Item",
+          description: it.description || undefined,
+          quantity: Number(it.quantity) || 1,
+          unit_price: Number(it.unit_price) || 0,
+          subtotal: Number(it.subtotal) || 0,
+          unit: it.products_services?.unit || "Unit",
+          category: it.products_services?.type === "SERVICE" ? "Jasa" : "Produk",
+        }))
+      : [],
+  };
+}
+
+/**
+ * Mengambil data detail penawaran langsung dari PostgreSQL via API M4.
+ */
+export async function fetchQuotationDetailFromDatabase(id: string): Promise<Quotation | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch(`/api/m4/v1/quotations/${id}`, { headers: { Authorization: DEV_AUTH_HEADER } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success && json.data ? mapDatabaseRowToQuotation(json.data) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mengambil daftar penawaran langsung dari PostgreSQL via API M4.
+ */
+export async function fetchQuotationsListFromDatabase(): Promise<Quotation[]> {
+  if (typeof window === "undefined") return [];
+  try {
+    const res = await fetch("/api/m4/v1/quotations?limit=100", { headers: { Authorization: DEV_AUTH_HEADER } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.success && Array.isArray(json.data) ? json.data.map(mapDatabaseRowToQuotation) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function saveNewQuotationToStorage(newQuo: Quotation) {
   if (typeof window === "undefined") return;
   try {
@@ -231,7 +232,6 @@ export function saveNewQuotationToStorage(newQuo: Quotation) {
     sessionStorage.setItem("araya_quotation_toast_number", newQuo.quotation_number);
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
 
-    // Sync ke PostgreSQL via API M4
     fetch("/api/m4/v1/quotations", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
@@ -260,18 +260,20 @@ export function approveQuotationInStorage(id: string) {
   try {
     const updatedRaw = sessionStorage.getItem("araya_updated_quotations");
     const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
-    updatedMap[id] = { ...(updatedMap[id] || {}), status: "APPROVED" as QuotationStatus };
+    updatedMap[id] = {
+      ...(updatedMap[id] || {}),
+      status: "APPROVED" as QuotationStatus,
+      updated_at: new Date().toISOString(),
+    };
     sessionStorage.setItem("araya_updated_quotations", JSON.stringify(updatedMap));
     sessionStorage.setItem("araya_show_quotation_toast", "approved");
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
 
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      fetch(`/api/m4/v1/quotations/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
-        body: JSON.stringify({ status: "APPROVED" }),
-      }).catch(() => {});
-    }
+    fetch(`/api/m4/v1/quotations/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
+      body: JSON.stringify({ status: "APPROVED" }),
+    }).catch(() => {});
   } catch {
     // ignore
   }

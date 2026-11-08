@@ -192,19 +192,16 @@ function DaftarPelangganContent() {
 
   return (
     <>
+      <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismiss} />
       <Breadcrumb separator="/" items={[{ label: "Pelanggan" }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-16.5 relative">
         <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight shrink-0">Daftar pelanggan</h1>
         <div className="w-full sm:w-auto flex items-center justify-end min-h-13">
-          {toastStatus !== "hidden" ? (
-            <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismiss} />
-          ) : (
-            <Link href="/pelanggan/tambah" className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto animate-fade-in">
-              <Plus className="w-4 h-4" />
-              <span>Tambah pelanggan</span>
-            </Link>
-          )}
+          <Link href="/pelanggan/tambah" className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto animate-fade-in">
+            <Plus className="w-4 h-4" />
+            <span>Tambah pelanggan</span>
+          </Link>
         </div>
       </div>
 
