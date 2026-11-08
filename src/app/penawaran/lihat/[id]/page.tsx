@@ -16,7 +16,6 @@ import {
   findQuotationById,
   fetchQuotationDetailFromDatabase,
   approveQuotationInStorage,
-  formatTanggalIndo,
   formatWaktuPembaruan,
 } from "@/lib/data/mock-quotations";
 
@@ -25,9 +24,13 @@ function LihatPenawaranContent() {
   const params = useParams();
   const quotationId = typeof params?.id === "string" ? params.id : "";
 
-  const [quotation, setQuotation] = useState<Quotation | null>(null);
+  const [quotation, setQuotation] = useState<Quotation | null>(() =>
+    quotationId ? findQuotationById(quotationId) : null
+  );
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [previewDateLabel, setPreviewDateLabel] = useState("28 Oktober 2026");
+  const [previewDateLabel] = useState<string>(() =>
+    new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
+  );
   const [showInvoiceAlert, setShowInvoiceAlert] = useState(false);
   const [alertKey, setAlertKey] = useState(0);
   const [toastState, setToastState] = useState<{
@@ -41,11 +44,7 @@ function LihatPenawaranContent() {
   });
 
   useEffect(() => {
-    setPreviewDateLabel(new Date().toLocaleDateString("id-ID", { dateStyle: "long" }));
     if (quotationId) {
-      const localItem = findQuotationById(quotationId);
-      if (localItem) setQuotation(localItem);
-
       // Ambil data terbaru langsung dari database PostgreSQL
       fetchQuotationDetailFromDatabase(quotationId).then((dbItem) => {
         if (dbItem) setQuotation(dbItem);

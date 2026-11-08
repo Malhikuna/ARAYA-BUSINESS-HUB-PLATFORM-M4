@@ -28,26 +28,37 @@ const ITEMS_PER_PAGE = 5;
  * Menampilkan ringkasan metrik, filter pencarian & status, tabel data, serta fitur ekspor PDF.
  */
 export default function PenawaranPage() {
-  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>(() => getStoredQuotations());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<QuotationFilterStatus>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [previewDateLabel, setPreviewDateLabel] = useState("28 Oktober 2026");
+  const [previewDateLabel] = useState<string>(() =>
+    new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
+  );
   const [toastState, setToastState] = useState<{
     status: ToastStatus;
     title: string;
     description: string;
-  }>({
-    status: "hidden",
-    title: "",
-    description: "",
+  }>(() => {
+    if (typeof window === "undefined") return { status: "hidden", title: "", description: "" };
+    try {
+      const toastType = sessionStorage.getItem("araya_show_quotation_toast");
+      if (toastType === "created") {
+        sessionStorage.removeItem("araya_show_quotation_toast");
+        return { status: "visible", title: "Penawaran berhasil dibuat", description: "Menunggu persetujuan." };
+      }
+      if (toastType === "approved") {
+        sessionStorage.removeItem("araya_show_quotation_toast");
+        return { status: "visible", title: "Penawaran disetujui", description: "Invoice sekarang dapat dibuat." };
+      }
+    } catch {
+      // ignore
+    }
+    return { status: "hidden", title: "", description: "" };
   });
 
   useEffect(() => {
-    setPreviewDateLabel(new Date().toLocaleDateString("id-ID", { dateStyle: "long" }));
-    setQuotations(getStoredQuotations());
-
     // Ambil data resmi dari database PostgreSQL
     fetchQuotationsListFromDatabase().then((dbList) => {
       if (dbList.length > 0) {
@@ -58,27 +69,6 @@ export default function PenawaranPage() {
     const unsubscribe = subscribeQuotationStorage(() => {
       setQuotations(getStoredQuotations());
     });
-
-    try {
-      const toastType = sessionStorage.getItem("araya_show_quotation_toast");
-      if (toastType === "created") {
-        setToastState({
-          status: "visible",
-          title: "Penawaran berhasil dibuat",
-          description: "Menunggu persetujuan.",
-        });
-        sessionStorage.removeItem("araya_show_quotation_toast");
-      } else if (toastType === "approved") {
-        setToastState({
-          status: "visible",
-          title: "Penawaran disetujui",
-          description: "Invoice sekarang dapat dibuat.",
-        });
-        sessionStorage.removeItem("araya_show_quotation_toast");
-      }
-    } catch {
-      // ignore
-    }
 
     return () => unsubscribe();
   }, []);
@@ -104,10 +94,6 @@ export default function PenawaranPage() {
       return matchesSearch && matchesStatus;
     });
   }, [quotations, searchQuery, statusFilter]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -160,8 +146,14 @@ export default function PenawaranPage() {
       <QuotationFilterBar
         searchTerm={searchQuery}
         selectedStatus={statusFilter}
-        onSearchChange={setSearchQuery}
-        onStatusChange={(val) => setStatusFilter(val as QuotationFilterStatus)}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setCurrentPage(1);
+        }}
+        onStatusChange={(val) => {
+          setStatusFilter(val as QuotationFilterStatus);
+          setCurrentPage(1);
+        }}
         onOpenExportPreview={() => setIsExportOpen(true)}
       />
 

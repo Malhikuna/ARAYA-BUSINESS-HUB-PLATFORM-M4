@@ -34,15 +34,26 @@ export default function TambahPenawaranPage() {
   const router = useRouter();
 
   // Master Data Pelanggan & Produk (Aktif selalu di atas)
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [customers] = useState<Customer[]>(() => {
+    try {
+      const stored = getStoredCustomers();
+      const parsed: Customer[] = typeof stored === "string" ? JSON.parse(stored) : stored;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return [...initialCustomers, ...parsed.filter((p) => !initialCustomers.some((i) => i.id === p.id))];
+      }
+    } catch {
+      // ignore
+    }
+    return initialCustomers;
+  });
   const [products] = useState<ProductItem[]>(() =>
-    [...initialProducts].sort((a, b) => (a.status === "Aktif" ? -1 : 1))
+    [...initialProducts].sort((a) => (a.status === "Aktif" ? -1 : 1))
   );
 
   // Form State: Awal kosong untuk penawaran baru
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [quotationNumber, setQuotationNumber] = useState<string>("");
-  const [quotationDate, setQuotationDate] = useState<string>("");
+  const [quotationNumber] = useState<string>(() => generateNextQuotationNumber());
+  const [quotationDate, setQuotationDate] = useState<string>(() => getTodayDateStr());
   const [isDateManuallyChanged, setIsDateManuallyChanged] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>("");
 
@@ -51,21 +62,6 @@ export default function TambahPenawaranPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Inisialisasi tanggal hari ini & nomor penawaran berikutnya
-    const today = getTodayDateStr();
-    setQuotationDate(today);
-    setQuotationNumber(generateNextQuotationNumber());
-
-    try {
-      const stored = getStoredCustomers();
-      const parsed: Customer[] = typeof stored === "string" ? JSON.parse(stored) : stored;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setCustomers([...initialCustomers, ...parsed.filter((p) => !initialCustomers.some((i) => i.id === p.id))]);
-      }
-    } catch {
-      // ignore
-    }
-
     // Interval rollover tengah malam: jika user buka form 23:59 dan melewati 00:00,
     // otomatis sinkronkan ke tanggal hari berikutnya jika tanggal belum diubah manual.
     const midnightTimer = setInterval(() => {
