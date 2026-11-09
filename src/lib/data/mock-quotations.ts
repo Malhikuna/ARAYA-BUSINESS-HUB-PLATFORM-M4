@@ -281,7 +281,7 @@ export function approveQuotationInStorage(id: string) {
 }
 
 export function generateNextQuotationNumber(): string {
-  if (typeof window === "undefined") return "PNW-0006";
+  if (typeof window === "undefined") return "PNW-0011";
   const all = getStoredQuotations();
   const maxNum = all.reduce((max, q) => {
     const match = q.quotation_number.match(/(\d+)$/);
@@ -290,6 +290,6 @@ export function generateNextQuotationNumber(): string {
       return n > max ? n : max;
     }
     return max;
-  }, 5);
+  }, 10);
   return `PNW-${String(maxNum + 1).padStart(4, "0")}`;
 }

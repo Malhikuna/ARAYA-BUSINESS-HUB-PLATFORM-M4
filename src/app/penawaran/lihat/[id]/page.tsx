@@ -10,6 +10,7 @@ import { FormAlertBanner } from "@/components/common/FormAlertBanner";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
 import { QuotationDetailInfoCard } from "@/components/penawaran/QuotationDetailInfoCard";
 import { QuotationDetailSidebar } from "@/components/penawaran/QuotationDetailSidebar";
+import { QuotationPrintDocument } from "@/components/penawaran/QuotationPrintDocument";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
 import {
@@ -90,13 +91,14 @@ function LihatPenawaranContent() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <ToastNotification
-        status={toastState.status}
-        title={toastState.title}
-        description={toastState.description}
-        onDismiss={() => setToastState((prev) => ({ ...prev, status: "hidden" }))}
-      />
+    <>
+      <div className="space-y-6 pb-12 print:hidden">
+        <ToastNotification
+          status={toastState.status}
+          title={toastState.title}
+          description={toastState.description}
+          onDismiss={() => setToastState((prev) => ({ ...prev, status: "hidden" }))}
+        />
 
       {/* Top Bar: Breadcrumb di kiri, Terakhir diperbarui di kanan */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -224,7 +226,11 @@ function LihatPenawaranContent() {
         onConfirmDownload={() => setIsExportOpen(false)}
       />
     </div>
-  );
+
+    {/* Dokumen Resmi Khusus Mode Cetak (Print View) */}
+    <QuotationPrintDocument quotation={quotation} />
+  </>
+);
 }
 
 export default function LihatPenawaranPage() {
