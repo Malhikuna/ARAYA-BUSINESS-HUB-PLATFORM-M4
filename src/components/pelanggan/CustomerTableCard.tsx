@@ -22,6 +22,7 @@ export interface CustomerTableCardProps {
   newThisMonthCount: number;
   searchTerm: string;
   selectedCity: string;
+  availableCities?: string[];
   currentData: Customer[];
   filteredCount: number;
   safeCurrentPage: number;
@@ -41,6 +42,7 @@ export function CustomerTableCard({
   newThisMonthCount,
   searchTerm,
   selectedCity,
+  availableCities = [],
   currentData,
   filteredCount,
   safeCurrentPage,
@@ -123,7 +125,7 @@ export function CustomerTableCard({
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Cari nama pelanggan"
+            placeholder="Cari nama, kota, telepon, alamat..."
             className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#f0f4fa] text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] transition-all"
           />
         </div>
@@ -136,11 +138,17 @@ export function CustomerTableCard({
               className="h-10 pl-8 pr-7 rounded-xl bg-[#f0f4fa] hover:bg-slate-200/80 text-xs font-semibold text-slate-700 outline-none cursor-pointer transition-colors appearance-none"
             >
               <option value="Semua kota">Semua kota</option>
-              <option value="Bandung">Bandung</option>
-              <option value="Jakarta">Jakarta</option>
-              <option value="Surabaya">Surabaya</option>
-              <option value="Semarang">Semarang</option>
-              <option value="Yogyakarta">Yogyakarta</option>
+              {availableCities && availableCities.length > 0
+                ? availableCities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))
+                : ["Bandung", "Jakarta", "Surabaya", "Semarang", "Yogyakarta"].map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
             </select>
             <Filter className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <span className="text-[10px] text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
@@ -160,15 +168,15 @@ export function CustomerTableCard({
 
       {/* Customer Table */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="w-full overflow-x-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/70">
-                <th scope="col" className="px-6 py-3.5">Nama</th>
-                <th scope="col" className="px-6 py-3.5">Telepon</th>
-                <th scope="col" className="px-6 py-3.5">Email</th>
-                <th scope="col" className="px-6 py-3.5">Alamat</th>
-                <th scope="col" className="px-6 py-3.5 text-right">Aksi</th>
+                <th scope="col" className="w-[24%] px-4 sm:px-6 py-3.5">Nama</th>
+                <th scope="col" className="w-[18%] px-4 sm:px-6 py-3.5">Telepon</th>
+                <th scope="col" className="w-[22%] px-4 sm:px-6 py-3.5">Email</th>
+                <th scope="col" className="w-[26%] px-4 sm:px-6 py-3.5">Alamat</th>
+                <th scope="col" className="w-[10%] px-4 sm:px-6 py-3.5 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -189,20 +197,20 @@ export function CustomerTableCard({
                     }}
                     className="hover:bg-[#f5f8ff] focus:bg-[#f5f8ff] outline-none transition-colors cursor-pointer group"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
+                    <td className="px-4 sm:px-6 py-3.5 truncate">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${cust.avatarBg}`}>
                           {cust.initials}
                         </div>
-                        <span className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs">
+                        <span className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs truncate">
                           {cust.name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-slate-600">{cust.phone}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-slate-600">{cust.email}</td>
-                    <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{cust.address}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 sm:px-6 py-3.5 font-mono text-slate-600 truncate">{cust.phone}</td>
+                    <td className="px-4 sm:px-6 py-3.5 text-slate-600 truncate">{cust.email}</td>
+                    <td className="px-4 sm:px-6 py-3.5 text-slate-600 truncate" title={cust.address || ""}>{cust.address}</td>
+                    <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="inline-flex items-center justify-end gap-1.5">
                         <Link
                           href={`/pelanggan/ubah/${cust.id}`}
@@ -231,7 +239,7 @@ export function CustomerTableCard({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={5} className="px-4 sm:px-6 py-12 text-center text-slate-400 text-xs">
                     Tidak ada data pelanggan yang sesuai dengan pencarian.
                   </td>
                 </tr>

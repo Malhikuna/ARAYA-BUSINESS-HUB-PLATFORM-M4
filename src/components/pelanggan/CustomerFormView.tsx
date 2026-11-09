@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { IdCard, Phone, Mail, AlertCircle } from "lucide-react";
-import { getCustomerInitials } from "@/lib/data/mock-customers";
+import { getCustomerInitials, checkCustomerDuplicates } from "@/lib/data/mock-customers";
 import { CustomerForm, FormErrors } from "@/types/customer";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
@@ -22,7 +22,7 @@ export interface CustomerFormViewProps {
   initialValues?: CustomerForm;
   customerId?: string;
   fallbackName?: string;
-  onConfirmSave: (form: CustomerForm) => void;
+  onConfirmSave: (form: CustomerForm) => Promise<{ error?: string; field?: keyof FormErrors } | void> | void;
 }
 
 export function CustomerFormView({
@@ -56,6 +56,14 @@ export function CustomerFormView({
       errs.email = "Format email tidak valid, contoh: nama@perusahaan.co.id.";
     }
     if (!form.address.trim()) errs.address = "Isi alamat lengkap pelanggan.";
+
+    // Pemeriksaan duplikasi email & nomor telepon (Unique constraint)
+    if (!errs.phone || !errs.email) {
+      const dupErrors = checkCustomerDuplicates(form.email, form.phone, customerId);
+      if (!errs.email && dupErrors.email) errs.email = dupErrors.email;
+      if (!errs.phone && dupErrors.phone) errs.phone = dupErrors.phone;
+    }
+
     return errs;
   };
 
@@ -102,10 +110,19 @@ export function CustomerFormView({
     setIsConfirmOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setIsConfirmOpen(false);
     setIsSubmitting(true);
-    onConfirmSave(form);
+    try {
+      const res = await onConfirmSave(form);
+      if (res && res.error) {
+        setErrors((prev) => ({ ...prev, [res.field || "name"]: res.error }));
+        setHasSubmittedError(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const initials = getCustomerInitials(isEdit ? form.name || fallbackName || "Pelanggan" : form.name, isEdit ? 2 : 1);
