@@ -7,8 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/unit/**/*.test.ts tests/*.test.ts",
-    "test:e2e": "playwright test"
+    "test": "npm run test:unit",
+    "test:unit": "tsx --test tests/unit/**/*.test.ts tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:api": "newman run qa/postman/araya-m4-api-regression.postman_collection.json -e qa/postman/local.postman_environment.json",
+    "test:regression": "npm run test:unit && npm run test:e2e",
+    "test:regression:api": "npm run test:api",
+    "mock:m5": "prism mock docs/openapi_m5_order_contract.yaml --host 127.0.0.1 --port 4010 --errors",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset --force",
+    "db:verify": "npm run db:up && npm run db:migrate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -22,6 +32,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "@stoplight/prism-cli": "^5.16.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20.19.43",
     "@types/pg": "^8.23.1",
@@ -29,6 +40,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "newman": "^6.2.3",
     "prisma": "^7.10.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

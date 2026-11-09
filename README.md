@@ -129,6 +129,39 @@ Dokumentasi API interaktif dapat diakses langsung melalui browser saat server be
 
 ---
 
+## 🧪 QA Test Stack
+
+`test:e2e` menyalakan server lokal otomatis. Untuk `test:api`, jalankan server
+di terminal lain dengan `npm run dev`, kemudian gunakan perintah berikut:
+
+```bash
+npm run test:unit       # Unit test Node.js melalui tsx
+npm run test:e2e        # E2E Playwright
+npm run test:api        # API smoke/regression Newman
+npm run test:regression # Unit + E2E
+npm run test:regression:api # API regression setelah server dijalankan
+```
+
+Collection dan environment Newman berada di `qa/postman/`. Environment lokal memakai
+`http://localhost:3000` dan token mock pengembangan; jangan memakai token tersebut di production.
+
+## 🔌 Service Mocking & Local Database
+
+Salin `.env.example` menjadi `.env` untuk koneksi database lokal. Jangan commit `.env`.
+
+```bash
+# Terminal 1: mock kontrak M5 dari OpenAPI
+npm run mock:m5
+
+# Terminal 2: PostgreSQL lokal + migration Prisma
+npm run db:verify
+```
+
+Prism tersedia di `http://127.0.0.1:4010` dan mengikuti path kontrak
+`POST /checkouts` (base path `/api/v1` tidak termasuk dalam URL mock). PostgreSQL
+tersedia di `127.0.0.1:5433`; `db:verify` menunggu health check container lalu
+menjalankan migration yang ada.
+
 ## 📁 Struktur Direktori
 
 ```
