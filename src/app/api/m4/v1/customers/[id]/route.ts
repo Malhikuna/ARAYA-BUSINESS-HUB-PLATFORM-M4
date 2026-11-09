@@ -64,6 +64,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
+// Kompatibilitas spesifikasi PRD Bab 6.2 (PUT & PATCH)
+export const PUT = PATCH;
+
 export async function DELETE(request: Request, { params }: RouteParams) {
   const traceId = request.headers.get('x-request-id') || generateTraceId();
 

@@ -66,7 +66,7 @@ function UbahPelangganContent() {
     );
   }
 
-  const cleanPhone = customer.phone.replace(/^\+62\s?/, "").replace(/\D/g, "");
+  const cleanPhone = customer.phone.trim();
 
   const handleConfirmSave = (form: CustomerForm) => {
     const updatedCustomer: Customer = {
@@ -74,7 +74,7 @@ function UbahPelangganContent() {
       name: form.name.trim(),
       initials: getCustomerInitials(form.name, 2),
       avatarBg: customer.avatarBg || "bg-blue-100 text-blue-700",
-      phone: form.phone.trim() ? `+62 ${form.phone.trim()}` : "0812 3456 7890",
+      phone: form.phone.trim() || "0812 3456 7890",
       email: form.email.trim() || "-",
       address: form.address.trim(),
       city: detectCityFromAddress(form.address.trim(), customer.city || "Bandung"),
