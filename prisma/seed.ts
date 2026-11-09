@@ -157,6 +157,134 @@ async function main() {
     }
   }
 
+  // 5. Seed Initial Quotations
+  console.log('5. Seeding Penawaran (Quotations & Quotation Items)...');
+  const custMaju = await prisma.customers.findFirst({ where: { name: 'PT Maju Bersama' } });
+  const custKarya = await prisma.customers.findFirst({ where: { name: 'CV Karya Mandiri' } });
+  const custDudi = await prisma.customers.findFirst({ where: { email: 'dudi.santoso@gmail.com' } });
+
+  const prodKonsul = await prisma.products_services.findFirst({ where: { sku: 'SRV-CONS-001' } });
+  const prodDesain = await prisma.products_services.findFirst({ where: { sku: 'SRV-DSGN-002' } });
+  const prodLaptop = await prisma.products_services.findFirst({ where: { sku: 'PRD-LPT-001' } });
+
+  if (custMaju && custKarya && custDudi && prodKonsul && prodDesain && prodLaptop) {
+    const dummyQuotations = [
+      {
+        quotation_number: 'PNW-0005',
+        customer_id: custMaju.id,
+        partner_id: DEFAULT_PARTNER_ID,
+        quotation_date: new Date('2026-10-28T00:00:00.000Z'),
+        valid_until: new Date('2026-11-11T00:00:00.000Z'),
+        status: 'PENDING_APPROVAL',
+        subtotal: 3750000,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: 3750000,
+        notes: 'Penawaran paket pendampingan bisnis dan visual branding.',
+        created_at: new Date('2026-10-28T11:02:00.000Z'),
+        updated_at: new Date('2026-10-28T14:20:00.000Z'),
+        items: [
+          { product_service_id: prodKonsul.id, description: 'Paket konsultasi bisnis', quantity: 2, unit_price: 1500000, subtotal: 3000000, total_amount: 3000000 },
+          { product_service_id: prodDesain.id, description: 'Jasa desain logo', quantity: 1, unit_price: 750000, subtotal: 750000, total_amount: 750000 },
+        ],
+      },
+      {
+        quotation_number: 'PNW-0004',
+        customer_id: custKarya.id,
+        partner_id: DEFAULT_PARTNER_ID,
+        quotation_date: new Date('2026-10-26T00:00:00.000Z'),
+        valid_until: new Date('2026-11-09T00:00:00.000Z'),
+        status: 'APPROVED',
+        subtotal: 8900000,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: 8900000,
+        notes: 'Pengadaan laptop divisi teknik.',
+        created_at: new Date('2026-10-26T10:15:00.000Z'),
+        updated_at: new Date('2026-10-26T16:00:00.000Z'),
+        items: [
+          { product_service_id: prodLaptop.id, description: 'Laptop kantor 14 inci', quantity: 1, unit_price: 8900000, subtotal: 8900000, total_amount: 8900000 },
+        ],
+      },
+      {
+        quotation_number: 'PNW-0003',
+        customer_id: custDudi.id,
+        partner_id: DEFAULT_PARTNER_ID,
+        quotation_date: new Date('2026-10-24T00:00:00.000Z'),
+        valid_until: new Date('2026-11-07T00:00:00.000Z'),
+        status: 'APPROVED',
+        subtotal: 750000,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: 750000,
+        notes: 'Desain identitas brand personal.',
+        created_at: new Date('2026-10-24T09:45:00.000Z'),
+        updated_at: new Date('2026-10-24T15:30:00.000Z'),
+        items: [
+          { product_service_id: prodDesain.id, description: 'Jasa desain logo', quantity: 1, unit_price: 750000, subtotal: 750000, total_amount: 750000 },
+        ],
+      },
+      {
+        quotation_number: 'PNW-0002',
+        customer_id: custMaju.id,
+        partner_id: DEFAULT_PARTNER_ID,
+        quotation_date: new Date('2026-10-20T00:00:00.000Z'),
+        valid_until: new Date('2026-11-03T00:00:00.000Z'),
+        status: 'PENDING_APPROVAL',
+        subtotal: 1500000,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: 1500000,
+        notes: 'Sesi konsultasi awal evaluasi.',
+        created_at: new Date('2026-10-20T08:00:00.000Z'),
+        updated_at: new Date('2026-10-20T11:15:00.000Z'),
+        items: [
+          { product_service_id: prodKonsul.id, description: 'Paket konsultasi bisnis', quantity: 1, unit_price: 1500000, subtotal: 1500000, total_amount: 1500000 },
+        ],
+      },
+      {
+        quotation_number: 'PNW-0001',
+        customer_id: custKarya.id,
+        partner_id: DEFAULT_PARTNER_ID,
+        quotation_date: new Date('2026-10-15T00:00:00.000Z'),
+        valid_until: new Date('2026-10-29T00:00:00.000Z'),
+        status: 'APPROVED',
+        subtotal: 4250000,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: 4250000,
+        notes: 'Pengadaan perangkat kerja penunjang divisi kreatif.',
+        created_at: new Date('2026-10-15T08:30:00.000Z'),
+        updated_at: new Date('2026-10-15T17:00:00.000Z'),
+        items: [
+          { product_service_id: prodKonsul.id, description: 'Paket konsultasi bisnis', quantity: 2, unit_price: 1500000, subtotal: 3000000, total_amount: 3000000 },
+          { product_service_id: prodDesain.id, description: 'Jasa desain logo', quantity: 1, unit_price: 750000, subtotal: 750000, total_amount: 750000 },
+        ],
+      },
+    ];
+
+    for (const q of dummyQuotations) {
+      const existing = await prisma.quotations.findUnique({
+        where: { quotation_number: q.quotation_number },
+      });
+
+      if (!existing) {
+        const { items, ...quoData } = q;
+        const created = await prisma.quotations.create({
+          data: {
+            ...quoData,
+            quotation_items: {
+              create: items,
+            },
+          },
+        });
+        console.log(`   ✅ Penawaran dibuat: ${created.quotation_number} (${created.status})`);
+      } else {
+        console.log(`   ℹ️ Penawaran sudah ada: ${existing.quotation_number}`);
+      }
+    }
+  }
+
   console.log('\n🎉 Seeding selesai dengan sukses!');
 }
 

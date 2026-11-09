@@ -55,11 +55,9 @@ export class EmptyQuotationItemsError extends Error {
 
 export class QuotationValidationError extends Error {
   code = 'VALIDATION_ERROR';
-  fields: Record<string, string>;
-  constructor(message: string, fields: Record<string, string>) {
+  constructor(message: string, public fields: Record<string, string>) {
     super(message);
     this.name = 'QuotationValidationError';
-    this.fields = fields;
   }
 }
 
@@ -129,17 +127,9 @@ export async function getQuotations(query: {
     ];
   }
 
-  if (query.status) {
-    where.status = query.status.toUpperCase();
-  }
-
-  if (query.customer_id) {
-    where.customer_id = query.customer_id;
-  }
-
-  if (query.partner_id) {
-    where.partner_id = query.partner_id;
-  }
+  if (query.status) where.status = query.status.toUpperCase();
+  if (query.customer_id) where.customer_id = query.customer_id;
+  if (query.partner_id) where.partner_id = query.partner_id;
 
   const [items, total] = await Promise.all([
     prisma.quotations.findMany({
@@ -175,8 +165,9 @@ export async function getQuotations(query: {
 }
 
 export async function getQuotationById(id: string) {
-  const quotation = await prisma.quotations.findUnique({
-    where: { id },
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const quotation = await prisma.quotations.findFirst({
+    where: isUuid ? { OR: [{ id }, { quotation_number: id }] } : { quotation_number: id },
     include: {
       customers: true,
       quotation_items: {
@@ -288,7 +279,7 @@ export async function updateQuotationStatus(id: string, newStatus: QuotationStat
   }
 
   return prisma.quotations.update({
-    where: { id },
+    where: { id: quotation.id },
     data: {
       status: newStatus,
       updated_at: new Date(),

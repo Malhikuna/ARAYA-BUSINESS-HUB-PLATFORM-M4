@@ -25,11 +25,12 @@ export function AppLayout({
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={toggleSidebar}
       />
-      <div className="flex-1 flex relative overflow-x-clip">
+      <div className="flex-1 flex relative overflow-x-clip w-full">
         <Suspense
           fallback={
             <aside
-              className={`bg-white shrink-0 hidden md:block sticky top-16 h-[calc(100vh-4rem)] self-start transition-[width] duration-300 ease-in-out ${
+              style={{ height: "calc(100vh - 4rem)" }}
+              className={`bg-white shrink-0 hidden md:block sticky top-16 self-start transition-[width] duration-300 ease-in-out ${
                 isSidebarOpen
                   ? "w-60 border-r border-slate-200/90"
                   : "w-0 border-r-0"

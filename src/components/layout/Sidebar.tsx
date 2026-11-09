@@ -100,14 +100,15 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
       {/* Desktop Collapsible Sticky Sidebar */}
       <aside
         aria-hidden={!isOpen}
-        className={`bg-white shrink-0 hidden md:block sticky top-16 h-[calc(100vh-4rem)] self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${
+        style={{ height: "calc(100vh - 4rem)" }}
+        className={`bg-white shrink-0 hidden md:block sticky top-16 self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${
           isOpen
             ? "w-60 border-r border-slate-200/90"
             : "w-0 border-r-0 overflow-hidden"
         }`}
       >
         <div
-          className={`w-60 p-4 transition-[transform,opacity] duration-300 ease-in-out ${
+          className={`w-full p-4 transition-[transform,opacity] duration-300 ease-in-out ${
             isOpen
               ? "translate-x-0 opacity-100"
               : "-translate-x-4 opacity-0 pointer-events-none"

@@ -72,14 +72,23 @@ export function filterAndSortProducts(
     return true;
   });
 
-  if (selectedPrice === "Harga: Terendah") {
-    return [...matched].sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
-  }
-  if (selectedPrice === "Harga: Tertinggi") {
-    return [...matched].sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
-  }
+  return [...matched].sort((a, b) => {
+    // Status Aktif selalu di atas, status Nonaktif selalu paling bawah
+    const aIsActive = a.status === "Aktif";
+    const bIsActive = b.status === "Aktif";
+    if (aIsActive && !bIsActive) return -1;
+    if (!aIsActive && bIsActive) return 1;
 
-  return matched;
+    // Jika status sama, terapkan urutan harga jika dipilih
+    if (selectedPrice === "Harga: Terendah") {
+      return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+    }
+    if (selectedPrice === "Harga: Tertinggi") {
+      return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+    }
+
+    return 0;
+  });
 }
 
 /**
