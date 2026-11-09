@@ -1,13 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { openapiSpec } from '../src/lib/docs/openapi-spec';
-import { generateSwaggerHtml } from '../src/lib/docs/swagger-html';
-import { isPublicPath } from '../src/lib/auth/rbac';
-import { GET as getDocsHtml } from '../src/app/docs/route';
-import { GET as getApiDocsHtml } from '../src/app/api-docs/route';
-import { GET as getM4DocsHtml } from '../src/app/api/m4/v1/docs/route';
-import { GET as getM4OpenApiJson } from '../src/app/api/m4/v1/openapi.json/route';
-import { GET as getOpenApiJson } from '../src/app/api/v1/openapi.json/route';
+import { openapiSpec } from '../../src/lib/docs/openapi-spec';
+import { generateSwaggerHtml } from '../../src/lib/docs/swagger-html';
+import { isPublicPath } from '../../src/lib/auth/rbac';
+import { GET as getDocsHtml } from '../../src/app/docs/route';
+import { GET as getApiDocsHtml } from '../../src/app/api-docs/route';
+import { GET as getM4DocsHtml } from '../../src/app/api/m4/v1/docs/route';
+import { GET as getM4OpenApiJson } from '../../src/app/api/m4/v1/openapi.json/route';
+import { GET as getOpenApiJson } from '../../src/app/api/v1/openapi.json/route';
 
 describe('Swagger UI & OpenAPI Documentation Test Suite (Panduan Integrasi v1.0)', () => {
   describe('1. OpenAPI Specification Structure', () => {

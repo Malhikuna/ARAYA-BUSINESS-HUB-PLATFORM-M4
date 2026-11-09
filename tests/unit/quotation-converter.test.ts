@@ -1,13 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Quotation } from '../src/lib/sales/types';
-import {
-  convertQuotationToInvoiceDomain,
-  QuotationNotApprovedError,
-  EmptyQuotationItemsError,
-  QuotationAlreadyConvertedError,
-} from '../src/lib/sales/quotation-converter';
-import { POST } from '../src/app/api/v1/quotations/[id]/convert/route';
+import type { Quotation } from '../../src/lib/sales/types';
+import { convertQuotationToInvoiceDomain, QuotationNotApprovedError, EmptyQuotationItemsError, QuotationAlreadyConvertedError } from '../../src/lib/sales/quotation-converter';
+import { POST } from '../../src/app/api/v1/quotations/[id]/convert/route';
 
 describe('Quotation to Invoice Conversion Test Suite (M4-US2 / PRO-20)', () => {
   const validAcceptedQuotation: Quotation = {
@@ -66,7 +61,7 @@ describe('Quotation to Invoice Conversion Test Suite (M4-US2 / PRO-20)', () => {
           assert.ok(err instanceof QuotationNotApprovedError);
           assert.match(err.message, /belum disetujui/i);
           return true;
-        }
+        },
       );
     });
 
@@ -74,10 +69,7 @@ describe('Quotation to Invoice Conversion Test Suite (M4-US2 / PRO-20)', () => {
       const statuses: Array<Quotation['status']> = ['SENT', 'REJECTED', 'EXPIRED'];
       for (const st of statuses) {
         const quo: Quotation = { ...validAcceptedQuotation, status: st };
-        assert.throws(
-          () => convertQuotationToInvoiceDomain(quo),
-          QuotationNotApprovedError
-        );
+        assert.throws(() => convertQuotationToInvoiceDomain(quo), QuotationNotApprovedError);
       }
     });
 
@@ -87,18 +79,12 @@ describe('Quotation to Invoice Conversion Test Suite (M4-US2 / PRO-20)', () => {
         items: [],
       };
 
-      assert.throws(
-        () => convertQuotationToInvoiceDomain(emptyItemsQuo),
-        EmptyQuotationItemsError
-      );
+      assert.throws(() => convertQuotationToInvoiceDomain(emptyItemsQuo), EmptyQuotationItemsError);
     });
 
     it('Menolak jika quotation sudah pernah dikonversi sebelumnya (Idempotensi/Duplicate check)', () => {
       const existingInvoice = convertQuotationToInvoiceDomain(validAcceptedQuotation);
-      assert.throws(
-        () => convertQuotationToInvoiceDomain(validAcceptedQuotation, existingInvoice),
-        QuotationAlreadyConvertedError
-      );
+      assert.throws(() => convertQuotationToInvoiceDomain(validAcceptedQuotation, existingInvoice), QuotationAlreadyConvertedError);
     });
   });
 
