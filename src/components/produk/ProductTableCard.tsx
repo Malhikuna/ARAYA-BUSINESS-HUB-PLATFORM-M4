@@ -207,18 +207,18 @@ export function ProductTableCard({
 
       {/* Catalog Table */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="w-full overflow-x-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/70">
-                <th scope="col" className="px-6 py-3.5">Nama</th>
-                {!isProductOnly && !isServiceOnly && <th scope="col" className="px-6 py-3.5">Kategori</th>}
-                {!isServiceOnly && <th scope="col" className="px-6 py-3.5 text-center">Stok</th>}
-                {isServiceOnly && <th scope="col" className="px-6 py-3.5">Satuan</th>}
-                <th scope="col" className="px-6 py-3.5 text-right">Harga</th>
-                <th scope="col" className="px-6 py-3.5">Deskripsi</th>
-                <th scope="col" className="px-6 py-3.5">Status</th>
-                <th scope="col" className="px-6 py-3.5 text-right">Tindakan</th>
+                <th scope="col" className={`${isProductOnly ? "w-[28%]" : isServiceOnly ? "w-[30%]" : "w-[24%]"} px-3 sm:px-4 py-3.5`}>Nama</th>
+                {!isProductOnly && !isServiceOnly && <th scope="col" className="w-[12%] px-3 sm:px-4 py-3.5">Kategori</th>}
+                {!isServiceOnly && <th scope="col" className={`${isProductOnly ? "w-[14%]" : "w-[12%]"} px-3 sm:px-4 py-3.5 text-center`}>Stok</th>}
+                {isServiceOnly && <th scope="col" className="w-[14%] px-3 sm:px-4 py-3.5">Satuan</th>}
+                <th scope="col" className={`${isProductOnly ? "w-[18%]" : isServiceOnly ? "w-[18%]" : "w-[16%]"} px-3 sm:px-4 py-3.5 text-right`}>Harga</th>
+                <th scope="col" className={`${isProductOnly ? "w-[22%]" : isServiceOnly ? "w-[20%]" : "w-[18%]"} px-3 sm:px-4 py-3.5`}>Deskripsi</th>
+                <th scope="col" className="w-[10%] px-3 sm:px-4 py-3.5">Status</th>
+                <th scope="col" className="w-[8%] px-3 sm:px-4 py-3.5 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
