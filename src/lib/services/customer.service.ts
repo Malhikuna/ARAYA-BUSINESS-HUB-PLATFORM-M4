@@ -117,6 +117,7 @@ export async function getCustomers(query: GetCustomersQuery = {}) {
           { name: { contains: search, mode: 'insensitive' as const } },
           { email: { contains: search, mode: 'insensitive' as const } },
           { phone: { contains: search, mode: 'insensitive' as const } },
+          { address: { contains: search, mode: 'insensitive' as const } },
         ],
       }
     : {};

@@ -16,13 +16,33 @@ export function getCustomerInitials(name: string, singleWordLength = 2): string 
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+const KNOWN_CITIES = [
+  "Jakarta", "Bandung", "Surabaya", "Semarang", "Yogyakarta", "Medan", "Padang", "Palembang",
+  "Makassar", "Denpasar", "Malang", "Solo", "Bogor", "Depok", "Tangerang", "Bekasi", "Batam",
+  "Pekanbaru", "Bandar Lampung", "Samarinda", "Balikpapan", "Banjarmasin", "Pontianak", "Manado", "Cimahi", "Cirebon"
+];
+
 export function detectCityFromAddress(address: string, fallback = "Bandung"): string {
+  if (!address || typeof address !== "string") return fallback;
   const lower = address.toLowerCase();
-  if (lower.includes("jakarta")) return "Jakarta";
-  if (lower.includes("surabaya")) return "Surabaya";
-  if (lower.includes("semarang")) return "Semarang";
-  if (lower.includes("yogyakarta") || lower.includes("jogja")) return "Yogyakarta";
-  if (lower.includes("bandung")) return "Bandung";
+
+  const kotaMatch = address.match(/(?:kota|kabupaten|kab\.)\s+([a-zA-Z\s]+?)(?:,|$|\d)/i);
+  if (kotaMatch?.[1] && kotaMatch[1].trim().length >= 3 && kotaMatch[1].trim().length <= 25) {
+    const raw = kotaMatch[1].trim();
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  const found = KNOWN_CITIES.find((c) => lower.includes(c.toLowerCase()));
+  if (found) return found;
+
+  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const candidate = parts[1].replace(/^(kota|kabupaten|kab\.)\s+/i, "").trim();
+    if (candidate && candidate.length <= 25 && !/\d{4,}/.test(candidate)) {
+      return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+    }
+  }
+
   return fallback;
 }
 
@@ -55,17 +75,51 @@ export function findCustomerById(id: string): Customer | null {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-100 text-blue-700",
-  "bg-cyan-100 text-cyan-700",
-  "bg-amber-100 text-amber-700",
-  "bg-purple-100 text-purple-700",
-  "bg-indigo-100 text-indigo-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-rose-100 text-rose-700",
-  "bg-teal-100 text-teal-700",
-  "bg-sky-100 text-sky-700",
-  "bg-orange-100 text-orange-700",
+  "bg-blue-100 text-blue-700", "bg-cyan-100 text-cyan-700", "bg-amber-100 text-amber-700", "bg-purple-100 text-purple-700",
+  "bg-indigo-100 text-indigo-700", "bg-emerald-100 text-emerald-700", "bg-rose-100 text-rose-700", "bg-teal-100 text-teal-700",
 ];
+
+export function normalizePhoneDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.startsWith("62") ? "0" + digits.slice(2) : digits;
+}
+
+export function checkCustomerDuplicates(
+  email: string,
+  phone: string,
+  excludeId?: string
+): { email?: string; phone?: string } {
+  if (typeof window === "undefined") return {};
+  try {
+    const rawAdded = sessionStorage.getItem("araya_added_customers");
+    const addedList: Customer[] = rawAdded ? JSON.parse(rawAdded) : [];
+    const rawUpdates = sessionStorage.getItem("araya_updated_customers");
+    const updatesMap: Record<string, Customer> = rawUpdates ? JSON.parse(rawUpdates) : {};
+    const rawDel = sessionStorage.getItem("araya_deleted_customers");
+    const deletedList: string[] = rawDel ? JSON.parse(rawDel) : [];
+
+    const all = [...addedList, ...initialCustomers.filter((c) => !addedList.some((a) => a.id === c.id))]
+      .filter((c) => !deletedList.includes(c.id))
+      .map((c) => updatesMap[c.id] || c);
+
+    const normEmail = email.trim().toLowerCase();
+    const normPhone = normalizePhoneDigits(phone);
+    const errors: { email?: string; phone?: string } = {};
+
+    for (const c of all) {
+      if (excludeId && (c.id === excludeId || c.id === `CUST-${excludeId}` || excludeId.includes(c.id))) continue;
+      if (normEmail && c.email && c.email.trim().toLowerCase() === normEmail) {
+        errors.email = "Alamat email sudah terdaftar untuk pelanggan lain.";
+      }
+      if (normPhone && c.phone && normalizePhoneDigits(c.phone) === normPhone) {
+        errors.phone = "Nomor telepon/WhatsApp sudah terdaftar untuk pelanggan lain.";
+      }
+    }
+    return errors;
+  } catch {
+    return {};
+  }
+}
 
 export function getCustomerAvatarBg(name: string): string {
   let hash = 0;
