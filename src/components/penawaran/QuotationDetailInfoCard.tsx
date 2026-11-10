@@ -128,14 +128,14 @@ export function QuotationDetailInfoCard({ quotation }: QuotationDetailInfoCardPr
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="w-full overflow-x-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/80">
-                <th scope="col" className="px-4 py-3 rounded-l-lg">Produk/jasa</th>
-                <th scope="col" className="px-4 py-3 text-center w-24">Jumlah</th>
-                <th scope="col" className="px-4 py-3 text-right">Harga satuan</th>
-                <th scope="col" className="px-4 py-3 text-right rounded-r-lg">Subtotal</th>
+                <th scope="col" className="w-[45%] px-4 py-3 rounded-l-lg">Produk/jasa</th>
+                <th scope="col" className="w-[15%] px-4 py-3 text-center">Jumlah</th>
+                <th scope="col" className="w-[20%] px-4 py-3 text-right">Harga satuan</th>
+                <th scope="col" className="w-[20%] px-4 py-3 text-right rounded-r-lg">Subtotal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

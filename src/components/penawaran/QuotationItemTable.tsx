@@ -43,7 +43,7 @@ export function QuotationItemTable({
 
       {/* Tabel Item Penawaran */}
       <div className="border border-slate-200/90 rounded-2xl overflow-hidden bg-white shadow-2xs">
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-x-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#f4f7fb] text-slate-700 font-semibold border-b border-slate-200/80">
