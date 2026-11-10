@@ -21,7 +21,7 @@ import {
   formatTanggalIndo,
 } from "@/lib/data/mock-quotations";
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10;
 
 /**
  * Halaman utama Daftar Penawaran.
@@ -83,7 +83,7 @@ export default function PenawaranPage() {
   }, [quotations]);
 
   const filteredData = useMemo(() => {
-    return quotations.filter((item) => {
+    const list = quotations.filter((item) => {
       const matchesSearch =
         item.quotation_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -94,6 +94,17 @@ export default function PenawaranPage() {
         (statusFilter === "PENDING_APPROVAL" && (item.status === "PENDING_APPROVAL" || item.status === "DRAFT"));
 
       return matchesSearch && matchesStatus;
+    });
+
+    // Menunggu persetujuan di paling atas (Action-First priority), diikuti disetujui
+    return list.sort((a, b) => {
+      const isPendingA = a.status === "PENDING_APPROVAL" || a.status === "DRAFT";
+      const isPendingB = b.status === "PENDING_APPROVAL" || b.status === "DRAFT";
+      if (isPendingA && !isPendingB) return -1;
+      if (!isPendingA && isPendingB) return 1;
+      const dateCompare = (b.quotation_date || "").localeCompare(a.quotation_date || "");
+      if (dateCompare !== 0) return dateCompare;
+      return (b.quotation_number || "").localeCompare(a.quotation_number || "");
     });
   }, [quotations, searchQuery, statusFilter]);
 
