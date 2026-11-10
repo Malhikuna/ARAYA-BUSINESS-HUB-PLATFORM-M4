@@ -1,37 +1,37 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Search, Archive, Package, UserCog, PauseCircle, Upload, Download, ChevronDown, Pencil, Trash2 } from "lucide-react";
-import { ProductItem } from "@/types/product";
-import { formatRupiah } from "@/lib/format";
+import React, { useMemo } from "react";
+import { Search, Upload, Download } from "lucide-react";
+import { ProductItem, BusinessMode } from "@/types/product";
 import { Pagination } from "@/components/common/Pagination";
+import { FilterSelect } from "@/components/common/FilterSelect";
+import { ProductMetricCards, ProductMetrics } from "@/components/produk/ProductMetricCards";
+import { ProductTableRow } from "@/components/produk/ProductTableRow";
 
-export interface ProductMetrics {
-  totalCount: number;
-  physicalCount: number;
-  serviceCount: number;
-  inactiveCount: number;
-  recentTotalCount: number;
-  recentPhysicalCount: number;
-  recentServiceCount: number;
-}
+export type { ProductMetrics };
 
 export interface ProductTableCardProps {
   metrics: ProductMetrics;
+  businessMode: BusinessMode;
   searchTerm: string;
   selectedCategory: string;
   selectedStatus: string;
+  selectedStock: string;
+  selectedUnit: string;
+  selectedPrice: string;
   currentData: ProductItem[];
   filteredCount: number;
   safeCurrentPage: number;
   totalPages: number;
   startIndex: number;
   endIndex: number;
+  onBusinessModeChange: (mode: BusinessMode) => void;
   onSearchChange: (val: string) => void;
   onCategoryChange: (val: string) => void;
   onStatusChange: (val: string) => void;
+  onStockChange: (val: string) => void;
+  onUnitChange: (val: string) => void;
+  onPriceChange: (val: string) => void;
   onPageChange: (page: number) => void;
   onOpenImportModal: () => void;
   onOpenExportModal: () => void;
@@ -40,239 +40,202 @@ export interface ProductTableCardProps {
 
 export function ProductTableCard({
   metrics,
+  businessMode,
   searchTerm,
   selectedCategory,
   selectedStatus,
+  selectedStock,
+  selectedUnit,
+  selectedPrice,
   currentData,
   filteredCount,
   safeCurrentPage,
   totalPages,
   startIndex,
   endIndex,
+  onBusinessModeChange,
   onSearchChange,
   onCategoryChange,
   onStatusChange,
+  onStockChange,
+  onUnitChange,
+  onPriceChange,
   onPageChange,
   onOpenImportModal,
   onOpenExportModal,
   onRequestDelete,
 }: ProductTableCardProps) {
-  const router = useRouter();
+  const isProductOnly = businessMode === "Produk";
+  const isServiceOnly = businessMode === "Jasa";
+  const isServiceCategory = isServiceOnly || (businessMode === "Semua" && selectedCategory === "Jasa");
+
+  const serviceUnitOptions = useMemo(() => {
+    const list = metrics.serviceUnits && metrics.serviceUnits.length > 0
+      ? metrics.serviceUnits
+      : ["Jam", "Sesi", "Bulan", "Proyek", "Paket"];
+    return ["Semua satuan", ...list.map((u) => `Per ${u}`)];
+  }, [metrics.serviceUnits]);
 
   return (
     <>
       {/* 4 Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600">Total produk &amp; jasa</span>
-            <Archive aria-hidden="true" className="w-4 h-4 text-slate-500 shrink-0" />
-          </div>
-          <div className="text-3xl font-heading font-bold text-slate-900">{metrics.totalCount}</div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Item terdaftar</span>
-            {metrics.recentTotalCount > 0 && (
-              <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                +{metrics.recentTotalCount} baru
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600">Produk fisik</span>
-            <Package aria-hidden="true" className="w-4 h-4 text-slate-500 shrink-0" />
-          </div>
-          <div className="text-3xl font-heading font-bold text-slate-900">{metrics.physicalCount}</div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Stok tersedia</span>
-            {metrics.recentPhysicalCount > 0 && (
-              <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                +{metrics.recentPhysicalCount} baru
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600">Layanan jasa</span>
-            <UserCog aria-hidden="true" className="w-4 h-4 text-slate-500 shrink-0" />
-          </div>
-          <div className="text-3xl font-heading font-bold text-slate-900">{metrics.serviceCount}</div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Paket aktif</span>
-            {metrics.recentServiceCount > 0 && (
-              <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                +{metrics.recentServiceCount} baru
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600">Total item nonaktif</span>
-            <PauseCircle aria-hidden="true" className="w-4 h-4 text-slate-500 shrink-0" />
-          </div>
-          <div className="text-3xl font-heading font-bold text-slate-900">{metrics.inactiveCount}</div>
-          <div className="text-xs text-slate-500">Perlu ditinjau</div>
-        </div>
-      </div>
+      <ProductMetricCards metrics={metrics} businessMode={businessMode} />
 
       {/* Filter & Action Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-          <div className="relative w-full sm:w-80">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <Search aria-hidden="true" className="w-4 h-4" />
-            </div>
-            <input
-              type="text"
-              aria-label="Cari produk atau jasa"
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Cari produk/jasa..."
-              className="w-full h-10 pl-9 pr-4 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
-            />
+      <div className="flex flex-col gap-3.5 mb-5">
+        {/* Business Mode Segmented Switcher */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-700">Tipe Usaha Terdaftar:</span>
+            <span className="text-[11px] text-slate-500">Pilih model operasional usaha</span>
           </div>
 
-          <div className="relative">
-            <select
-              aria-label="Filter kategori produk atau jasa"
-              value={selectedCategory}
-              onChange={(e) => onCategoryChange(e.target.value)}
-              className="w-full sm:w-auto h-10 pl-3.5 pr-9 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none"
-            >
-              <option value="Semua kategori">Semua kategori</option>
-              <option value="Produk">Produk</option>
-              <option value="Jasa">Jasa</option>
-            </select>
-            <ChevronDown aria-hidden="true" className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-
-          <div className="relative">
-            <select
-              aria-label="Filter status produk atau jasa"
-              value={selectedStatus}
-              onChange={(e) => onStatusChange(e.target.value)}
-              className="w-full sm:w-auto h-10 pl-3.5 pr-9 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none"
-            >
-              <option value="Semua status">Semua status</option>
-              <option value="Aktif">Aktif</option>
-              <option value="Nonaktif">Nonaktif</option>
-            </select>
-            <ChevronDown aria-hidden="true" className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+            {(["Semua", "Produk", "Jasa"] as BusinessMode[]).map((mode) => {
+              const isSelected = businessMode === mode;
+              const label = mode === "Semua" ? "Semua Katalog" : mode === "Produk" ? "Produk (Barang)" : "Jasa (Layanan)";
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onBusinessModeChange(mode)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-white text-[#19376d] shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-end md:self-auto">
-          <button
-            type="button"
-            onClick={onOpenImportModal}
-            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
-          >
-            <Upload aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
-            <span>Impor data</span>
-          </button>
+        {/* Search, Filter, & Actions */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-1 min-w-0">
+            <div className="relative w-full sm:w-44 lg:w-48 xl:w-52 shrink-0">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Search aria-hidden="true" className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                aria-label="Cari item katalog"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder={isProductOnly ? "Cari produk barang..." : isServiceOnly ? "Cari layanan jasa..." : "Cari item katalog..."}
+                className="w-full h-9.5 pl-8.5 pr-3 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
+              />
+            </div>
 
-          <button
-            type="button"
-            onClick={onOpenExportModal}
-            aria-label="Ekspor data produk/jasa ke PDF"
-            title="Pratinjau & ekspor katalog produk/jasa ke PDF"
-            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
-          >
-            <Download aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
-            <span>Ekspor</span>
-          </button>
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              {businessMode === "Semua" && (
+                <FilterSelect
+                  ariaLabel="Filter kategori item katalog"
+                  value={selectedCategory}
+                  onChange={onCategoryChange}
+                  options={["Semua kategori", "Produk", "Jasa"]}
+                />
+              )}
+
+              {/* Dropdown Ketersediaan Stok (Produk/Semua) atau Satuan Penagihan (Jasa) */}
+              {isServiceCategory ? (
+                <FilterSelect
+                  ariaLabel="Filter satuan penagihan layanan jasa"
+                  value={selectedUnit}
+                  onChange={onUnitChange}
+                  options={serviceUnitOptions}
+                />
+              ) : (
+                <FilterSelect
+                  ariaLabel="Filter ketersediaan stok produk"
+                  value={selectedStock}
+                  onChange={onStockChange}
+                  options={["Semua stok", "Tersedia (≥ 10)", "Stok menipis (≤ 5)", "Stok habis (0)"]}
+                />
+              )}
+
+              {/* Dropdown Rentang & Urutan Harga */}
+              <FilterSelect
+                ariaLabel="Filter dan urutan harga item katalog"
+                value={selectedPrice}
+                onChange={onPriceChange}
+                options={[
+                  "Semua harga",
+                  "Di bawah Rp 1 Jt",
+                  "Rp 1 Jt - Rp 5 Jt",
+                  "Di atas Rp 5 Jt",
+                  "Harga: Terendah",
+                  "Harga: Tertinggi",
+                ]}
+              />
+
+              {/* Dropdown Status */}
+              <FilterSelect
+                ariaLabel="Filter status item katalog"
+                value={selectedStatus}
+                onChange={onStatusChange}
+                options={["Semua status", "Aktif", "Nonaktif"]}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end xl:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={onOpenImportModal}
+              className="inline-flex items-center gap-1.5 px-3 h-9.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            >
+              <Upload aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
+              <span>Impor data</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenExportModal}
+              aria-label="Ekspor data katalog ke PDF"
+              title="Pratinjau & ekspor katalog ke PDF"
+              className="inline-flex items-center gap-1.5 px-3 h-9.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            >
+              <Download aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
+              <span>Ekspor</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Product / Service Table */}
+      {/* Catalog Table */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="w-full overflow-x-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/70">
-                <th scope="col" className="px-6 py-3.5">Nama</th>
-                <th scope="col" className="px-6 py-3.5">Kategori</th>
-                <th scope="col" className="px-6 py-3.5 text-right">Harga</th>
-                <th scope="col" className="px-6 py-3.5">Deskripsi</th>
-                <th scope="col" className="px-6 py-3.5">Status</th>
-                <th scope="col" className="px-6 py-3.5 text-right">Tindakan</th>
+                <th scope="col" className={`${isProductOnly ? "w-[28%]" : isServiceOnly ? "w-[30%]" : "w-[24%]"} px-3 sm:px-4 py-3.5`}>Nama</th>
+                {!isProductOnly && !isServiceOnly && <th scope="col" className="w-[12%] px-3 sm:px-4 py-3.5">Kategori</th>}
+                {!isServiceOnly && <th scope="col" className={`${isProductOnly ? "w-[14%]" : "w-[12%]"} px-3 sm:px-4 py-3.5 text-center`}>Stok</th>}
+                {isServiceOnly && <th scope="col" className="w-[14%] px-3 sm:px-4 py-3.5">Satuan</th>}
+                <th scope="col" className={`${isProductOnly ? "w-[18%]" : isServiceOnly ? "w-[18%]" : "w-[16%]"} px-3 sm:px-4 py-3.5 text-right`}>Harga</th>
+                <th scope="col" className={`${isProductOnly ? "w-[22%]" : isServiceOnly ? "w-[20%]" : "w-[18%]"} px-3 sm:px-4 py-3.5`}>Deskripsi</th>
+                <th scope="col" className="w-[10%] px-3 sm:px-4 py-3.5">Status</th>
+                <th scope="col" className="w-[8%] px-3 sm:px-4 py-3.5 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {currentData.length > 0 ? (
-                currentData.map((item) => {
-                  const isActive = item.status === "Aktif";
-                  return (
-                    <tr
-                      key={item.id}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`Lihat detail produk atau jasa ${item.name}`}
-                      title="Klik baris untuk melihat detail produk/jasa"
-                      onClick={() => router.push(`/produk/lihat/${item.id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          router.push(`/produk/lihat/${item.id}`);
-                        }
-                      }}
-                      className="hover:bg-[#f5f8ff] focus:bg-[#f5f8ff] outline-none transition-colors cursor-pointer group"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs sm:text-sm">{item.name}</div>
-                        <div className="text-[11px] font-mono text-slate-500 mt-0.5">{item.sku}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-700">{item.category}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-slate-900">{formatRupiah(item.price)}</td>
-                      <td className="px-6 py-4 text-slate-600 leading-relaxed max-w-md">{item.description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span>Aktif</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                            <span>Nonaktif</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          <Link
-                            href={`/produk/ubah/${item.id}`}
-                            aria-label={`Ubah produk atau jasa ${item.name}`}
-                            title="Ubah produk/jasa"
-                            className="p-1.5 rounded-lg text-[#19376d] hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Link>
-                          <span aria-hidden="true" className="text-slate-300 select-none text-xs">|</span>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onRequestDelete(item); }}
-                            aria-label={`Hapus produk atau jasa ${item.name}`}
-                            title="Hapus produk/jasa"
-                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                currentData.map((item) => (
+                  <ProductTableRow
+                    key={item.id}
+                    item={item}
+                    isProductOnly={isProductOnly}
+                    isServiceOnly={isServiceOnly}
+                    onRequestDelete={onRequestDelete}
+                  />
+                ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-xs">
-                    Tidak ada data produk atau jasa yang sesuai dengan filter pencarian.
+                  <td colSpan={isServiceOnly || isProductOnly ? 6 : 7} className="px-6 py-12 text-center text-slate-400 text-xs">
+                    Tidak ada data item katalog yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
               )}
@@ -286,11 +249,10 @@ export function ProductTableCard({
           totalItems={filteredCount}
           startIndex={startIndex}
           endIndex={endIndex}
-          itemLabel="produk/jasa"
+          itemLabel="item katalog"
           onPageChange={onPageChange}
         />
       </div>
     </>
   );
 }
-

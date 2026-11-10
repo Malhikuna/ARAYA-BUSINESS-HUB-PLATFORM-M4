@@ -21,9 +21,7 @@ function useIsMounted(): boolean {
 }
 
 function LihatPelangganDetailView({ customer }: { customer: Customer }) {
-  const formattedPhone = customer.phone.startsWith("+62")
-    ? customer.phone
-    : `+62 ${customer.phone.replace(/^0/, "")}`;
+  const formattedPhone = customer.phone.trim() || "Belum diisi";
 
   return (
     <>

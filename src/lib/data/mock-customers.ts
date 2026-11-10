@@ -1,24 +1,9 @@
 import { Customer } from "@/types/customer";
 
 export const initialCustomers: Customer[] = [
-  { id: "CUST-001", name: "PT Maju Bersama", initials: "MB", avatarBg: "bg-blue-100 text-blue-700", phone: "0812 3456 7890", email: "kontak@majubersama.co.id", address: "Jl. Asia Afrika No. 45, Bandung", city: "Bandung" },
-  { id: "CUST-002", name: "CV Karya Mandiri", initials: "KM", avatarBg: "bg-cyan-100 text-cyan-700", phone: "0813 2211 0045", email: "halo@karyamandiri.com", address: "Jl. Pemuda No. 12, Surabaya", city: "Surabaya" },
-  { id: "CUST-003", name: "Budi Santoso", initials: "BS", avatarBg: "bg-amber-100 text-amber-700", phone: "0857 6001 2233", email: "budi.santoso@gmail.com", address: "Jl. Sudirman No. 88, Jakarta Selatan", city: "Jakarta" },
-  { id: "CUST-004", name: "PT Mega Logistik Nusantara", initials: "ML", avatarBg: "bg-purple-100 text-purple-700", phone: "0811 9876 5432", email: "admin@megalogistik.co.id", address: "Jl. Gajah Mada No. 102, Semarang", city: "Semarang" },
-  { id: "CUST-005", name: "CV Sukses Berkah", initials: "SB", avatarBg: "bg-indigo-100 text-indigo-700", phone: "0821 4455 6677", email: "info@suksesberkah.id", address: "Jl. Malioboro No. 15, Yogyakarta", city: "Yogyakarta" },
-  { id: "CUST-006", name: "PT Pasundan Citra Digital", initials: "PC", avatarBg: "bg-emerald-100 text-emerald-700", phone: "0812 7788 9900", email: "corp@pasundancitra.co.id", address: "Jl. Tamansari No. 6-8, Bandung", city: "Bandung" },
-  { id: "CUST-007", name: "Yayasan Harapan Bangsa", initials: "YH", avatarBg: "bg-rose-100 text-rose-700", phone: "0819 1234 5678", email: "yayasan@harapanbangsa.org", address: "Jl. Diponegoro No. 22, Bandung", city: "Bandung" },
-  { id: "CUST-008", name: "Dr. Ahmad Hidayat", initials: "AH", avatarBg: "bg-teal-100 text-teal-700", phone: "0852 3344 5566", email: "ahmad.hidayat@unpas.ac.id", address: "Jl. Setiabudi No. 193, Bandung", city: "Bandung" },
-  { id: "CUST-009", name: "PT Inti Sarana Niaga", initials: "IS", avatarBg: "bg-sky-100 text-sky-700", phone: "0813 9988 7766", email: "sales@intisarana.com", address: "Jl. Gatot Subroto Kav. 51, Jakarta", city: "Jakarta" },
-  { id: "CUST-010", name: "Koperasi Pegawai Pasundan", initials: "KP", avatarBg: "bg-orange-100 text-orange-700", phone: "0878 1122 3344", email: "kopeg@pasundan.ac.id", address: "Jl. Lengkong Besar No. 68, Bandung", city: "Bandung" },
-  { id: "CUST-011", name: "CV Bandung Kreatif Solusi", initials: "BK", avatarBg: "bg-blue-100 text-blue-700", phone: "0812 9012 3456", email: "hi@bdgkreatif.id", address: "Jl. Riau No. 120, Bandung", city: "Bandung" },
-  { id: "CUST-012", name: "PT Global Cipta Inovasi", initials: "GC", avatarBg: "bg-cyan-100 text-cyan-700", phone: "0821 8899 0011", email: "contact@globalcipta.com", address: "Jl. Ir. H. Djuanda No. 85, Bandung", city: "Bandung" },
-  { id: "CUST-013", name: "Hendra Gunawan", initials: "HG", avatarBg: "bg-amber-100 text-amber-700", phone: "0856 7788 1122", email: "hendra.gunawan@gmail.com", address: "Jl. Soekarno Hatta No. 405, Bandung", city: "Bandung" },
-  { id: "CUST-014", name: "PT Prima Rekayasa Energi", initials: "PR", avatarBg: "bg-purple-100 text-purple-700", phone: "0811 2233 4455", email: "info@primarekayasa.co.id", address: "Jl. Buah Batu No. 210, Bandung", city: "Bandung" },
-  { id: "CUST-015", name: "Siti Nurhaliza", initials: "SN", avatarBg: "bg-indigo-100 text-indigo-700", phone: "0819 5566 7788", email: "siti.nurhaliza@yahoo.com", address: "Jl. Cihampelas No. 150, Bandung", city: "Bandung" },
-  { id: "CUST-016", name: "CV Berkah Jaya Mandiri", initials: "BJ", avatarBg: "bg-emerald-100 text-emerald-700", phone: "0813 4455 6677", email: "berkahjaya@gmail.com", address: "Jl. Peta No. 90, Bandung", city: "Bandung" },
-  { id: "CUST-017", name: "PT Sinar Abadi Perkasa", initials: "SA", avatarBg: "bg-teal-100 text-teal-700", phone: "0852 1122 3344", email: "corp@sinarabadi.co.id", address: "Jl. Laswi No. 34, Bandung", city: "Bandung" },
-  { id: "CUST-018", name: "Eko Prasetyo", initials: "EP", avatarBg: "bg-sky-100 text-sky-700", phone: "0877 6655 4433", email: "eko.prasetyo@outlook.com", address: "Jl. Kopo No. 178, Bandung", city: "Bandung" },
+  { id: "CUST-001", name: "PT Maju Bersama", initials: "MB", avatarBg: "bg-blue-100 text-blue-700", phone: "081234567890", email: "procurement@majubersama.co.id", address: "Jl. Asia Afrika No. 120, Bandung, Jawa Barat", city: "Bandung" },
+  { id: "CUST-002", name: "CV Karya Mandiri", initials: "KM", avatarBg: "bg-cyan-100 text-cyan-700", phone: "081398765432", email: "finance@karyamandiri.com", address: "Jl. Dago No. 45, Bandung, Jawa Barat", city: "Bandung" },
+  { id: "CUST-003", name: "Dudi Santoso", initials: "DS", avatarBg: "bg-amber-100 text-amber-700", phone: "081711223344", email: "dudi.santoso@gmail.com", address: "Jl. Buah Batu No. 88, Bandung, Jawa Barat", city: "Bandung" },
 ];
 
 export function getCustomerInitials(name: string, singleWordLength = 2): string {
@@ -31,13 +16,33 @@ export function getCustomerInitials(name: string, singleWordLength = 2): string 
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+const KNOWN_CITIES = [
+  "Jakarta", "Bandung", "Surabaya", "Semarang", "Yogyakarta", "Medan", "Padang", "Palembang",
+  "Makassar", "Denpasar", "Malang", "Solo", "Bogor", "Depok", "Tangerang", "Bekasi", "Batam",
+  "Pekanbaru", "Bandar Lampung", "Samarinda", "Balikpapan", "Banjarmasin", "Pontianak", "Manado", "Cimahi", "Cirebon"
+];
+
 export function detectCityFromAddress(address: string, fallback = "Bandung"): string {
+  if (!address || typeof address !== "string") return fallback;
   const lower = address.toLowerCase();
-  if (lower.includes("jakarta")) return "Jakarta";
-  if (lower.includes("surabaya")) return "Surabaya";
-  if (lower.includes("semarang")) return "Semarang";
-  if (lower.includes("yogyakarta") || lower.includes("jogja")) return "Yogyakarta";
-  if (lower.includes("bandung")) return "Bandung";
+
+  const kotaMatch = address.match(/(?:kota|kabupaten|kab\.)\s+([a-zA-Z\s]+?)(?:,|$|\d)/i);
+  if (kotaMatch?.[1] && kotaMatch[1].trim().length >= 3 && kotaMatch[1].trim().length <= 25) {
+    const raw = kotaMatch[1].trim();
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  const found = KNOWN_CITIES.find((c) => lower.includes(c.toLowerCase()));
+  if (found) return found;
+
+  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const candidate = parts[1].replace(/^(kota|kabupaten|kab\.)\s+/i, "").trim();
+    if (candidate && candidate.length <= 25 && !/\d{4,}/.test(candidate)) {
+      return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+    }
+  }
+
   return fallback;
 }
 
@@ -69,6 +74,59 @@ export function findCustomerById(id: string): Customer | null {
   return initialCustomers.find((c) => c.id === id) || null;
 }
 
+const AVATAR_COLORS = [
+  "bg-blue-100 text-blue-700", "bg-cyan-100 text-cyan-700", "bg-amber-100 text-amber-700", "bg-purple-100 text-purple-700",
+  "bg-indigo-100 text-indigo-700", "bg-emerald-100 text-emerald-700", "bg-rose-100 text-rose-700", "bg-teal-100 text-teal-700",
+];
+
+export function normalizePhoneDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.startsWith("62") ? "0" + digits.slice(2) : digits;
+}
+
+export function checkCustomerDuplicates(
+  email: string,
+  phone: string,
+  excludeId?: string
+): { email?: string; phone?: string } {
+  if (typeof window === "undefined") return {};
+  try {
+    const rawAdded = sessionStorage.getItem("araya_added_customers");
+    const addedList: Customer[] = rawAdded ? JSON.parse(rawAdded) : [];
+    const rawUpdates = sessionStorage.getItem("araya_updated_customers");
+    const updatesMap: Record<string, Customer> = rawUpdates ? JSON.parse(rawUpdates) : {};
+    const rawDel = sessionStorage.getItem("araya_deleted_customers");
+    const deletedList: string[] = rawDel ? JSON.parse(rawDel) : [];
+
+    const all = [...addedList, ...initialCustomers.filter((c) => !addedList.some((a) => a.id === c.id))]
+      .filter((c) => !deletedList.includes(c.id))
+      .map((c) => updatesMap[c.id] || c);
+
+    const normEmail = email.trim().toLowerCase();
+    const normPhone = normalizePhoneDigits(phone);
+    const errors: { email?: string; phone?: string } = {};
+
+    for (const c of all) {
+      if (excludeId && (c.id === excludeId || c.id === `CUST-${excludeId}` || excludeId.includes(c.id))) continue;
+      if (normEmail && c.email && c.email.trim().toLowerCase() === normEmail) {
+        errors.email = "Alamat email sudah terdaftar untuk pelanggan lain.";
+      }
+      if (normPhone && c.phone && normalizePhoneDigits(c.phone) === normPhone) {
+        errors.phone = "Nomor telepon/WhatsApp sudah terdaftar untuk pelanggan lain.";
+      }
+    }
+    return errors;
+  } catch {
+    return {};
+  }
+}
+
+export function getCustomerAvatarBg(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export function subscribeCustomerStorage(callback: () => void) {
   window.addEventListener("storage", callback);
   window.addEventListener("araya-storage-update", callback);
@@ -90,6 +148,58 @@ export const getStoredDeletedCustomers = () =>
   typeof window === "undefined" ? "[]" : sessionStorage.getItem("araya_deleted_customers") || "[]";
 export const getServerStoredDeletedCustomers = () => "[]";
 
+const DEV_AUTH_HEADER = "Bearer mock-admin-token";
+
+export async function syncCustomersFromDatabase(): Promise<Customer[]> {
+  if (typeof window === "undefined") return [];
+  try {
+    const res = await fetch("/api/m4/v1/customers?limit=100", {
+      headers: { Authorization: DEV_AUTH_HEADER },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (!json.success || !Array.isArray(json.data)) return [];
+
+    const dbItems: Customer[] = json.data.map((row: {
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      address?: string | null;
+      created_at?: string;
+    }) => ({
+      id: row.id,
+      name: row.name,
+      initials: getCustomerInitials(row.name),
+      avatarBg: getCustomerAvatarBg(row.name),
+      phone: row.phone,
+      email: row.email,
+      address: row.address || "",
+      city: detectCityFromAddress(row.address || ""),
+      createdAt: row.created_at || new Date().toISOString(),
+    }));
+
+    const rawLocal = sessionStorage.getItem("araya_added_customers");
+    const localItems: Customer[] = rawLocal ? JSON.parse(rawLocal) : [];
+    const unsyncedLocal = localItems.filter(
+      (loc) =>
+        !dbItems.some(
+          (db) =>
+            db.id === loc.id ||
+            db.email.toLowerCase() === loc.email.toLowerCase() ||
+            db.name.toLowerCase() === loc.name.toLowerCase()
+        )
+    );
+    const merged = [...unsyncedLocal, ...dbItems];
+
+    sessionStorage.setItem("araya_added_customers", JSON.stringify(merged));
+    window.dispatchEvent(new Event("araya-storage-update"));
+    return merged;
+  } catch {
+    return [];
+  }
+}
+
 export function saveNewCustomerToStorage(newCust: Customer) {
   try {
     const raw = sessionStorage.getItem("araya_added_customers");
@@ -99,6 +209,20 @@ export function saveNewCustomerToStorage(newCust: Customer) {
     sessionStorage.setItem("araya_show_toast", "created");
     sessionStorage.setItem("araya_toast_name", newCust.name);
     window.dispatchEvent(new Event("araya-storage-update"));
+
+    // Sync ke PostgreSQL via API M4
+    fetch("/api/m4/v1/customers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
+      body: JSON.stringify({
+        name: newCust.name,
+        email: newCust.email,
+        phone: newCust.phone,
+        address: newCust.address,
+      }),
+    })
+      .then(() => syncCustomersFromDatabase())
+      .catch(() => {});
   } catch {
     // ignore storage errors
   }
@@ -123,6 +247,20 @@ export function saveUpdatedCustomerToStorage(updatedCustomer: Customer) {
     sessionStorage.setItem("araya_show_toast", "updated");
     sessionStorage.setItem("araya_toast_name", updatedCustomer.name);
     window.dispatchEvent(new Event("araya-storage-update"));
+
+    // Sync ke PostgreSQL via API M4 jika UUID
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updatedCustomer.id)) {
+      fetch(`/api/m4/v1/customers/${updatedCustomer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
+        body: JSON.stringify({
+          name: updatedCustomer.name,
+          email: updatedCustomer.email,
+          phone: updatedCustomer.phone,
+          address: updatedCustomer.address,
+        }),
+      }).catch(() => {});
+    }
   } catch {
     // ignore storage errors
   }
@@ -146,6 +284,14 @@ export function deleteCustomerFromStorage(targetId: string) {
     }
 
     window.dispatchEvent(new Event("araya-storage-update"));
+
+    // Sync delete ke PostgreSQL via API M4 jika UUID
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId)) {
+      fetch(`/api/m4/v1/customers/${targetId}`, {
+        method: "DELETE",
+        headers: { Authorization: DEV_AUTH_HEADER },
+      }).catch(() => {});
+    }
   } catch {
     // ignore storage errors
   }
