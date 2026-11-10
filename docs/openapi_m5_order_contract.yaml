@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: Araya Business Hub — Modul 4 (Sales & Invoicing) API Contract
+  description: >
+    Spesifikasi API resmi integrasi Modul 4 (Sales & Invoicing) dengan Modul 5 (Website & Katalog).
+    Menangani transisi data checkout keranjang dari M5-US4 menjadi Order dan Invoice di Modul 4.
+  version: 0.1.0
+  contact:
+    name: Tim Pengembang Modul 4 (Kel. A4 - Sales & Invoicing)
+servers:
+  - url: https://api.araya-m4.unpas.ac.id/api/v1
+    description: Server Staging / Produksi
+  - url: http://localhost:3000/api/v1
+    description: Lingkungan Pengembangan Lokal
+
+paths:
+  /checkouts:
+    post:
+      summary: Terima Checkout Keranjang dari Modul 5 (M5-US4)
+      description: >
+        Menerima data keranjang belanja customer dari Modul 5 untuk divalidasi,
+        dihitung ulang pajak dan totalnya, serta diterbitkan Order (status awal 'Baru' / 'PENDING_PAYMENT')
+        dan Invoice secara atomik dalam satu transaksi.
+      operationId: createCheckoutOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: UUID v4 unik untuk menjamin idempotensi checkout selama 24 jam.
+          schema:
+            type: string
+            format: uuid
+            example: "6f1c2b8e-3f0a-4a53-9c1d-7a2b5d9e1f10"
+        - name: X-Request-Id
+          in: header
+          required: false
+          description: ID pelacakan trace request dari gateway/klien.
+          schema:
+            type: string
+            example: "req_01J9ZR4B7H"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+            example:
+              source:
+                module: "M5"
+                cart_id: "cart_01J9ZQ7K3M"
+                checkout_requested_at: "2026-10-07T09:15:30Z"
+              customer:
+                user_id: "usr_01J9ZP2A8C"
+                full_name: "Budi Santoso"
+                email: "budi@example.com"
+                phone: "+6281234567890"
+                billing_address:
+                  line1: "Jl. Dipati Ukur No. 10"
+                  city: "Bandung"
+                  province: "Jawa Barat"
+                  postal_code: "40132"
+                  country: "ID"
+              partner_id: "ptr_01J9ZN5R1D"
+              business_unit_id: "bu_01J9ZM3T9E"
+              currency: "IDR"
+              items:
+                - product_id: "prd_01J9ZK8W2F"
+                  sku: "KAOS-UNPAS-M"
+                  name: "Kaos Unpas Size M"
+                  quantity: 2
+                  unit_price_displayed: "75000.00"
+                - product_id: "prd_01J9ZK9X4G"
+                  sku: "JASA-CETAK-A3"
+                  name: "Jasa Cetak A3"
+                  quantity: 1
+                  unit_price_displayed: "25000.00"
+              notes: "Mohon dikemas rapi"
+      responses:
+        '201':
+          description: Order dan Invoice berhasil diterbitkan (atau replay idempotent).
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: ID pelacakan request balik.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+              example:
+                checkout_id: "chk_01J9ZR4B7H"
+                order:
+                  id: "ord_01J9ZR4B8J"
+                  order_number: "ORD-202610-0001"
+                  status: "Baru"
+                  payment_status: "PENDING_PAYMENT"
+                  source_cart_id: "cart_01J9ZQ7K3M"
+                  partner_id: "ptr_01J9ZN5R1D"
+                  business_unit_id: "bu_01J9ZM3T9E"
+                  items:
+                    - product_id: "prd_01J9ZK8W2F"
+                      name: "Kaos Unpas Size M"
+                      quantity: 2
+                      unit_price: "75000.00"
+                      tax_rate: "0.1100"
+                      line_net: "150000.00"
+                      line_tax: "16500.00"
+                      line_total: "166500.00"
+                    - product_id: "prd_01J9ZK9X4G"
+                      name: "Jasa Cetak A3"
+                      quantity: 1
+                      unit_price: "25000.00"
+                      tax_rate: "0.1100"
+                      line_net: "25000.00"
+                      line_tax: "2750.00"
+                      line_total: "27750.00"
+                  subtotal: "175000.00"
+                  discount_total: "0.00"
+                  tax_total: "19250.00"
+                  grand_total: "194250.00"
+                  currency: "IDR"
+                  created_at: "2026-10-07T09:15:31Z"
+                invoice:
+                  id: "inv_01J9ZR4B9K"
+                  invoice_number: "INV-202610-0001"
+                  status: "ISSUED"
+                  issue_date: "2026-10-07"
+                  due_date: "2026-10-09"
+                  grand_total: "194250.00"
+                  pay_url: "/api/v1/invoices/inv_01J9ZR4B9K/payments"
+        '400':
+          description: Request body tidak valid, item kosong, atau quantity <= 0.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "VALIDATION_ERROR"
+                  message: "Data checkout tidak lengkap atau tidak valid."
+                  details:
+                    - field: "items"
+                      issue: "Daftar item tidak boleh kosong"
+                  trace_id: "req_9f2c1a"
+        '401':
+          description: Bearer JWT tidak valid atau kedaluwarsa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Token otentikasi tidak valid atau tidak ditemukan."
+                  details: []
+                  trace_id: "req_9f2c1a"
+        '403':
+          description: Peran token bukan Customer atau user_id tidak cocok.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Terjadi selisih harga (PRICE_CHANGED) atau konflik Idempotency-Key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                priceChanged:
+                  summary: Harga katalog M5 berbeda dari master M4
+                  value:
+                    error:
+                      code: "PRICE_CHANGED"
+                      message: "Harga satu atau lebih item telah berubah di sistem penjualan."
+                      details:
+                        - field: "items[0].unit_price_displayed"
+                          issue: "expected 75000.00, got 70000.00"
+                      trace_id: "req_9f2c1a"
+                idempotencyConflict:
+                  summary: Idempotency-Key sama dengan payload berbeda
+                  value:
+                    error:
+                      code: "IDEMPOTENCY_CONFLICT"
+                      message: "Idempotency-Key sudah digunakan untuk payload checkout berbeda."
+                      details: []
+                      trace_id: "req_9f2c1a"
+        '422':
+          description: Produk tidak aktif, produk tidak ditemukan, atau partner belum terverifikasi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                productNotFound:
+                  value:
+                    error:
+                      code: "PRODUCT_NOT_FOUND"
+                      message: "Produk tidak ditemukan di master data Modul 4."
+                      details:
+                        - field: "items[0].product_id"
+                          issue: "prd_invalid tidak terdaftar"
+                      trace_id: "req_9f2c1a"
+                mixedPartner:
+                  value:
+                    error:
+                      code: "MIXED_PARTNER_CART"
+                      message: "Item dalam keranjang berasal lebih dari satu mitra. M5 wajib memecah keranjang per mitra."
+                      details: []
+                      trace_id: "req_9f2c1a"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT yang diterbitkan oleh Modul 1 (User & Hak Akses).
+
+  schemas:
+    CheckoutRequest:
+      type: object
+      required:
+        - source
+        - customer
+        - partner_id
+        - business_unit_id
+        - currency
+        - items
+      properties:
+        source:
+          type: object
+          required:
+            - module
+            - cart_id
+          properties:
+            module:
+              type: string
+              enum: ["M5"]
+              example: "M5"
+            cart_id:
+              type: string
+              description: ID keranjang unik dari Modul 5 (mencegah duplikasi).
+              example: "cart_01J9ZQ7K3M"
+            checkout_requested_at:
+              type: string
+              format: date-time
+              example: "2026-10-07T09:15:30Z"
+        customer:
+          type: object
+          required:
+            - user_id
+            - full_name
+            - email
+          properties:
+            user_id:
+              type: string
+              description: ID customer dari klaim 'sub' token JWT M1.
+              example: "usr_01J9ZP2A8C"
+            full_name:
+              type: string
+              example: "Budi Santoso"
+            email:
+              type: string
+              format: email
+              example: "budi@example.com"
+            phone:
+              type: string
+              description: Nomor telepon format E.164.
+              example: "+6281234567890"
+            billing_address:
+              type: object
+              properties:
+                line1:
+                  type: string
+                  example: "Jl. Dipati Ukur No. 10"
+                city:
+                  type: string
+                  example: "Bandung"
+                province:
+                  type: string
+                  example: "Jawa Barat"
+                postal_code:
+                  type: string
+                  example: "40132"
+                country:
+                  type: string
+                  example: "ID"
+        partner_id:
+          type: string
+          description: ID Mitra pemilik produk (wajib terverifikasi di Modul 3).
+          example: "ptr_01J9ZN5R1D"
+        business_unit_id:
+          type: string
+          description: ID Unit Usaha BPU Unpas (Modul 2).
+          example: "bu_01J9ZM3T9E"
+        currency:
+          type: string
+          enum: ["IDR"]
+          example: "IDR"
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/CheckoutItemInput'
+        notes:
+          type: string
+          maxLength: 500
+          example: "Mohon dikemas rapi"
+
+    CheckoutItemInput:
+      type: object
+      required:
+        - product_id
+        - quantity
+        - unit_price_displayed
+      properties:
+        product_id:
+          type: string
+          example: "prd_01J9ZK8W2F"
+        sku:
+          type: string
+          example: "KAOS-UNPAS-M"
+        name:
+          type: string
+          example: "Kaos Unpas Size M"
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        unit_price_displayed:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{2}$'
+          description: Harga satuan yang dilihat customer di UI M5 (rekonsiliasi).
+          example: "75000.00"
+
+    CheckoutResponse:
+      type: object
+      required:
+        - checkout_id
+        - order
+        - invoice
+      properties:
+        checkout_id:
+          type: string
+          example: "chk_01J9ZR4B7H"
+        order:
+          $ref: '#/components/schemas/OrderSummary'
+        invoice:
+          $ref: '#/components/schemas/InvoiceSummary'
+
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "ord_01J9ZR4B8J"
+        order_number:
+          type: string
+          example: "ORD-202610-0001"
+        status:
+          type: string
+          description: Status pemrosesan order (status awal bernilai 'Baru').
+          enum: ["Baru", "Diproses", "Selesai", "Dibatalkan"]
+          example: "Baru"
+        payment_status:
+          type: string
+          enum: ["PENDING_PAYMENT", "PAID", "CANCELLED"]
+          example: "PENDING_PAYMENT"
+        source_cart_id:
+          type: string
+          example: "cart_01J9ZQ7K3M"
+        partner_id:
+          type: string
+          example: "ptr_01J9ZN5R1D"
+        business_unit_id:
+          type: string
+          example: "bu_01J9ZM3T9E"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemSnapshot'
+        subtotal:
+          type: string
+          example: "175000.00"
+        discount_total:
+          type: string
+          example: "0.00"
+        tax_total:
+          type: string
+          example: "19250.00"
+        grand_total:
+          type: string
+          example: "194250.00"
+        currency:
+          type: string
+          example: "IDR"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-10-07T09:15:31Z"
+
+    OrderItemSnapshot:
+      type: object
+      properties:
+        product_id:
+          type: string
+          example: "prd_01J9ZK8W2F"
+        name:
+          type: string
+          example: "Kaos Unpas Size M"
+        quantity:
+          type: integer
+          example: 2
+        unit_price:
+          type: string
+          example: "75000.00"
+        tax_rate:
+          type: string
+          example: "0.1100"
+        line_net:
+          type: string
+          example: "150000.00"
+        line_tax:
+          type: string
+          example: "16500.00"
+        line_total:
+          type: string
+          example: "166500.00"
+
+    InvoiceSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "inv_01J9ZR4B9K"
+        invoice_number:
+          type: string
+          example: "INV-202610-0001"
+        status:
+          type: string
+          enum: ["DRAFT", "ISSUED", "PAID", "OVERDUE", "VOID"]
+          example: "ISSUED"
+        issue_date:
+          type: string
+          format: date
+          example: "2026-10-07"
+        due_date:
+          type: string
+          format: date
+          example: "2026-10-09"
+        grand_total:
+          type: string
+          example: "194250.00"
+        pay_url:
+          type: string
+          example: "/api/v1/invoices/inv_01J9ZR4B9K/payments"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - details
+            - trace_id
+          properties:
+            code:
+              type: string
+              example: "PRICE_CHANGED"
+            message:
+              type: string
+              example: "Harga satu atau lebih item telah berubah."
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: "items[0].unit_price_displayed"
+                  issue:
+                    type: string
+                    example: "expected 75000.00, got 70000.00"
+            trace_id:
+              type: string
+              example: "req_9f2c1a"
