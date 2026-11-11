@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Search, Upload, Download } from "lucide-react";
+import { Search, X, Upload, Download } from "lucide-react";
 import { ProductItem, BusinessMode } from "@/types/product";
 import { Pagination } from "@/components/common/Pagination";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { ProductMetricCards, ProductMetrics } from "@/components/produk/ProductMetricCards";
 import { ProductTableRow } from "@/components/produk/ProductTableRow";
+import { useDevRole } from "@/lib/auth/dev-role";
 
 export type { ProductMetrics };
 
@@ -65,6 +66,7 @@ export function ProductTableCard({
   onOpenExportModal,
   onRequestDelete,
 }: ProductTableCardProps) {
+  const { isDev, activeRole } = useDevRole();
   const isProductOnly = businessMode === "Produk";
   const isServiceOnly = businessMode === "Jasa";
   const isServiceCategory = isServiceOnly || (businessMode === "Semua" && selectedCategory === "Jasa");
@@ -84,33 +86,35 @@ export function ProductTableCard({
       {/* Filter & Action Toolbar */}
       <div className="flex flex-col gap-3.5 mb-5">
         {/* Business Mode Segmented Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-700">Tipe Usaha Terdaftar:</span>
-            <span className="text-[11px] text-slate-500">Pilih model operasional usaha</span>
-          </div>
+        {(!isDev || activeRole === "ADMIN") && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-700">Tipe Usaha Terdaftar:</span>
+              <span className="text-[11px] text-slate-500">Pilih model operasional usaha</span>
+            </div>
 
-          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
-            {(["Semua", "Produk", "Jasa"] as BusinessMode[]).map((mode) => {
-              const isSelected = businessMode === mode;
-              const label = mode === "Semua" ? "Semua Katalog" : mode === "Produk" ? "Produk (Barang)" : "Jasa (Layanan)";
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => onBusinessModeChange(mode)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    isSelected
-                      ? "bg-white text-[#19376d] shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+              {(["Semua", "Produk", "Jasa"] as BusinessMode[]).map((mode) => {
+                const isSelected = businessMode === mode;
+                const label = mode === "Semua" ? "Semua Katalog" : mode === "Produk" ? "Produk (Barang)" : "Jasa (Layanan)";
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => onBusinessModeChange(mode)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-white text-[#19376d] shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Search, Filter, & Actions */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
@@ -125,8 +129,18 @@ export function ProductTableCard({
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={isProductOnly ? "Cari produk barang..." : isServiceOnly ? "Cari layanan jasa..." : "Cari item katalog..."}
-                className="w-full h-9.5 pl-8.5 pr-3 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
+                className="w-full h-9.5 pl-8.5 pr-8 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="Bersihkan pencarian katalog"
+                  onClick={() => onSearchChange("")}
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
