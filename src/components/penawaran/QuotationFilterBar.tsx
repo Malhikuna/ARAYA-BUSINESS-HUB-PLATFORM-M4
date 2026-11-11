@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Download, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Search, X, Download, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 export interface QuotationFilterBarProps {
   searchTerm: string;
@@ -33,8 +33,18 @@ export function QuotationFilterBar({
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Cari nomor atau pelanggan"
-          className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#f0f4fa] text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] transition-all"
+          className="w-full h-10 pl-9 pr-8 rounded-xl bg-[#f0f4fa] text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] transition-all"
         />
+        {searchTerm && (
+          <button
+            type="button"
+            aria-label="Bersihkan pencarian penawaran"
+            onClick={() => onSearchChange("")}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Filter & Ekspor Actions */}
