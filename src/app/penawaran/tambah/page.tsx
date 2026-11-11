@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useFreshForm } from "@/lib/use-fresh-form";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
@@ -31,9 +31,7 @@ function getTodayDateStr(): string {
  * Halaman Pembuatan Penawaran Baru (Quotation).
  * Sesuai PRD M4-US2 & BRD (UC-03, BRQ-04).
  */
-export default function TambahPenawaranPage() {
-  const router = useRouter();
-
+function TambahPenawaranForm({ onSaved }: { onSaved: () => void }) {
   // Master Data Pelanggan & Produk (Aktif selalu di atas)
   const [customers] = useState<Customer[]>(() => {
     try {
@@ -201,7 +199,7 @@ export default function TambahPenawaranPage() {
     };
 
     saveNewQuotationToStorage(newQuo);
-    router.push("/penawaran");
+    onSaved();
   };
 
   return (
@@ -290,4 +288,9 @@ export default function TambahPenawaranPage() {
       </form>
     </div>
   );
+}
+
+export default function TambahPenawaranPage() {
+  const { formKey, leaveForm } = useFreshForm();
+  return <TambahPenawaranForm key={formKey} onSaved={() => leaveForm("/penawaran")} />;
 }
