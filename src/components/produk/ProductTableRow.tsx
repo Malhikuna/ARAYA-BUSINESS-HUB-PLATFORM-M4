@@ -42,21 +42,21 @@ export function ProductTableRow({
       }}
       className="hover:bg-[#f5f8ff] focus:bg-[#f5f8ff] outline-none transition-colors cursor-pointer group"
     >
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs sm:text-sm">
+      <td className="px-3 sm:px-4 py-3.5 truncate">
+        <div className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs sm:text-sm truncate" title={item.name}>
           {item.name}
         </div>
         {!isServiceOnly && (
-          <div className="text-[11px] font-mono text-slate-500 mt-0.5">{item.sku}</div>
+          <div className="text-[11px] font-mono text-slate-500 mt-0.5 truncate">{item.sku}</div>
         )}
       </td>
 
       {!isProductOnly && !isServiceOnly && (
-        <td className="px-6 py-4 whitespace-nowrap text-slate-700">{item.category}</td>
+        <td className="px-3 sm:px-4 py-3.5 truncate text-slate-700">{item.category}</td>
       )}
 
       {!isServiceOnly && (
-        <td className="px-6 py-4 whitespace-nowrap text-center">
+        <td className="px-3 sm:px-4 py-3.5 truncate text-center">
           {isItemProduct ? (
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
@@ -78,18 +78,18 @@ export function ProductTableRow({
       )}
 
       {isServiceOnly && (
-        <td className="px-6 py-4 whitespace-nowrap text-slate-700">
+        <td className="px-3 sm:px-4 py-3.5 truncate text-slate-700">
           <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-medium text-slate-700">
             Per {item.unit || "Paket"}
           </span>
         </td>
       )}
 
-      <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-slate-900">
+      <td className="px-3 sm:px-4 py-3.5 truncate text-right font-bold text-slate-900">
         {formatRupiah(item.price)}
       </td>
-      <td className="px-6 py-4 text-slate-600 leading-relaxed max-w-md">{item.description}</td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-3 sm:px-4 py-3.5 text-slate-600 truncate" title={item.description || ""}>{item.description}</td>
+      <td className="px-3 sm:px-4 py-3.5 truncate">
         {isActive ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -102,7 +102,7 @@ export function ProductTableRow({
           </span>
         )}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
         <div className="inline-flex items-center justify-end gap-1.5">
           <Link
             href={
