@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Search,
+  X,
   Users,
   ShieldCheck,
   UserPlus,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { Customer } from "@/types/customer";
 import { Pagination } from "@/components/common/Pagination";
+import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
 
 export interface CustomerTableCardProps {
   totalCount: number;
@@ -56,6 +58,8 @@ export function CustomerTableCard({
   onRequestDelete,
 }: CustomerTableCardProps) {
   const router = useRouter();
+  const { isDev, activeRole } = useDevRole();
+  const showPartnerCol = isDev && activeRole === "ADMIN";
 
   return (
     <>
@@ -117,7 +121,7 @@ export function CustomerTableCard({
 
       {/* Filter Bar Row */}
       <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
+        <div className="relative w-full sm:w-96">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
           </div>
@@ -125,9 +129,19 @@ export function CustomerTableCard({
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Cari nama, kota, telepon, alamat..."
-            className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#f0f4fa] text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] transition-all"
+            placeholder={showPartnerCol ? "Cari nama pelanggan, partner, kota, telepon..." : "Cari nama pelanggan, kota, telepon, alamat..."}
+            className="w-full h-10 pl-9 pr-8 rounded-xl bg-[#f0f4fa] text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] transition-all"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              aria-label="Bersihkan pencarian pelanggan"
+              onClick={() => onSearchChange("")}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
@@ -172,74 +186,88 @@ export function CustomerTableCard({
           <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/70">
-                <th scope="col" className="w-[24%] px-4 sm:px-6 py-3.5">Nama</th>
-                <th scope="col" className="w-[18%] px-4 sm:px-6 py-3.5">Telepon</th>
-                <th scope="col" className="w-[22%] px-4 sm:px-6 py-3.5">Email</th>
-                <th scope="col" className="w-[26%] px-4 sm:px-6 py-3.5">Alamat</th>
-                <th scope="col" className="w-[10%] px-4 sm:px-6 py-3.5 text-right">Aksi</th>
+                <th scope="col" className={`${showPartnerCol ? "w-[21%]" : "w-[24%]"} px-4 sm:px-5 py-3.5`}>Nama</th>
+                {showPartnerCol && <th scope="col" className="w-[19%] px-4 sm:px-5 py-3.5">Partner</th>}
+                <th scope="col" className={`${showPartnerCol ? "w-[14%]" : "w-[18%]"} px-4 sm:px-5 py-3.5`}>Telepon</th>
+                <th scope="col" className={`${showPartnerCol ? "w-[18%]" : "w-[22%]"} px-4 sm:px-5 py-3.5`}>Email</th>
+                <th scope="col" className={`${showPartnerCol ? "w-[19%]" : "w-[26%]"} px-4 sm:px-5 py-3.5`}>Alamat</th>
+                <th scope="col" className={`${showPartnerCol ? "w-[9%]" : "w-[10%]"} px-4 sm:px-5 py-3.5 text-right`}>Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {currentData.length > 0 ? (
-                currentData.map((cust) => (
-                  <tr
-                    key={cust.id}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`Lihat detail pelanggan ${cust.name}`}
-                    title="Klik baris untuk melihat detail pelanggan"
-                    onClick={() => router.push(`/pelanggan/lihat/${cust.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/pelanggan/lihat/${cust.id}`);
-                      }
-                    }}
-                    className="hover:bg-[#f5f8ff] focus:bg-[#f5f8ff] outline-none transition-colors cursor-pointer group"
-                  >
-                    <td className="px-4 sm:px-6 py-3.5 truncate">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${cust.avatarBg}`}>
-                          {cust.initials}
+                currentData.map((cust) => {
+                  const pInfo = getCustomerPartnerInfo(cust.name);
+                  return (
+                    <tr
+                      key={cust.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Lihat detail pelanggan ${cust.name}`}
+                      title="Klik baris untuk melihat detail pelanggan"
+                      onClick={() => router.push(`/pelanggan/lihat/${cust.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/pelanggan/lihat/${cust.id}`);
+                        }
+                      }}
+                      className="hover:bg-[#f5f8ff] focus:bg-[#f5f8ff] outline-none transition-colors cursor-pointer group"
+                    >
+                      <td className="px-4 sm:px-5 py-3.5 truncate">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${cust.avatarBg}`}>
+                            {cust.initials}
+                          </div>
+                          <span className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs truncate">
+                            {cust.name}
+                          </span>
                         </div>
-                        <span className="font-bold text-slate-900 group-hover:text-[#19376d] transition-colors text-xs truncate">
-                          {cust.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3.5 font-mono text-slate-600 truncate">{cust.phone}</td>
-                    <td className="px-4 sm:px-6 py-3.5 text-slate-600 truncate">{cust.email}</td>
-                    <td className="px-4 sm:px-6 py-3.5 text-slate-600 truncate" title={cust.address || ""}>{cust.address}</td>
-                    <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="inline-flex items-center justify-end gap-1.5">
-                        <Link
-                          href={`/pelanggan/ubah/${cust.id}`}
-                          aria-label={`Ubah pelanggan ${cust.name}`}
-                          title="Ubah pelanggan"
-                          className="p-1.5 rounded-lg text-[#19376d] hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Link>
-                        <span aria-hidden="true" className="text-slate-300 select-none text-xs">|</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRequestDelete(cust);
-                          }}
-                          aria-label={`Hapus pelanggan ${cust.name}`}
-                          title="Hapus pelanggan"
-                          className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      {showPartnerCol && (
+                        <td className="px-4 sm:px-5 py-3.5 truncate">
+                          <div className="font-semibold text-slate-800 text-xs truncate" title={pInfo.partnerName}>
+                            {pInfo.partnerName}
+                          </div>
+                          <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium ${pInfo.partnerType === "Produk" ? "bg-emerald-50 text-emerald-700" : "bg-indigo-50 text-indigo-700"}`}>
+                            {pInfo.partnerType}
+                          </span>
+                        </td>
+                      )}
+                      <td className="px-4 sm:px-5 py-3.5 font-mono text-slate-600 truncate">{cust.phone}</td>
+                      <td className="px-4 sm:px-5 py-3.5 text-slate-600 truncate">{cust.email}</td>
+                      <td className="px-4 sm:px-5 py-3.5 text-slate-600 truncate" title={cust.address || ""}>{cust.address}</td>
+                      <td className="px-4 sm:px-5 py-3.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/pelanggan/ubah/${cust.id}`}
+                            aria-label={`Ubah pelanggan ${cust.name}`}
+                            title="Ubah pelanggan"
+                            className="p-1.5 rounded-lg text-[#19376d] hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Link>
+                          <span aria-hidden="true" className="text-slate-300 select-none text-xs">|</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRequestDelete(cust);
+                            }}
+                            aria-label={`Hapus pelanggan ${cust.name}`}
+                            title="Hapus pelanggan"
+                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-4 sm:px-6 py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={showPartnerCol ? 6 : 5} className="px-4 sm:px-5 py-12 text-center text-slate-400 text-xs">
                     Tidak ada data pelanggan yang sesuai dengan pencarian.
                   </td>
                 </tr>
