@@ -26,21 +26,15 @@ function subscribeToClock(callback: () => void) {
   const interval = setInterval(() => { cachedClock = Date.now(); callback(); }, 60000);
   return () => clearInterval(interval);
 }
-
-function getClockSnapshot(): number {
-  if (cachedClock === 0 && typeof window !== "undefined") cachedClock = Date.now();
-  return cachedClock;
-}
-
+const getClockSnapshot = () => (cachedClock === 0 && typeof window !== "undefined" ? (cachedClock = Date.now()) : cachedClock);
 const getServerClockSnapshot = () => 0;
 
 function DaftarPelangganContent() {
   const searchParams = useSearchParams();
-  const statusParam = searchParams.get("status");
-  const newNameParam = searchParams.get("name");
-  const phoneParam = searchParams.get("phone");
-  const emailParam = searchParams.get("email");
-  const addressParam = searchParams.get("address");
+  const [statusParam, newNameParam, phoneParam, emailParam, addressParam] = [
+    searchParams.get("status"), searchParams.get("name"), searchParams.get("phone"),
+    searchParams.get("email"), searchParams.get("address"),
+  ];
   const hasHandledUrlRef = React.useRef(false);
 
   const currentTime = useSyncExternalStore(subscribeToClock, getClockSnapshot, getServerClockSnapshot);
@@ -141,11 +135,29 @@ function DaftarPelangganContent() {
     return deletedCustomerIds.length > 0 ? afterUpdates.filter((item) => !deletedCustomerIds.includes(item.id)) : afterUpdates;
   }, [savedCustomers, updatedCustomers, deletedCustomerIds]);
 
+  const availableCities = useMemo(() => {
+    const set = new Set<string>();
+    customerList.forEach((c) => {
+      const city = c.city || detectCityFromAddress(c.address || "", "");
+      if (city && city.trim()) set.add(city.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "id"));
+  }, [customerList]);
+
   const filteredCustomers = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    const termDigits = term.replace(/[\s+-]/g, "");
+
     return customerList.filter((item) => {
-      const matchName = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = !term ||
+        item.name.toLowerCase().includes(term) ||
+        (item.phone && item.phone.replace(/[\s+-]/g, "").includes(termDigits)) ||
+        (item.email && item.email.toLowerCase().includes(term)) ||
+        (item.address && item.address.toLowerCase().includes(term)) ||
+        (item.city && item.city.toLowerCase().includes(term));
+
       const matchCity = selectedCity === "Semua kota" || item.city === selectedCity;
-      return matchName && matchCity;
+      return matchSearch && matchCity;
     });
   }, [customerList, searchTerm, selectedCity]);
 
@@ -207,7 +219,7 @@ function DaftarPelangganContent() {
 
       <CustomerTableCard
         totalCount={totalCount} recentNewCount={recentNewCount} newThisMonthCount={newThisMonthCount}
-        searchTerm={searchTerm} selectedCity={selectedCity} currentData={currentData}
+        searchTerm={searchTerm} selectedCity={selectedCity} availableCities={availableCities} currentData={currentData}
         filteredCount={filteredCustomers.length} safeCurrentPage={safeCurrentPage} totalPages={totalPages}
         startIndex={startIndex} endIndex={endIndex}
         onSearchChange={(val) => { setSearchTerm(val); setCurrentPage(1); }}
