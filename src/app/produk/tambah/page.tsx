@@ -1,13 +1,14 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useFreshForm } from "@/lib/use-fresh-form";
 import { generateProductSku, saveNewProductToStorage, getStoredBusinessMode } from "@/lib/data/mock-products";
 import { ProductCategory, ProductItem, BusinessMode } from "@/types/product";
 import { ProductFormView, ProductFormValues } from "@/components/produk/ProductFormView";
 
 function TambahProdukContent() {
-  const router = useRouter();
+  const { formKey, leaveForm } = useFreshForm();
   const searchParams = useSearchParams();
   const queryMode = searchParams.get("mode") as BusinessMode | null;
   const businessMode: BusinessMode = queryMode === "Produk" || queryMode === "Jasa" ? queryMode : getStoredBusinessMode();
@@ -34,14 +35,15 @@ function TambahProdukContent() {
     };
 
     saveNewProductToStorage(newItem);
-    router.push("/produk");
+    leaveForm("/produk");
   };
 
   return (
     <ProductFormView
+      key={formKey}
       mode="create"
       businessMode={businessMode}
-      onCancel={() => router.push("/produk")}
+      onCancel={() => leaveForm("/produk")}
       onConfirmSave={handleConfirmSave}
     />
   );

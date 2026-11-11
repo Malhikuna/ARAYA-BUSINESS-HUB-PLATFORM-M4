@@ -18,6 +18,7 @@ import { ProductImportCsvModal } from "@/components/produk/ProductImportCsvModal
 import { ProductPageHeader } from "@/components/produk/ProductPageHeader";
 import { ProductDeleteModal } from "@/components/produk/ProductDeleteModal";
 import { ProductExportPdfModal } from "@/components/produk/ProductExportPdfModal";
+import { useDevRole } from "@/lib/auth/dev-role";
 
 const ITEMS_PER_PAGE = 10;
 let cachedProductClock = 0;
@@ -41,6 +42,7 @@ export default function ProdukPage() {
   const rawUpdatedProducts = useSyncExternalStore(subscribeProductStorage, getStoredUpdatedProducts, getServerStoredUpdatedProducts);
   const rawDeletedProducts = useSyncExternalStore(subscribeProductStorage, getStoredDeletedProducts, getServerStoredDeletedProducts);
   const businessMode = useSyncExternalStore(subscribeProductStorage, getStoredBusinessMode, getServerStoredBusinessMode);
+  const { isDev, activeRole, profile } = useDevRole();
 
   const savedProducts = useMemo<ProductItem[]>(() => { try { return JSON.parse(rawSavedProducts); } catch { return []; } }, [rawSavedProducts]);
   const updatedProducts = useMemo<Record<string, ProductItem>>(() => { try { return JSON.parse(rawUpdatedProducts); } catch { return {}; } }, [rawUpdatedProducts]);
@@ -71,6 +73,15 @@ export default function ProdukPage() {
     setSelectedUnit("Semua satuan");
     setSelectedPrice("Semua harga");
   }, []);
+
+  useEffect(() => {
+    if (!isDev) return;
+    if (activeRole === "PARTNER_PRODUCT" && businessMode !== "Produk") {
+      handleBusinessModeChange("Produk");
+    } else if (activeRole === "PARTNER_SERVICE" && businessMode !== "Jasa") {
+      handleBusinessModeChange("Jasa");
+    }
+  }, [isDev, activeRole, businessMode, handleBusinessModeChange]);
 
   const showToast = useCallback((title: string, description: string) => {
     setToastConfig({ title, description });
@@ -199,7 +210,7 @@ export default function ProdukPage() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Katalog" }]} />
+      <Breadcrumb items={[{ label: isDev ? profile.catalogMenuName : "Katalog" }]} />
       <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismissToast} />
 
       <ProductPageHeader businessMode={businessMode} />
