@@ -1,9 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { verifyJwt, createJwtToken } from '../src/lib/auth/jwt';
-import { isPublicPath, getAllowedRolesForPath, isRoleAuthorized } from '../src/lib/auth/rbac';
-import { proxy } from '../src/proxy';
+import { verifyJwt, createJwtToken } from '../../src/lib/auth/jwt';
+import { isPublicPath, getAllowedRolesForPath, isRoleAuthorized } from '../../src/lib/auth/rbac';
+import { proxy } from '../../src/proxy';
 
 describe('Auth & RBAC Test Suite (Task T-05 / PRO-44 - Panduan Integrasi v1.0)', () => {
   describe('1. JWT & Mock Token Verification', () => {
@@ -66,6 +66,7 @@ describe('Auth & RBAC Test Suite (Task T-05 / PRO-44 - Panduan Integrasi v1.0)',
     });
 
     it('harus menolak token yang telah kedaluwarsa (expired)', async () => {
+      // Buat token dengan masa berlaku negatif (-10 detik)
       const expiredToken = await createJwtToken(
         { sub: 'usr_02', role: 'Partner' },
         undefined,

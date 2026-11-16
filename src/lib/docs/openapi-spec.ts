@@ -11,8 +11,12 @@ export const openapiSpec = {
   },
   servers: [
     {
-      url: "https://[server-bersama]/api/m4/v1",
-      description: "Server Bersama Integrasi Antarmodul"
+      url: "/api/m4/v1",
+      description: "Server Aktif (Otomatis sesuai origin saat ini)"
+    },
+    {
+      url: "https://araya-business-hub-m4.vercel.app/api/m4/v1",
+      description: "Server Production (Vercel)"
     },
     {
       url: "http://localhost:3000/api/m4/v1",

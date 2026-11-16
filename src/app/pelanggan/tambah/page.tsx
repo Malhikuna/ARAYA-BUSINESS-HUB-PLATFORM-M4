@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useFreshForm } from "@/lib/use-fresh-form";
 import {
   getCustomerInitials,
   detectCityFromAddress,
@@ -11,7 +11,7 @@ import { Customer, CustomerForm } from "@/types/customer";
 import { CustomerFormView } from "@/components/pelanggan/CustomerFormView";
 
 export default function TambahPelangganPage() {
-  const router = useRouter();
+  const { formKey, leaveForm } = useFreshForm();
 
   const handleConfirmSave = async (form: CustomerForm) => {
     try {
@@ -49,7 +49,7 @@ export default function TambahPelangganPage() {
       };
 
       saveNewCustomerToStorage(newCust);
-      router.push("/pelanggan");
+      leaveForm("/pelanggan");
     } catch {
       const newCust: Customer = {
         id: `CUST-${Date.now()}`,
@@ -63,9 +63,9 @@ export default function TambahPelangganPage() {
         createdAt: new Date().toISOString(),
       };
       saveNewCustomerToStorage(newCust);
-      router.push("/pelanggan");
+      leaveForm("/pelanggan");
     }
   };
 
-  return <CustomerFormView mode="create" onConfirmSave={handleConfirmSave} />;
+  return <CustomerFormView key={formKey} mode="create" onConfirmSave={handleConfirmSave} />;
 }

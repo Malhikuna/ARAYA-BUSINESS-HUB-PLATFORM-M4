@@ -1,10 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  createProductSchema,
-} from '../src/lib/services/product.service';
-import { GET as getProductsHandler, POST as createProductHandler } from '../src/app/api/m4/v1/products/route';
-import { GET as getProductByIdHandler, DELETE as deleteProductByIdHandler } from '../src/app/api/m4/v1/products/[id]/route';
+import { createProductSchema } from '../../src/lib/services/product.service';
+import { GET as getProductsHandler, POST as createProductHandler } from '../../src/app/api/m4/v1/products/route';
+import { GET as getProductByIdHandler, DELETE as deleteProductByIdHandler } from '../../src/app/api/m4/v1/products/[id]/route';
 
 describe('Product & Service CRUD API Test Suite (M4-US1 / PRO-12)', () => {
   describe('1. Zod Schema Validation', () => {

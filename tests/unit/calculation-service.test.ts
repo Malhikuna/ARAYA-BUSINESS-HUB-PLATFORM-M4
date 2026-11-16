@@ -1,13 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  roundHalfUp,
-  formatFinancialDecimal,
-  calculateLineItem,
-  calculateQuotationTotals,
-  CalculationValidationError,
-  EmptyItemsCalculationError,
-} from '../src/lib/services/calculation.service';
+import { roundHalfUp, formatFinancialDecimal, calculateLineItem, calculateQuotationTotals, CalculationValidationError, EmptyItemsCalculationError } from '../../src/lib/services/calculation.service';
 
 describe('PRO-48: Financial Calculation Service', () => {
   describe('roundHalfUp() & formatFinancialDecimal()', () => {
@@ -15,7 +8,7 @@ describe('PRO-48: Financial Calculation Service', () => {
       assert.strictEqual(roundHalfUp(12.345), 12.35);
       assert.strictEqual(roundHalfUp(12.344), 12.34);
       assert.strictEqual(roundHalfUp(0.005), 0.01);
-      assert.strictEqual(roundHalfUp(0.004), 0.00);
+      assert.strictEqual(roundHalfUp(0.004), 0.0);
     });
 
     it('memformat angka desimal ke string 2 digit standar finansial', () => {
@@ -58,58 +51,34 @@ describe('PRO-48: Financial Calculation Service', () => {
     });
 
     it('menolak kuantitas bernilai 0 atau negatif', () => {
-      assert.throws(
-        () => calculateLineItem(0, 10000),
-        CalculationValidationError
-      );
-      assert.throws(
-        () => calculateLineItem(-2, 10000),
-        CalculationValidationError
-      );
+      assert.throws(() => calculateLineItem(0, 10000), CalculationValidationError);
+      assert.throws(() => calculateLineItem(-2, 10000), CalculationValidationError);
     });
 
     it('menolak harga satuan negatif', () => {
-      assert.throws(
-        () => calculateLineItem(1, -500),
-        CalculationValidationError
-      );
+      assert.throws(() => calculateLineItem(1, -500), CalculationValidationError);
     });
 
     it('menolak diskon negatif', () => {
-      assert.throws(
-        () => calculateLineItem(1, 10000, -100),
-        CalculationValidationError
-      );
+      assert.throws(() => calculateLineItem(1, 10000, -100), CalculationValidationError);
     });
 
     it('menolak tarif pajak negatif atau lebih besar dari 100%', () => {
-      assert.throws(
-        () => calculateLineItem(1, 10000, 0, -5),
-        CalculationValidationError
-      );
-      assert.throws(
-        () => calculateLineItem(1, 10000, 0, 101),
-        CalculationValidationError
-      );
+      assert.throws(() => calculateLineItem(1, 10000, 0, -5), CalculationValidationError);
+      assert.throws(() => calculateLineItem(1, 10000, 0, 101), CalculationValidationError);
     });
   });
 
   describe('calculateQuotationTotals()', () => {
     it('menolak jika daftar item kosong', () => {
-      assert.throws(
-        () => calculateQuotationTotals([]),
-        EmptyItemsCalculationError
-      );
+      assert.throws(() => calculateQuotationTotals([]), EmptyItemsCalculationError);
       // @ts-expect-error test undefined input
       assert.throws(() => calculateQuotationTotals(undefined), EmptyItemsCalculationError);
     });
 
     it('menolak diskon dokumen negatif', () => {
       const items = [{ quantity: 1, unit_price: 10000 }];
-      assert.throws(
-        () => calculateQuotationTotals(items, -500),
-        CalculationValidationError
-      );
+      assert.throws(() => calculateQuotationTotals(items, -500), CalculationValidationError);
     });
 
     it('menghitung total akumulasi beberapa item dengan akurat', () => {
@@ -157,7 +126,7 @@ describe('PRO-48: Financial Calculation Service', () => {
       ];
 
       const result = calculateQuotationTotals(items);
-      assert.strictEqual(result.subtotal, 300.10);
+      assert.strictEqual(result.subtotal, 300.1);
       assert.strictEqual(result.tax_total, 33.02);
       assert.strictEqual(result.grand_total, 333.12);
       assert.strictEqual(result.formatted.grand_total, '333.12');

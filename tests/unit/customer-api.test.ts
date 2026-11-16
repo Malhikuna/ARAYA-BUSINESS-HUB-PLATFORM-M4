@@ -1,11 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  validateCustomerInput,
-  CustomerValidationError,
-} from '../src/lib/services/customer.service';
-import { GET as getCustomersHandler, POST as createCustomerHandler } from '../src/app/api/m4/v1/customers/route';
-import { GET as getCustomerByIdHandler } from '../src/app/api/m4/v1/customers/[id]/route';
+import { validateCustomerInput, CustomerValidationError } from '../../src/lib/services/customer.service';
+import { GET as getCustomersHandler, POST as createCustomerHandler } from '../../src/app/api/m4/v1/customers/route';
+import { GET as getCustomerByIdHandler } from '../../src/app/api/m4/v1/customers/[id]/route';
 
 describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
   describe('1. Validasi Field Wajib (CustomerInput)', () => {
@@ -22,7 +19,7 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
           assert.ok(err instanceof CustomerValidationError);
           assert.equal(err.fields.name, 'Nama pelanggan wajib diisi.');
           return true;
-        }
+        },
       );
     });
 
@@ -39,7 +36,7 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
           assert.ok(err instanceof CustomerValidationError);
           assert.equal(err.fields.email, 'Format email pelanggan tidak valid.');
           return true;
-        }
+        },
       );
     });
 
@@ -56,7 +53,7 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
           assert.ok(err instanceof CustomerValidationError);
           assert.ok(err.fields.phone.includes('minimal 8 digit'));
           return true;
-        }
+        },
       );
     });
 

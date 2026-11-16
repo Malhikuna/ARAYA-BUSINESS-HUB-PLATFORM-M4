@@ -197,7 +197,7 @@ export function ProductFormView({
             {/* Stok Fisik Khusus Produk */}
             {isProduct && (
               <ProductStockField
-                stock={form.stock || "0"}
+                stock={form.stock ?? ""}
                 onChange={(stockVal) => setForm((prev) => ({ ...prev, stock: stockVal }))}
               />
             )}

@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, Compass, ArrowUpRight } from "lucide-react";
+import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
+import { initialCustomers, subscribeCustomerStorage, getStoredCustomers, getServerStoredCustomers } from "@/lib/data/mock-customers";
+import { Customer } from "@/types/customer";
 
 interface QuickMenuLink {
   id: string;
@@ -25,6 +28,8 @@ const QUICK_MENU_LINKS: QuickMenuLink[] = [
 
 export function GlobalSearchBar() {
   const router = useRouter();
+  const { isDev, activeRole } = useDevRole();
+  const rawSaved = useSyncExternalStore(subscribeCustomerStorage, getStoredCustomers, getServerStoredCustomers);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,15 +48,56 @@ export function GlobalSearchBar() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const matchedMenus = useMemo(() => {
-    if (!normalizedQuery) return QUICK_MENU_LINKS.slice(0, 5);
-    return QUICK_MENU_LINKS.filter(
+    const allowedLinks = isDev && activeRole === "ADMIN"
+      ? QUICK_MENU_LINKS.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
+      : QUICK_MENU_LINKS;
+
+    if (!normalizedQuery) return allowedLinks.slice(0, 5);
+
+    const navMatches = allowedLinks.filter(
       (item) =>
         item.label.toLowerCase().includes(normalizedQuery) ||
         item.subtitle.toLowerCase().includes(normalizedQuery) ||
         item.category.toLowerCase().includes(normalizedQuery) ||
         item.keywords.includes(normalizedQuery)
     );
-  }, [normalizedQuery]);
+
+    if (!isDev) return navMatches;
+
+    let savedList: Customer[] = [];
+    try { savedList = JSON.parse(rawSaved); } catch { savedList = []; }
+    const allCustomers = [
+      ...savedList,
+      ...initialCustomers.filter((c) => !savedList.some((s) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase())),
+    ];
+    const roleFiltered = activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE"
+      ? allCustomers.filter((c) => getCustomerPartnerInfo(c.name).partnerRole === activeRole)
+      : allCustomers;
+
+    const customerMatches: QuickMenuLink[] = roleFiltered
+      .filter((c) => {
+        const pInfo = getCustomerPartnerInfo(c.name);
+        return (
+          c.name.toLowerCase().includes(normalizedQuery) ||
+          (c.phone && c.phone.includes(normalizedQuery)) ||
+          (c.city && c.city.toLowerCase().includes(normalizedQuery)) ||
+          (activeRole === "ADMIN" && pInfo.partnerName.toLowerCase().includes(normalizedQuery))
+        );
+      })
+      .map((c) => {
+        const pInfo = getCustomerPartnerInfo(c.name);
+        return {
+          id: `cust-${c.id}`,
+          label: c.name,
+          subtitle: activeRole === "ADMIN" ? `Pelanggan | ${pInfo.partnerName} (${pInfo.partnerType}) • ${c.phone}` : `Pelanggan | ${c.city || "Bandung"} • ${c.phone}`,
+          href: `/pelanggan/lihat/${c.id}`,
+          category: "Pelanggan",
+          keywords: c.name.toLowerCase(),
+        };
+      });
+
+    return [...customerMatches, ...navMatches];
+  }, [normalizedQuery, isDev, activeRole, rawSaved]);
 
   const handleSelectRoute = (href: string) => {
     setIsOpen(false);

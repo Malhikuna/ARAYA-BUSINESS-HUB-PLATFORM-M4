@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { prisma } from '../src/lib/prisma';
+import { prisma } from '../../src/lib/prisma';
 
 describe('Prisma Client & Database Model Integrity', () => {
   it('harus berhasil menginisialisasi Prisma Client singleton', () => {

@@ -9,7 +9,10 @@ import {
   FileText,
   Receipt,
   Truck,
+  Package,
+  Wrench,
 } from "lucide-react";
+import { useDevRole } from "@/lib/auth/dev-role";
 
 interface MenuItem {
   name: string;
@@ -58,6 +61,25 @@ export interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
+  const { isDev, activeRole, profile } = useDevRole();
+
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (isDev && activeRole === "ADMIN") {
+      // Admin hanya melihat halaman Katalog dan Pelanggan
+      return item.href === "/produk" || item.href === "/pelanggan";
+    }
+    // Role Produk dan Jasa dapat melihat semua halaman
+    return true;
+  });
+
+  const resolveMenuIcon = (item: MenuItem) => {
+    if (isDev && item.href === "/produk") {
+      if (activeRole === "PARTNER_PRODUCT") return Package;
+      if (activeRole === "PARTNER_SERVICE") return Wrench;
+      return BookOpen;
+    }
+    return item.icon;
+  };
 
   const renderMenuContent = (isMobileDrawer = false) => (
     <>
@@ -65,8 +87,9 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
         Penawaran &amp; tagihan penjualan
       </div>
       <nav aria-label="Menu modul penjualan" className="space-y-1 mt-1 text-sm">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
+        {filteredMenuItems.map((item) => {
+          const Icon = resolveMenuIcon(item);
+          const displayName = isDev && item.href === "/produk" ? profile.catalogMenuName : item.name;
           const isActive = item.matchPrefix
             ? pathname.startsWith(item.matchPrefix)
             : pathname === item.href;
@@ -87,7 +110,7 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
                   isActive ? "text-[#19376d]" : "text-slate-500"
                 }`}
               />
-              <span>{item.name}</span>
+              <span>{displayName}</span>
             </Link>
           );
         })}
@@ -101,7 +124,7 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
       <aside
         aria-hidden={!isOpen}
         style={{ height: "calc(100vh - 4rem)" }}
-        className={`bg-white shrink-0 hidden md:block sticky top-16 self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${
+        className={`bg-white shrink-0 hidden md:block print:hidden sticky top-16 self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${
           isOpen
             ? "w-60 border-r border-slate-200/90"
             : "w-0 border-r-0 overflow-hidden"
@@ -122,7 +145,7 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
       <div
         aria-hidden="true"
         onClick={onCloseMobile}
-        className={`fixed inset-0 top-16 bg-slate-900/20 z-20 md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 top-16 bg-slate-900/20 z-20 md:hidden print:hidden transition-opacity duration-300 ${
           isOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -130,7 +153,7 @@ export function Sidebar({ isOpen = true, onCloseMobile }: SidebarProps) {
       />
       <aside
         aria-hidden={!isOpen}
-        className={`fixed top-16 bottom-0 left-0 z-30 w-60 bg-white border-r border-slate-200/90 p-4 shadow-lg md:hidden transition-transform duration-300 ease-in-out ${
+        className={`fixed top-16 bottom-0 left-0 z-30 w-60 bg-white border-r border-slate-200/90 p-4 shadow-lg md:hidden print:hidden transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

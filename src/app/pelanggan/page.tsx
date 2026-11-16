@@ -17,6 +17,7 @@ import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
 import { CustomerTableCard } from "@/components/pelanggan/CustomerTableCard";
+import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
 
 const ITEMS_PER_PAGE = 10;
 let cachedClock = 0;
@@ -41,6 +42,7 @@ function DaftarPelangganContent() {
   const rawSaved = useSyncExternalStore(subscribeCustomerStorage, getStoredCustomers, getServerStoredCustomers);
   const rawUpdates = useSyncExternalStore(subscribeCustomerStorage, getStoredCustomerUpdates, getServerStoredCustomerUpdates);
   const rawDeleted = useSyncExternalStore(subscribeCustomerStorage, getStoredDeletedCustomers, getServerStoredDeletedCustomers);
+  const { isDev, activeRole } = useDevRole();
 
   const savedCustomers = useMemo<Customer[]>(() => { try { return JSON.parse(rawSaved); } catch { return []; } }, [rawSaved]);
   const updatedCustomers = useMemo<Record<string, Customer>>(() => { try { return JSON.parse(rawUpdates); } catch { return {}; } }, [rawUpdates]);
@@ -119,21 +121,19 @@ function DaftarPelangganContent() {
       ? [
           ...savedCustomers,
           ...initialCustomers.filter(
-            (c) =>
-              !savedCustomers.some(
-                (s) =>
-                  s.id === c.id ||
-                  s.name.toLowerCase() === c.name.toLowerCase() ||
-                  (s.email && c.email && s.email.toLowerCase() === c.email.toLowerCase())
-              )
+            (c) => !savedCustomers.some((s) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase() || (s.email && c.email && s.email.toLowerCase() === c.email.toLowerCase()))
           ),
         ]
       : initialCustomers;
     const afterUpdates = Object.keys(updatedCustomers).length > 0
       ? baseList.map((item) => (updatedCustomers[item.id] ? { ...item, ...updatedCustomers[item.id] } : item))
       : baseList;
-    return deletedCustomerIds.length > 0 ? afterUpdates.filter((item) => !deletedCustomerIds.includes(item.id)) : afterUpdates;
-  }, [savedCustomers, updatedCustomers, deletedCustomerIds]);
+    const allActive = deletedCustomerIds.length > 0 ? afterUpdates.filter((item) => !deletedCustomerIds.includes(item.id)) : afterUpdates;
+    if (isDev && (activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE")) {
+      return allActive.filter((item) => getCustomerPartnerInfo(item.name).partnerRole === activeRole);
+    }
+    return allActive;
+  }, [savedCustomers, updatedCustomers, deletedCustomerIds, isDev, activeRole]);
 
   const availableCities = useMemo(() => {
     const set = new Set<string>();
@@ -146,20 +146,17 @@ function DaftarPelangganContent() {
 
   const filteredCustomers = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-    const termDigits = term.replace(/[\s+-]/g, "");
+    const termDigits = term.replace(/\D/g, "");
 
     return customerList.filter((item) => {
-      const matchSearch = !term ||
-        item.name.toLowerCase().includes(term) ||
-        (item.phone && item.phone.replace(/[\s+-]/g, "").includes(termDigits)) ||
-        (item.email && item.email.toLowerCase().includes(term)) ||
-        (item.address && item.address.toLowerCase().includes(term)) ||
-        (item.city && item.city.toLowerCase().includes(term));
-
+      const pInfo = getCustomerPartnerInfo(item.name);
+      const partnerText = isDev && activeRole === "ADMIN" ? `${pInfo.partnerName} ${pInfo.partnerType} partner ${pInfo.partnerType}` : "";
+      const haystack = `${item.name} ${item.initials || ""} ${item.phone || ""} ${item.email || ""} ${item.address || ""} ${item.city || ""} ${partnerText}`.toLowerCase();
+      const matchSearch = !term || haystack.includes(term) || (termDigits.length >= 3 && (item.phone || "").replace(/\D/g, "").includes(termDigits));
       const matchCity = selectedCity === "Semua kota" || item.city === selectedCity;
       return matchSearch && matchCity;
     });
-  }, [customerList, searchTerm, selectedCity]);
+  }, [customerList, searchTerm, selectedCity, isDev, activeRole]);
 
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE) || 1;
   const safeCurrentPage = Math.min(currentPage, totalPages);

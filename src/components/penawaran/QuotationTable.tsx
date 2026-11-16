@@ -40,9 +40,9 @@ export function QuotationTable({
             <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/70">
               <th scope="col" className="w-[18%] px-4 sm:px-6 py-3.5">Nomor</th>
               <th scope="col" className="w-[22%] px-4 sm:px-6 py-3.5">Pelanggan</th>
-              <th scope="col" className="w-[18%] px-4 sm:px-6 py-3.5">Tanggal</th>
+              <th scope="col" className="w-[14%] px-4 sm:px-6 py-3.5">Tanggal</th>
               <th scope="col" className="w-[18%] px-4 sm:px-6 py-3.5">Total</th>
-              <th scope="col" className="w-[16%] px-4 sm:px-6 py-3.5">Status</th>
+              <th scope="col" className="w-[20%] px-4 sm:px-6 py-3.5">Status</th>
               <th scope="col" className="w-[8%] px-4 sm:px-6 py-3.5 text-right">Aksi</th>
             </tr>
           </thead>
@@ -96,7 +96,7 @@ export function QuotationTable({
                     </td>
 
                     {/* Status */}
-                    <td className="px-4 sm:px-6 py-3.5 truncate">
+                    <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap">
                       {isApproved ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#e8f7fa] text-[#0e7490]">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#0e7490]" />
