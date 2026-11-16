@@ -66,15 +66,42 @@ function UbahPelangganContent() {
     );
   }
 
-  const cleanPhone = customer.phone.replace(/^\+62\s?/, "").replace(/\D/g, "");
+  const cleanPhone = customer.phone.trim();
 
-  const handleConfirmSave = (form: CustomerForm) => {
+  const handleConfirmSave = async (form: CustomerForm) => {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customer.id)) {
+      try {
+        const res = await fetch(`/api/m4/v1/customers/${customer.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer mock-admin-token" },
+          body: JSON.stringify({
+            name: form.name.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            address: form.address.trim(),
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (json.code === "DUPLICATE_EMAIL") {
+            return { field: "email" as const, error: "Alamat email sudah terdaftar untuk pelanggan lain." };
+          }
+          if (json.code === "DUPLICATE_PHONE") {
+            return { field: "phone" as const, error: "Nomor telepon/WhatsApp sudah terdaftar untuk pelanggan lain." };
+          }
+          return { field: "name" as const, error: json.error?.message || "Gagal memperbarui data pelanggan." };
+        }
+      } catch {
+        // continue to local storage
+      }
+    }
+
     const updatedCustomer: Customer = {
       id: customer.id,
       name: form.name.trim(),
       initials: getCustomerInitials(form.name, 2),
       avatarBg: customer.avatarBg || "bg-blue-100 text-blue-700",
-      phone: form.phone.trim() ? `+62 ${form.phone.trim()}` : "0812 3456 7890",
+      phone: form.phone.trim() || "0812 3456 7890",
       email: form.email.trim() || "-",
       address: form.address.trim(),
       city: detectCityFromAddress(form.address.trim(), customer.city || "Bandung"),

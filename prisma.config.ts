@@ -6,9 +6,10 @@ export default defineConfig({
 
   migrations: {
     path: 'prisma/migrations',
+    seed: 'tsx prisma/seed.ts',
   },
 
   datasource: {
-    url: env('SUPABASE_DATABASE_URL'),
+    url: env('DIRECT_URL') ?? env('SUPABASE_DATABASE_URL'),
   },
 });

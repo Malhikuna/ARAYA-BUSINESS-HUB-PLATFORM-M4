@@ -15,7 +15,7 @@ Dokumen ini menjadi acuan visual dan interaksi untuk antarmuka Araya Business Hu
 - Hindari gradien mencolok, glassmorphism, tumpukan kartu, sudut terlalu membulat, bayangan berlebihan, dan badge dekoratif jika tidak punya fungsi yang jelas.
 - Jangan menambahkan ornamen, emoji, ikon dekoratif, atau teks placeholder hanya agar halaman terlihat ramai.
 - Gunakan ruang kosong, warna, dan variasi ukuran secara terukur untuk membangun hierarki; setiap elemen visual harus membantu pemahaman atau tindakan pengguna.
-- Ikuti prinsip `SKILL.md`: pilih solusi paling sederhana yang menyelesaikan kebutuhan, dan jangan menambah komponen atau variasi visual spekulatif.
+- Ikuti prinsip standar koding ([`docs/workflows/coding-standards.md`](../workflows/coding-standards.md)): pilih solusi paling sederhana yang menyelesaikan kebutuhan, dan jangan menambah komponen atau variasi visual spekulatif.
 
 ## Fondasi Visual
 

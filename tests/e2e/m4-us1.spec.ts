@@ -9,7 +9,8 @@ test.describe('Modul 4 - US1: Input Data Produk/Jasa & Pelanggan', () => {
 
     // 2. Isi form dengan data valid
     await page.fill('input[name="name"]', 'Produk Layanan IT Test');
-    await page.selectOption('select[name="category"]', { label: 'Jasa' });
+    await page.selectOption('select[name="category"]', 'Jasa');
+    await page.fill('input[name="unit"]', 'Paket');
     await page.fill('input[name="price"]', '150000');
 
     // 3. Klik tombol simpan

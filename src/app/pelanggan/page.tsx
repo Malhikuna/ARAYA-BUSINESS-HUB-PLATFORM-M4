@@ -8,6 +8,7 @@ import {
   initialCustomers, getCustomerInitials, detectCityFromAddress, subscribeCustomerStorage,
   getStoredCustomers, getServerStoredCustomers, getStoredCustomerUpdates, getServerStoredCustomerUpdates,
   getStoredDeletedCustomers, getServerStoredDeletedCustomers, saveNewCustomerToStorage, deleteCustomerFromStorage,
+  syncCustomersFromDatabase,
 } from "@/lib/data/mock-customers";
 import { Customer } from "@/types/customer";
 import { downloadCustomerReportPdf } from "@/lib/export-customer-pdf";
@@ -16,6 +17,7 @@ import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
 import { CustomerTableCard } from "@/components/pelanggan/CustomerTableCard";
+import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
 
 const ITEMS_PER_PAGE = 10;
 let cachedClock = 0;
@@ -25,27 +27,22 @@ function subscribeToClock(callback: () => void) {
   const interval = setInterval(() => { cachedClock = Date.now(); callback(); }, 60000);
   return () => clearInterval(interval);
 }
-
-function getClockSnapshot(): number {
-  if (cachedClock === 0 && typeof window !== "undefined") cachedClock = Date.now();
-  return cachedClock;
-}
-
+const getClockSnapshot = () => (cachedClock === 0 && typeof window !== "undefined" ? (cachedClock = Date.now()) : cachedClock);
 const getServerClockSnapshot = () => 0;
 
 function DaftarPelangganContent() {
   const searchParams = useSearchParams();
-  const statusParam = searchParams.get("status");
-  const newNameParam = searchParams.get("name");
-  const phoneParam = searchParams.get("phone");
-  const emailParam = searchParams.get("email");
-  const addressParam = searchParams.get("address");
+  const [statusParam, newNameParam, phoneParam, emailParam, addressParam] = [
+    searchParams.get("status"), searchParams.get("name"), searchParams.get("phone"),
+    searchParams.get("email"), searchParams.get("address"),
+  ];
   const hasHandledUrlRef = React.useRef(false);
 
   const currentTime = useSyncExternalStore(subscribeToClock, getClockSnapshot, getServerClockSnapshot);
   const rawSaved = useSyncExternalStore(subscribeCustomerStorage, getStoredCustomers, getServerStoredCustomers);
   const rawUpdates = useSyncExternalStore(subscribeCustomerStorage, getStoredCustomerUpdates, getServerStoredCustomerUpdates);
   const rawDeleted = useSyncExternalStore(subscribeCustomerStorage, getStoredDeletedCustomers, getServerStoredDeletedCustomers);
+  const { isDev, activeRole } = useDevRole();
 
   const savedCustomers = useMemo<Customer[]>(() => { try { return JSON.parse(rawSaved); } catch { return []; } }, [rawSaved]);
   const updatedCustomers = useMemo<Record<string, Customer>>(() => { try { return JSON.parse(rawUpdates); } catch { return {}; } }, [rawUpdates]);
@@ -64,6 +61,10 @@ function DaftarPelangganContent() {
   }, []);
 
   useEffect(() => {
+    syncCustomersFromDatabase();
+  }, []);
+
+  useEffect(() => {
     const consumeFlashToast = () => {
       try {
         const flag = sessionStorage.getItem("araya_show_toast");
@@ -74,7 +75,7 @@ function DaftarPelangganContent() {
         if (flag === "updated") {
           showToast("Perubahan pelanggan tersimpan", `Data "${toastName}" berhasil diperbarui.`);
         } else {
-          showToast("Pelanggan berhasil ditambahkan", `Data "${toastName}" sudah tersedia untuk penawaran, invoice, dan order.`);
+          showToast("Pelanggan tersimpan", `Data "${toastName}" sudah tersedia untuk penawaran, invoice, dan order.`);
         }
       } catch { /* ignore */ }
     };
@@ -117,21 +118,45 @@ function DaftarPelangganContent() {
 
   const customerList = useMemo(() => {
     const baseList = savedCustomers.length > 0
-      ? [...savedCustomers, ...initialCustomers.filter((c) => !savedCustomers.some((s) => s.id === c.id || s.name === c.name))]
+      ? [
+          ...savedCustomers,
+          ...initialCustomers.filter(
+            (c) => !savedCustomers.some((s) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase() || (s.email && c.email && s.email.toLowerCase() === c.email.toLowerCase()))
+          ),
+        ]
       : initialCustomers;
     const afterUpdates = Object.keys(updatedCustomers).length > 0
       ? baseList.map((item) => (updatedCustomers[item.id] ? { ...item, ...updatedCustomers[item.id] } : item))
       : baseList;
-    return deletedCustomerIds.length > 0 ? afterUpdates.filter((item) => !deletedCustomerIds.includes(item.id)) : afterUpdates;
-  }, [savedCustomers, updatedCustomers, deletedCustomerIds]);
+    const allActive = deletedCustomerIds.length > 0 ? afterUpdates.filter((item) => !deletedCustomerIds.includes(item.id)) : afterUpdates;
+    if (isDev && (activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE")) {
+      return allActive.filter((item) => getCustomerPartnerInfo(item.name).partnerRole === activeRole);
+    }
+    return allActive;
+  }, [savedCustomers, updatedCustomers, deletedCustomerIds, isDev, activeRole]);
+
+  const availableCities = useMemo(() => {
+    const set = new Set<string>();
+    customerList.forEach((c) => {
+      const city = c.city || detectCityFromAddress(c.address || "", "");
+      if (city && city.trim()) set.add(city.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "id"));
+  }, [customerList]);
 
   const filteredCustomers = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    const termDigits = term.replace(/\D/g, "");
+
     return customerList.filter((item) => {
-      const matchName = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const pInfo = getCustomerPartnerInfo(item.name);
+      const partnerText = isDev && activeRole === "ADMIN" ? `${pInfo.partnerName} ${pInfo.partnerType} partner ${pInfo.partnerType}` : "";
+      const haystack = `${item.name} ${item.initials || ""} ${item.phone || ""} ${item.email || ""} ${item.address || ""} ${item.city || ""} ${partnerText}`.toLowerCase();
+      const matchSearch = !term || haystack.includes(term) || (termDigits.length >= 3 && (item.phone || "").replace(/\D/g, "").includes(termDigits));
       const matchCity = selectedCity === "Semua kota" || item.city === selectedCity;
-      return matchName && matchCity;
+      return matchSearch && matchCity;
     });
-  }, [customerList, searchTerm, selectedCity]);
+  }, [customerList, searchTerm, selectedCity, isDev, activeRole]);
 
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE) || 1;
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -144,6 +169,7 @@ function DaftarPelangganContent() {
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
     return savedCustomers.filter((c) => {
       if (deletedCustomerIds.includes(c.id)) return false;
+      if (!c.id.startsWith("CUST-")) return false;
       if (!c.createdAt) return true;
       const createdTime = new Date(c.createdAt).getTime();
       return !isNaN(createdTime) && currentTime - createdTime < ONE_DAY_MS;
@@ -151,8 +177,8 @@ function DaftarPelangganContent() {
   }, [savedCustomers, deletedCustomerIds, currentTime]);
 
   const totalCount = customerList.length;
-  const activeAddedCount = savedCustomers.filter((c) => !deletedCustomerIds.includes(c.id)).length;
-  const newThisMonthCount = 3 + activeAddedCount;
+  const newlyCreatedCount = savedCustomers.filter((c) => !deletedCustomerIds.includes(c.id) && c.id.startsWith("CUST-")).length;
+  const newThisMonthCount = 3 + newlyCreatedCount;
 
   const handleConfirmExportPdf = () => {
     downloadCustomerReportPdf({ customers: filteredCustomers, totalRegistered: totalCount, activeCustomers: 15, selectedCity, searchTerm });
@@ -175,25 +201,22 @@ function DaftarPelangganContent() {
 
   return (
     <>
+      <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismiss} />
       <Breadcrumb separator="/" items={[{ label: "Pelanggan" }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-16.5 relative">
         <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight shrink-0">Daftar pelanggan</h1>
         <div className="w-full sm:w-auto flex items-center justify-end min-h-13">
-          {toastStatus !== "hidden" ? (
-            <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismiss} />
-          ) : (
-            <Link href="/pelanggan/tambah" className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto animate-fade-in">
-              <Plus className="w-4 h-4" />
-              <span>Tambah pelanggan</span>
-            </Link>
-          )}
+          <Link href="/pelanggan/tambah" className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto animate-fade-in">
+            <Plus className="w-4 h-4" />
+            <span>Tambah pelanggan</span>
+          </Link>
         </div>
       </div>
 
       <CustomerTableCard
         totalCount={totalCount} recentNewCount={recentNewCount} newThisMonthCount={newThisMonthCount}
-        searchTerm={searchTerm} selectedCity={selectedCity} currentData={currentData}
+        searchTerm={searchTerm} selectedCity={selectedCity} availableCities={availableCities} currentData={currentData}
         filteredCount={filteredCustomers.length} safeCurrentPage={safeCurrentPage} totalPages={totalPages}
         startIndex={startIndex} endIndex={endIndex}
         onSearchChange={(val) => { setSearchTerm(val); setCurrentPage(1); }}
