@@ -159,7 +159,7 @@ npm run db:verify
 ```
 
 Prism tersedia di `http://127.0.0.1:4010` dan mengikuti path kontrak
-`POST /checkouts` (base path `/api/v1` tidak termasuk dalam URL mock). PostgreSQL
+`POST /orders` (base path `/api/m4/v1` tidak termasuk dalam URL mock). PostgreSQL
 tersedia di `127.0.0.1:5433`; `db:verify` menunggu health check container lalu
 menjalankan migration yang ada.
 

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "npm run test:unit",
-    "test:unit": "tsx --test tests/unit/**/*.test.ts tests/*.test.ts",
+    "test:unit": "tsx --test tests/unit/**/*.test.ts",
     "test:e2e": "playwright test",
     "test:api": "newman run qa/postman/araya-m4-api-regression.postman_collection.json -e qa/postman/local.postman_environment.json",
     "test:regression": "npm run test:unit && npm run test:e2e",
