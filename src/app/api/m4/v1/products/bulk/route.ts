@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { generateTraceId, createAuthErrorResponse, createSuccessResponse } from '@/lib/auth/response';
 import { getAuthUser } from '@/lib/auth/guard';
 import {

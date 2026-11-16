@@ -39,7 +39,7 @@
 | **QA: Unit Testing** | Node.js Test Runner via `tsx` (Jest-compatible) | `tsx 4.23` | Eksekusi unit test cepat dengan sintaksis standar industri (`describe`/`it`/`assert`) tanpa konflik ESM di Next.js 16. |
 | **QA: E2E Testing** | Playwright Test Suite | `1.x` | Pengujian otomatis end-to-end simulasi browser untuk alur penawaran hingga tagihan (`playwright.config.ts`). |
 | **QA: API Regression** | Postman & Newman | Collection v2.1 | Koleksi pengujian endpoint otomatis via `06_Postman_Collection_M4.json` yang dapat dijalankan di CI via Newman. |
-| **QA: Service Mocking** | Stoplight Prism | CLI Latest | Mocking server untuk API Modul 5 (Order/BPU) berbasis `docs/openapi_m5_order_contract.yaml` agar tim tidak terblokir. |
+| **QA: Service Mocking** | Stoplight Prism | CLI Latest | Mocking server untuk API Modul 5 (Order/BPU) berbasis `docs/api/openapi.yaml` agar tim tidak terblokir. |
 | **QA: Integration Test** | Route Handlers + Local Postgres | Docker Compose | Uji integrasi endpoint langsung dengan Web API Request/Response dan database lokal PostgreSQL. |
 | **Linter & Code Style** | ESLint 9 & Next Linter Config | `9.x` | Menjaga kebersihan kode dari unused imports, console.log debug, dan menjamin kepatuhan aturan PR. |
 | **CI/CD & DevOps** | GitHub Actions Workflows | v4 Workflows | Otomatisasi validasi (lint, type-check, unit test, build) pada setiap Pull Request ke branch develop. |
@@ -61,7 +61,7 @@ Sesuai dokumen rencana TDD & QA, pengujian Modul 4 menerapkan strategi piramida 
 4. **API Regression Testing (Postman & Newman):**
    * Fokus: Verifikasi kesesuaian endpoint API terhadap amplop standar respons (`success`, `data`, `meta`, `error`) menggunakan berkas koleksi resmi `06_Postman_Collection_M4.json`.
 5. **Dependency Mocking (Stoplight Prism):**
-   * Fokus: Menyediakan mock API server untuk Modul 5 (Pengadaan & Logistik) berdasarkan kontrak OpenAPI `docs/openapi_m5_order_contract.yaml`, sehingga pengujian alur konversi penawaran ke order di Modul 4 dapat berjalan mandiri meskipun Modul 5 belum online.
+   * Fokus: Menyediakan mock API server untuk Modul 5 (Pengadaan & Logistik) berdasarkan kontrak OpenAPI `docs/api/openapi.yaml`, sehingga pengujian alur konversi penawaran ke order di Modul 4 dapat berjalan mandiri meskipun Modul 5 belum online.
 
 ---
 

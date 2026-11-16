@@ -1,13 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  calculateQuotationTotals,
-  createQuotationSchema,
-} from '../src/lib/services/quotation.service';
-import { prisma } from '../src/lib/prisma';
-import { GET as getQuotationsHandler, POST as createQuotationHandler } from '../src/app/api/m4/v1/quotations/route';
-import { GET as getQuotationByIdHandler } from '../src/app/api/m4/v1/quotations/[id]/route';
-import { PATCH as updateQuotationStatusHandler } from '../src/app/api/m4/v1/quotations/[id]/status/route';
+import { calculateQuotationTotals, createQuotationSchema } from '../../src/lib/services/quotation.service';
+import { prisma } from '../../src/lib/prisma';
+import { GET as getQuotationsHandler, POST as createQuotationHandler } from '../../src/app/api/m4/v1/quotations/route';
+import { GET as getQuotationByIdHandler } from '../../src/app/api/m4/v1/quotations/[id]/route';
+import { PATCH as updateQuotationStatusHandler } from '../../src/app/api/m4/v1/quotations/[id]/status/route';
 
 describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
   describe('1. Financial Calculation (Round-Half-Up & Non-Float)', () => {
@@ -98,10 +95,7 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
 
     it('POST /api/m4/v1/quotations harus berhasil membuat penawaran baru dengan nomor urut unik period bulanan (201)', async () => {
       // Ambil customer dan product yang ada dari seeder
-      const [customer, product] = await Promise.all([
-        prisma.customers.findFirst(),
-        prisma.products_services.findFirst(),
-      ]);
+      const [customer, product] = await Promise.all([prisma.customers.findFirst(), prisma.products_services.findFirst()]);
 
       assert.ok(customer, 'Customer seeder harus ada');
       assert.ok(product, 'Product seeder harus ada');

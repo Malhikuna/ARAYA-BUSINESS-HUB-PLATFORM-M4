@@ -1,10 +1,17 @@
 import 'dotenv/config';
 import { prisma } from '../src/lib/prisma';
+import type { Prisma } from '../generated/prisma/client';
 import { SEED_CUSTOMERS } from './seed-data/customers.data';
 import { SEED_PRODUCTS } from './seed-data/products.data';
 import { SEED_QUOTATION_TEMPLATES, SEED_ORDER_TEMPLATES } from './seed-data/transactions.data';
 
 const DEFAULT_PARTNER_ID = '00000000-0000-0000-0000-000000000001';
+type SeededQuotation = Prisma.quotationsGetPayload<{
+  include: { quotation_items: true; invoices: true };
+}>;
+type SeededOrder = Prisma.ordersGetPayload<{
+  include: { order_items: true; invoices: true };
+}>;
 
 async function main() {
   console.log('🌱 Memulai proses seeding komprehensif 1 tahun Modul 4 (BPU Unpas)...');
@@ -33,7 +40,7 @@ async function main() {
 
   // 3. Products & Services
   console.log('3. Menyinkronkan Products & Services...');
-  const productMap = new Map<string, any>();
+  const productMap = new Map<string, Prisma.products_servicesModel>();
   for (const p of SEED_PRODUCTS) {
     const prod = await prisma.products_services.upsert({
       where: { sku: p.sku },
@@ -51,9 +58,9 @@ async function main() {
     return { unit_price: price, quantity: qty, discount_amount: disc, tax_rate: taxRate, subtotal, tax_amount: tax, total_amount: net + tax };
   };
 
-  const toItemPayload = (items: any[]) => items.map((it) => ({
+  const toItemPayload = (items: Array<Prisma.quotation_itemsModel | Prisma.order_itemsModel>) => items.map((it) => ({
     product_service_id: it.product_service_id,
-    description: it.description || null,
+    description: 'description' in it ? it.description || null : null,
     quantity: it.quantity,
     unit_price: it.unit_price,
     discount_amount: it.discount_amount,
@@ -68,7 +75,7 @@ async function main() {
 
   // 4. Quotations
   console.log('4. Menyinkronkan Quotations...');
-  const quoteMap = new Map<string, any>();
+  const quoteMap = new Map<string, SeededQuotation>();
   for (const q of SEED_QUOTATION_TEMPLATES) {
     const custId = customerMap.get(q.customerEmail);
     const prod = productMap.get(q.sku);
@@ -110,7 +117,7 @@ async function main() {
 
   // 5. Orders (M5 E-Commerce)
   console.log('5. Menyinkronkan Orders...');
-  const orderMap = new Map<string, any>();
+  const orderMap = new Map<string, SeededOrder>();
   for (const o of SEED_ORDER_TEMPLATES) {
     const custId = customerMap.get(o.customerEmail);
     const prod = productMap.get(o.sku);

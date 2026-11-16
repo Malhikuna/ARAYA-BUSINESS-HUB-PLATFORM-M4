@@ -77,9 +77,11 @@ export default function ProdukPage() {
   useEffect(() => {
     if (!isDev) return;
     if (activeRole === "PARTNER_PRODUCT" && businessMode !== "Produk") {
-      handleBusinessModeChange("Produk");
+      const timeoutId = window.setTimeout(() => handleBusinessModeChange("Produk"), 0);
+      return () => window.clearTimeout(timeoutId);
     } else if (activeRole === "PARTNER_SERVICE" && businessMode !== "Jasa") {
-      handleBusinessModeChange("Jasa");
+      const timeoutId = window.setTimeout(() => handleBusinessModeChange("Jasa"), 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [isDev, activeRole, businessMode, handleBusinessModeChange]);
 
