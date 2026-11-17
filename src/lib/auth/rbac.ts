@@ -33,7 +33,7 @@ const ROUTE_RBAC_RULES: RouteRule[] = [
   { pattern: /^\/api\/(?:m4\/)?v1\/customers(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner'] },
 
   // Ringkasan untuk dashboard Modul 2 (Kontrak K-03)
-  { pattern: /^\/api\/(?:m4\/)?v1\/dashboard-summary(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/dashboard-summary(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner', 'manajer'] },
 
   // Pembuatan quotation/penawaran oleh Admin dan Partner
   { pattern: /^\/api\/(?:m4\/)?v1\/quotations(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner'] },
@@ -82,12 +82,23 @@ export function getAllowedRolesForPath(pathname: string): Array<Role | string> |
 }
 
 /**
+ * Normalisasi kode role dari Modul 1 (misal 'administrator' / 'super_admin' -> 'admin')
+ */
+function normalizeRoleCode(role: string): string {
+  const lower = role.toLowerCase();
+  if (lower === 'administrator' || lower === 'super_admin') {
+    return 'admin';
+  }
+  return lower;
+}
+
+/**
  * Validasi apakah role pengguna memiliki izin pada daftar role yang diperbolehkan
  */
 export function isRoleAuthorized(userRole: Role | string, allowedRoles: Array<Role | string> | null): boolean {
   if (!allowedRoles) {
     return true; // Tidak ada restriksi khusus peran, cukup terautentikasi
   }
-  const normalizedUserRole = userRole.toLowerCase();
-  return allowedRoles.some((r) => r.toLowerCase() === normalizedUserRole);
+  const normalizedUserRole = normalizeRoleCode(String(userRole));
+  return allowedRoles.some((r) => normalizeRoleCode(String(r)) === normalizedUserRole);
 }

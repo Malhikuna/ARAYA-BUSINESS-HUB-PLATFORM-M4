@@ -42,6 +42,31 @@ describe('Auth & RBAC Test Suite (Task T-05 / PRO-44 - Panduan Integrasi v1.0)',
       assert.equal(result.payload?.role, 'kasir');
     });
 
+    it('harus berhasil memverifikasi token M1 v1.1.0 dengan role administrator dan is_super_admin', async () => {
+      const token = await createJwtToken({
+        user_id: 42,
+        name: 'Rani Kusumawati',
+        role: 'administrator',
+        division: 'pusat',
+        partner_id: null,
+        unit_usaha_id: null,
+        is_super_admin: true,
+      });
+
+      const result = await verifyJwt(token);
+      assert.equal(result.valid, true);
+      assert.equal(result.payload?.sub, '42');
+      assert.equal(result.payload?.role, 'administrator');
+      assert.equal(result.payload?.is_super_admin, true);
+
+      const adminRoles = getAllowedRolesForPath('/api/m4/v1/products');
+      assert.equal(isRoleAuthorized('administrator', adminRoles), true);
+      assert.equal(isRoleAuthorized('super_admin', adminRoles), true);
+
+      const dashboardRoles = getAllowedRolesForPath('/api/m4/v1/dashboard-summary');
+      assert.equal(isRoleAuthorized('manajer', dashboardRoles), true);
+    });
+
     it('harus berhasil memverifikasi signed token baru HMAC-SHA256', async () => {
       const token = await createJwtToken({
         sub: 'usr_new_001',

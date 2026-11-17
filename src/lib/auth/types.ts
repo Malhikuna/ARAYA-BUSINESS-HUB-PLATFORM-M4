@@ -1,13 +1,24 @@
-export type Role = 'Admin' | 'Partner' | 'Customer' | 'kasir' | 'admin' | 'partner' | 'customer';
+export type Role =
+  | 'Admin'
+  | 'Partner'
+  | 'Customer'
+  | 'kasir'
+  | 'admin'
+  | 'partner'
+  | 'customer'
+  | 'administrator'
+  | 'super_admin'
+  | 'manajer';
 
 export interface JwtPayload {
   sub?: string;
   user_id?: number | string;
   name?: string;
   role: Role | string;
-  division?: string;
-  unit_usaha_id?: number | string;
-  partner_id?: number | string;
+  division?: string | null;
+  unit_usaha_id?: number | string | null;
+  partner_id?: number | string | null;
+  is_super_admin?: boolean;
   email?: string;
   iat?: number;
   exp?: number;
