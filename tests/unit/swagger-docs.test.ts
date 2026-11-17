@@ -16,6 +16,12 @@ describe('Swagger UI & OpenAPI Documentation Test Suite (Panduan Integrasi v1.0)
       assert.ok(openapiSpec.info.title.includes('M4'));
       assert.ok(openapiSpec.info.version);
       assert.ok(openapiSpec.servers.some((s) => s.url.includes('/api/m4/v1')));
+      assert.equal(openapiSpec.servers[0]?.url, '/api/m4/v1');
+      assert.equal(
+        openapiSpec.servers.some((s) => s.url.includes('[') || s.url.includes(']')),
+        false,
+        'Server OpenAPI tidak boleh memakai placeholder [server-bersama]'
+      );
     });
 
     it('harus mendefinisikan seluruh endpoint utama sesuai tabel Panduan API Bersama', () => {

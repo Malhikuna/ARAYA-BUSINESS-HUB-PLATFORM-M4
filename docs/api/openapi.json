@@ -7,8 +7,12 @@
   },
   "servers": [
     {
-      "url": "https://[server-bersama]/api/m4/v1",
-      "description": "Server Bersama Integrasi Antarmodul"
+      "url": "/api/m4/v1",
+      "description": "Server Aktif (Otomatis sesuai origin saat ini)"
+    },
+    {
+      "url": "https://araya-business-hub-m4.vercel.app/api/m4/v1",
+      "description": "Server Production (Vercel)"
     },
     {
       "url": "http://localhost:3000/api/m4/v1",
@@ -746,16 +750,8 @@
     "/products": {
       "get": {
         "summary": "Data produk/jasa aktif (Kontrak K-05, M4-US1, M5-US1, M6-US1)",
-        "description": "Mengambil daftar katalog master produk/jasa aktif untuk ditampilkan di storefront M5 atau kasir M6.",
+        "description": "Mengambil daftar katalog master produk/jasa aktif untuk ditampilkan di storefront M5 atau kasir M6 (Endpoint Publik).",
         "operationId": "getActiveProducts",
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "serviceKey": []
-          }
-        ],
         "parameters": [
           {
             "name": "q",
