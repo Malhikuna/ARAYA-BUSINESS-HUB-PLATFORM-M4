@@ -1,14 +1,35 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000/produk',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  timeout: 30000,
+  fullyParallel: false,
+  workers: 1,
+  retries: process.env.CI ? 2 : 0,
+  reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    trace: 'on-first-retry',
   },
+  projects: [
+    {
+      name: 'Desktop Chrome',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Mobile 400px',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 400, height: 800 },
+      },
+    },
+  ],
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:3000/produk',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
 });
