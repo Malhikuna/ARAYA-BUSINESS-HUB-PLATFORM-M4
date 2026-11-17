@@ -46,11 +46,26 @@ const ROUTE_RBAC_RULES: RouteRule[] = [
   { pattern: /^\/api\/(?:m4\/)?v1\/invoices(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner', 'Customer', 'customer'] },
 ];
 
+// Pola rute publik khusus method GET (misal: katalog produk untuk etalase Modul 5)
+const PUBLIC_GET_ROUTE_PATTERNS: RegExp[] = [
+  /^\/api\/(?:m4\/)?v1\/products(?:\/(?!bulk$)[^/]+)?$/,
+];
+
 /**
  * Cek apakah rute API bersifat publik (tanpa bearer JWT)
  */
-export function isPublicPath(pathname: string): boolean {
-  return PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
+export function isPublicPath(pathname: string, method: string = 'GET'): boolean {
+  const upperMethod = method.toUpperCase();
+  if (upperMethod === 'OPTIONS') {
+    return true;
+  }
+  if (PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname))) {
+    return true;
+  }
+  if (upperMethod === 'GET' && PUBLIC_GET_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname))) {
+    return true;
+  }
+  return false;
 }
 
 /**

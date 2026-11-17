@@ -88,11 +88,15 @@ describe('Auth & RBAC Test Suite (Task T-05 / PRO-44 - Panduan Integrasi v1.0)',
   });
 
   describe('2. RBAC Rules & Path Checker', () => {
-    it('harus mengenali endpoint webhook payment dan dokumentasi sebagai rute publik', () => {
+    it('harus mengenali endpoint webhook payment, dokumentasi, dan GET katalog produk sebagai rute publik', () => {
       assert.equal(isPublicPath('/api/m4/v1/webhooks/payments/midtrans'), true);
       assert.equal(isPublicPath('/api/m4/v1/health'), true);
       assert.equal(isPublicPath('/api/m4/v1/docs'), true);
       assert.equal(isPublicPath('/api/v1/webhooks/payments/midtrans'), true);
+      assert.equal(isPublicPath('/api/m4/v1/products', 'GET'), true);
+      assert.equal(isPublicPath('/api/m4/v1/products/123', 'GET'), true);
+      assert.equal(isPublicPath('/api/m4/v1/products/bulk', 'POST'), false);
+      assert.equal(isPublicPath('/api/m4/v1/products', 'POST'), false);
       assert.equal(isPublicPath('/api/m4/v1/orders'), false);
     });
 
@@ -114,19 +118,34 @@ describe('Auth & RBAC Test Suite (Task T-05 / PRO-44 - Panduan Integrasi v1.0)',
   });
 
   describe('3. Proxy / Middleware Interception', () => {
-    it('harus mengembalikan 401 UNAUTHENTICATED dengan amplop standar jika request tanpa token', async () => {
-      const req = new NextRequest('http://localhost:3000/api/m4/v1/products');
+    it('harus mengembalikan 401 UNAUTHENTICATED dengan amplop standar jika request non-publik tanpa token', async () => {
+      const req = new NextRequest('http://localhost:3000/api/m4/v1/products', {
+        method: 'POST',
+      });
       const res = await proxy(req);
 
       assert.equal(res.status, 401);
+      assert.equal(res.headers.get('access-control-allow-origin'), '*');
       const json = await res.json();
       assert.equal(json.success, false);
       assert.equal(json.error.code, 'UNAUTHENTICATED');
       assert.ok(res.headers.get('x-request-id')?.startsWith('req_'));
     });
 
+    it('harus meloloskan GET /api/m4/v1/products secara publik tanpa token untuk katalog Modul 5', async () => {
+      const req = new NextRequest('http://localhost:3000/api/m4/v1/products', {
+        method: 'GET',
+      });
+      const res = await proxy(req);
+
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('access-control-allow-origin'), '*');
+      assert.ok(res.headers.get('x-request-id'));
+    });
+
     it('harus mengembalikan 401 jika token invalid', async () => {
       const req = new NextRequest('http://localhost:3000/api/m4/v1/products', {
+        method: 'POST',
         headers: { authorization: 'Bearer token-ngawur-123' },
       });
       const res = await proxy(req);
