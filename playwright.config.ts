@@ -3,7 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30000,
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
+  retries: process.env.CI ? 2 : 0,
   reporter: 'list',
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
@@ -16,13 +18,18 @@ export default defineConfig({
     },
     {
       name: 'Mobile 400px',
-      use: { viewport: { width: 400, height: 800 } },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 400, height: 800 },
+      },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000/produk',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:3000/produk',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
 });
