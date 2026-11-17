@@ -348,9 +348,8 @@ export const openapiSpec = {
     "/products": {
       get: {
         summary: "Data produk/jasa aktif (Kontrak K-05, M4-US1, M5-US1, M6-US1)",
-        description: "Mengambil daftar katalog master produk/jasa aktif untuk ditampilkan di storefront M5 atau kasir M6.",
+        description: "Mengambil daftar katalog master produk/jasa aktif untuk ditampilkan di storefront M5 atau kasir M6 (Endpoint Publik).",
         operationId: "getActiveProducts",
-        security: [{ bearerAuth: [] }, { serviceKey: [] }],
         parameters: [
           { name: "q", in: "query", required: false, schema: { type: "string" }, description: "Kata kunci pencarian produk" },
           { name: "page", in: "query", required: false, schema: { type: "integer", default: 1 } },

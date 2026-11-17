@@ -6,15 +6,32 @@ import { createAuthErrorResponse, generateTraceId } from './lib/auth/response';
 
 const SERVICE_KEY_EXPECTED = process.env.SERVICE_KEY || 'araya-m4-service-key-2026';
 
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Service-Key, X-Request-Id',
+};
+
+function applyCorsHeaders(response: NextResponse, traceId: string): NextResponse {
+  response.headers.set('x-request-id', traceId);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const traceId = request.headers.get('x-request-id') || generateTraceId();
 
-  // 1. Lewati pengecekan jika rute publik (misal: webhook payment gateway, openapi, docs, health)
-  if (isPublicPath(pathname)) {
-    const response = NextResponse.next();
-    response.headers.set('x-request-id', traceId);
-    return response;
+  // 0. Tangani preflight OPTIONS lintas domain (CORS)
+  if (request.method.toUpperCase() === 'OPTIONS') {
+    return applyCorsHeaders(new NextResponse(null, { status: 204 }), traceId);
+  }
+
+  // 1. Lewati pengecekan jika rute publik (misal: GET katalog produk, webhook payment gateway, openapi, docs, health)
+  if (isPublicPath(pathname, request.method)) {
+    return applyCorsHeaders(NextResponse.next(), traceId);
   }
 
   // 2. Cek panggilan antarmodul tanpa pengguna via X-Service-Key (Panduan Integrasi Hal. 3)
@@ -30,47 +47,48 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
           headers: requestHeaders,
         },
       });
-      response.headers.set('x-request-id', traceId);
-      return response;
+      return applyCorsHeaders(response, traceId);
     }
 
-    return createAuthErrorResponse(
-      'UNAUTHENTICATED',
-      'X-Service-Key tidak valid.',
-      traceId,
-      401
+    return applyCorsHeaders(
+      createAuthErrorResponse('UNAUTHENTICATED', 'X-Service-Key tidak valid.', traceId, 401),
+      traceId
     );
   }
 
   // 3. Ekstrak header Authorization: Bearer <token>
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return createAuthErrorResponse(
-      'UNAUTHENTICATED',
-      'Token otentikasi tidak ditemukan. Sertakan header Authorization: Bearer <token>.',
-      traceId,
-      401
+    return applyCorsHeaders(
+      createAuthErrorResponse(
+        'UNAUTHENTICATED',
+        'Token otentikasi tidak ditemukan. Sertakan header Authorization: Bearer <token>.',
+        traceId,
+        401
+      ),
+      traceId
     );
   }
 
   const token = authHeader.substring(7).trim();
   if (!token) {
-    return createAuthErrorResponse(
-      'UNAUTHENTICATED',
-      'Token otentikasi tidak boleh kosong.',
-      traceId,
-      401
+    return applyCorsHeaders(
+      createAuthErrorResponse('UNAUTHENTICATED', 'Token otentikasi tidak boleh kosong.', traceId, 401),
+      traceId
     );
   }
 
   // 4. Verifikasi token JWT (atau token mock M1 jika tahap pengembangan)
   const verification = await verifyJwt(token);
   if (!verification.valid || !verification.payload) {
-    return createAuthErrorResponse(
-      'UNAUTHENTICATED',
-      verification.error || 'Token otentikasi tidak valid atau telah kedaluwarsa.',
-      traceId,
-      401
+    return applyCorsHeaders(
+      createAuthErrorResponse(
+        'UNAUTHENTICATED',
+        verification.error || 'Token otentikasi tidak valid atau telah kedaluwarsa.',
+        traceId,
+        401
+      ),
+      traceId
     );
   }
 
@@ -80,11 +98,14 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // 5. Verifikasi otorisasi peran (RBAC)
   const allowedRoles = getAllowedRolesForPath(pathname);
   if (!isRoleAuthorized(role, allowedRoles)) {
-    return createAuthErrorResponse(
-      'FORBIDDEN',
-      `Peran '${role}' tidak memiliki izin untuk mengakses rute '${pathname}'.`,
-      traceId,
-      403
+    return applyCorsHeaders(
+      createAuthErrorResponse(
+        'FORBIDDEN',
+        `Peran '${role}' tidak memiliki izin untuk mengakses rute '${pathname}'.`,
+        traceId,
+        403
+      ),
+      traceId
     );
   }
 
@@ -104,8 +125,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     },
   });
 
-  response.headers.set('x-request-id', traceId);
-  return response;
+  return applyCorsHeaders(response, traceId);
 }
 
 // Kompatibilitas mundur dengan nama 'middleware'
