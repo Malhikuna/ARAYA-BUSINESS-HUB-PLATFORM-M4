@@ -32,6 +32,8 @@ export interface AuthUser {
   unitUsahaId?: number;
   name?: string;
   email?: string;
+  tipeUsaha?: 'produk' | 'jasa';
+  isVerified?: boolean;
 }
 
 export interface UniformErrorResponse {
