@@ -397,7 +397,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
-  connection_test: 'connection_test',
+  partner_profiles: 'partner_profiles',
+  service_requests: 'service_requests',
   customers: 'customers',
   document_sequences: 'document_sequences',
   invoice_items: 'invoice_items',
@@ -423,81 +424,155 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "connection_test" | "customers" | "document_sequences" | "invoice_items" | "invoices" | "order_items" | "orders" | "products_services" | "quotation_items" | "quotations" | "tax_rates"
+    modelProps: "partner_profiles" | "service_requests" | "customers" | "document_sequences" | "invoice_items" | "invoices" | "order_items" | "orders" | "products_services" | "quotation_items" | "quotations" | "tax_rates"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
-    connection_test: {
-      payload: Prisma.$connection_testPayload<ExtArgs>
-      fields: Prisma.connection_testFieldRefs
+    partner_profiles: {
+      payload: Prisma.$partner_profilesPayload<ExtArgs>
+      fields: Prisma.partner_profilesFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.connection_testFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload> | null
+          args: Prisma.partner_profilesFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.connection_testFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>
+          args: Prisma.partner_profilesFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>
         }
         findFirst: {
-          args: Prisma.connection_testFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload> | null
+          args: Prisma.partner_profilesFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.connection_testFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>
+          args: Prisma.partner_profilesFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>
         }
         findMany: {
-          args: Prisma.connection_testFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>[]
+          args: Prisma.partner_profilesFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>[]
         }
         create: {
-          args: Prisma.connection_testCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>
+          args: Prisma.partner_profilesCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>
         }
         createMany: {
-          args: Prisma.connection_testCreateManyArgs<ExtArgs>
+          args: Prisma.partner_profilesCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.connection_testCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>[]
+          args: Prisma.partner_profilesCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>[]
         }
         delete: {
-          args: Prisma.connection_testDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>
+          args: Prisma.partner_profilesDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>
         }
         update: {
-          args: Prisma.connection_testUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>
+          args: Prisma.partner_profilesUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>
         }
         deleteMany: {
-          args: Prisma.connection_testDeleteManyArgs<ExtArgs>
+          args: Prisma.partner_profilesDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.connection_testUpdateManyArgs<ExtArgs>
+          args: Prisma.partner_profilesUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.connection_testUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>[]
+          args: Prisma.partner_profilesUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>[]
         }
         upsert: {
-          args: Prisma.connection_testUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$connection_testPayload>
+          args: Prisma.partner_profilesUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$partner_profilesPayload>
         }
         aggregate: {
-          args: Prisma.Connection_testAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateConnection_test>
+          args: Prisma.Partner_profilesAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePartner_profiles>
         }
         groupBy: {
-          args: Prisma.connection_testGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Connection_testGroupByOutputType>[]
+          args: Prisma.partner_profilesGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Partner_profilesGroupByOutputType>[]
         }
         count: {
-          args: Prisma.connection_testCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Connection_testCountAggregateOutputType> | number
+          args: Prisma.partner_profilesCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Partner_profilesCountAggregateOutputType> | number
+        }
+      }
+    }
+    service_requests: {
+      payload: Prisma.$service_requestsPayload<ExtArgs>
+      fields: Prisma.service_requestsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.service_requestsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.service_requestsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>
+        }
+        findFirst: {
+          args: Prisma.service_requestsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.service_requestsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>
+        }
+        findMany: {
+          args: Prisma.service_requestsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>[]
+        }
+        create: {
+          args: Prisma.service_requestsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>
+        }
+        createMany: {
+          args: Prisma.service_requestsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.service_requestsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>[]
+        }
+        delete: {
+          args: Prisma.service_requestsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>
+        }
+        update: {
+          args: Prisma.service_requestsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>
+        }
+        deleteMany: {
+          args: Prisma.service_requestsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.service_requestsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.service_requestsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>[]
+        }
+        upsert: {
+          args: Prisma.service_requestsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$service_requestsPayload>
+        }
+        aggregate: {
+          args: Prisma.Service_requestsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateService_requests>
+        }
+        groupBy: {
+          args: Prisma.service_requestsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Service_requestsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.service_requestsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Service_requestsCountAggregateOutputType> | number
         }
       }
     }
@@ -1280,16 +1355,39 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const Connection_testScalarFieldEnum = {
-  id: 'id',
-  checked_at: 'checked_at'
+export const Partner_profilesScalarFieldEnum = {
+  partner_id: 'partner_id',
+  user_id: 'user_id',
+  tipe_usaha: 'tipe_usaha',
+  is_verified: 'is_verified',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
 } as const
 
-export type Connection_testScalarFieldEnum = (typeof Connection_testScalarFieldEnum)[keyof typeof Connection_testScalarFieldEnum]
+export type Partner_profilesScalarFieldEnum = (typeof Partner_profilesScalarFieldEnum)[keyof typeof Partner_profilesScalarFieldEnum]
+
+
+export const Service_requestsScalarFieldEnum = {
+  id: 'id',
+  partner_id: 'partner_id',
+  customer_id: 'customer_id',
+  customer_user_id: 'customer_user_id',
+  customer_name: 'customer_name',
+  customer_email: 'customer_email',
+  customer_phone: 'customer_phone',
+  title: 'title',
+  description: 'description',
+  status: 'status',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Service_requestsScalarFieldEnum = (typeof Service_requestsScalarFieldEnum)[keyof typeof Service_requestsScalarFieldEnum]
 
 
 export const CustomersScalarFieldEnum = {
   id: 'id',
+  user_id: 'user_id',
   name: 'name',
   email: 'email',
   phone: 'phone',
@@ -1428,11 +1526,14 @@ export type Quotation_itemsScalarFieldEnum = (typeof Quotation_itemsScalarFieldE
 export const QuotationsScalarFieldEnum = {
   id: 'id',
   quotation_number: 'quotation_number',
+  service_request_id: 'service_request_id',
   customer_id: 'customer_id',
   partner_id: 'partner_id',
   quotation_date: 'quotation_date',
   valid_until: 'valid_until',
   status: 'status',
+  sent_at: 'sent_at',
+  approved_at: 'approved_at',
   subtotal: 'subtotal',
   discount_amount: 'discount_amount',
   tax_amount: 'tax_amount',
@@ -1489,16 +1590,23 @@ export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 /**
- * Reference to a field of type 'Int'
+ * Reference to a field of type 'String'
  */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
     
 
 
 /**
- * Reference to a field of type 'Int[]'
+ * Reference to a field of type 'String[]'
  */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1513,20 +1621,6 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
-    
-
-
-/**
- * Reference to a field of type 'String'
- */
-export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
-    
-
-
-/**
- * Reference to a field of type 'String[]'
- */
-export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
     
 
 
@@ -1559,9 +1653,16 @@ export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMo
 
 
 /**
- * Reference to a field of type 'Boolean'
+ * Reference to a field of type 'Int'
  */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -1729,7 +1830,8 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
-  connection_test?: Prisma.connection_testOmit
+  partner_profiles?: Prisma.partner_profilesOmit
+  service_requests?: Prisma.service_requestsOmit
   customers?: Prisma.customersOmit
   document_sequences?: Prisma.document_sequencesOmit
   invoice_items?: Prisma.invoice_itemsOmit

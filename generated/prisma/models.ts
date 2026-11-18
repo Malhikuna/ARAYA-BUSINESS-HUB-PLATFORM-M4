@@ -8,7 +8,8 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/connection_test'
+export type * from './models/partner_profiles'
+export type * from './models/service_requests'
 export type * from './models/customers'
 export type * from './models/document_sequences'
 export type * from './models/invoice_items'

@@ -18,10 +18,15 @@ export { Prisma }
 export * as $Enums from './enums'
 export * from './enums';
 /**
- * Model connection_test
- * 
+ * Model partner_profiles
+ * Fallback profil Partner M3 untuk verifikasi tipe_usaha dan is_verified (PRO-305)
  */
-export type connection_test = Prisma.connection_testModel
+export type partner_profiles = Prisma.partner_profilesModel
+/**
+ * Model service_requests
+ * Permintaan Jasa dari Katalog M5 untuk dibuatkan Penawaran / Quotation (PRO-302)
+ */
+export type service_requests = Prisma.service_requestsModel
 /**
  * Model customers
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
