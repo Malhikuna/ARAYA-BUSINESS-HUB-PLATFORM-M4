@@ -38,6 +38,9 @@ const ROUTE_RBAC_RULES: RouteRule[] = [
   // Pembuatan quotation/penawaran oleh Admin dan Partner
   { pattern: /^\/api\/(?:m4\/)?v1\/quotations(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner'] },
 
+  // Permintaan jasa (M4-US3): POST oleh M5/Customer/Admin, GET khusus Partner Jasa/Admin (ditegakkan di handler)
+  { pattern: /^\/api\/(?:m4\/)?v1\/service-requests(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner', 'Customer', 'customer'] },
+
   // Konfigurasi sistem dan tarif pajak khusus Admin
   { pattern: /^\/api\/(?:m4\/)?v1\/admin(?:\/.*)?$/, allowedRoles: ['Admin', 'admin'] },
   { pattern: /^\/api\/(?:m4\/)?v1\/tax-rates(?:\/.*)?$/, allowedRoles: ['Admin', 'admin'] },
