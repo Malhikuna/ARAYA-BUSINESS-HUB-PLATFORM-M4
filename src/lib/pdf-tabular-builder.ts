@@ -196,7 +196,7 @@ export function buildTabularReportPdfBytes(config: TabularReportConfig): Uint8Ar
 
       if (cursorY + rowHeight > 780) {
         startNewPage();
-        cursorY = 88;
+        cursorY = 96;
         renderTableHeader(currentCommands, cursorY);
         cursorY += 22;
       }
