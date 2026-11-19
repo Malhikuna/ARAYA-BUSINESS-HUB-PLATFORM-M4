@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Users,
-  ClipboardList,
   FileText,
   Receipt,
   Truck,
@@ -36,12 +35,7 @@ const menuItems: MenuItem[] = [
     icon: Users,
     matchPrefix: "/pelanggan",
   },
-  {
-    name: "Permintaan",
-    href: "/permintaan",
-    icon: ClipboardList,
-    matchPrefix: "/permintaan",
-  },
+  // Catatan: Rute /permintaan ditunda sementara hingga halaman src/app/permintaan siap
   {
     name: "Penawaran",
     href: "/penawaran",
@@ -65,6 +59,7 @@ const menuItems: MenuItem[] = [
 export interface SidebarProps {
   isOpen?: boolean;
   isDesktopOpen?: boolean;
+  manualDesktopOpen?: boolean | null;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -72,13 +67,13 @@ export interface SidebarProps {
 export function Sidebar({
   isOpen = true,
   isDesktopOpen,
+  manualDesktopOpen,
   isMobileOpen,
   onCloseMobile,
 }: SidebarProps) {
   const pathname = usePathname();
   const { isDev, activeRole, profile } = useDevRole();
 
-  const desktopOpen = isDesktopOpen !== undefined ? isDesktopOpen : isOpen;
   const mobileOpen = isMobileOpen !== undefined ? isMobileOpen : false;
 
   const prevPathname = useRef(pathname);
@@ -89,23 +84,27 @@ export function Sidebar({
     }
   }, [pathname, onCloseMobile]);
 
+  // Konsistensi filtering menu:
+  // Baik dalam mode simulasi maupun non-dev (activeRole = "ADMIN"),
+  // hak akses halaman konsisten dengan peran pengguna.
   const filteredMenuItems = menuItems.filter((item) => {
-    if (isDev) {
-      if (activeRole === "ADMIN") {
-        // Admin hanya melihat halaman Katalog dan Pelanggan
-        return item.href === "/produk" || item.href === "/pelanggan";
-      }
-      if (activeRole === "PARTNER_PRODUCT") {
-        // Role Fokus Produk: Produk, Pelanggan, Invoice, dan Order (TIDAK ADA Penawaran & Permintaan)
-        return item.href !== "/penawaran" && item.href !== "/permintaan";
-      }
-      if (activeRole === "PARTNER_SERVICE") {
-        // Role Jasa: Jasa, Pelanggan, Permintaan, Penawaran, Invoice, dan Order
-        return true;
-      }
+    // Sembunyikan rute /permintaan untuk mencegah risiko error 404
+    if (item.href === "/permintaan") return false;
+
+    if (activeRole === "ADMIN") {
+      // Super Admin hanya mengelola Master Katalog dan Pelanggan
+      return item.href === "/produk" || item.href === "/pelanggan";
     }
-    // Default fallback bila mode simulasi non-aktif
-    return item.href !== "/permintaan";
+    if (activeRole === "PARTNER_PRODUCT") {
+      // Mitra Produk: Produk, Pelanggan, Invoice, dan Order (tanpa Penawaran & Permintaan)
+      return item.href !== "/penawaran";
+    }
+    if (activeRole === "PARTNER_SERVICE") {
+      // Mitra Jasa: Jasa, Pelanggan, Penawaran, Invoice, dan Order
+      return true;
+    }
+    // Fallback konsisten untuk mode non-dev
+    return item.href === "/produk" || item.href === "/pelanggan";
   });
 
   const resolveMenuIcon = (item: MenuItem) => {
@@ -160,17 +159,6 @@ export function Sidebar({
                 }`}
               />
               <span>{displayName}</span>
-              {item.href === "/permintaan" && (
-                <span
-                  className={`ml-auto px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                    isActive
-                      ? "bg-[#19376d] text-white"
-                      : "bg-[#d5f0f6] text-[#0f5368]"
-                  }`}
-                >
-                  3
-                </span>
-              )}
             </Link>
           );
         })}
@@ -178,25 +166,38 @@ export function Sidebar({
     </>
   );
 
+  // Evaluasi kelas styling desktop aside secara responsif via CSS
+  // untuk menghilangkan layout flash pada tablet (768px - 1023px)
+  const isExplicitDesktopOpen =
+    manualDesktopOpen !== undefined
+      ? manualDesktopOpen
+      : isDesktopOpen !== undefined
+      ? isDesktopOpen
+      : null;
+
+  const desktopAsideClass =
+    isExplicitDesktopOpen === true
+      ? "w-60 border-r border-slate-200/90"
+      : isExplicitDesktopOpen === false
+      ? "w-0 border-r-0 overflow-hidden"
+      : "w-0 border-r-0 overflow-hidden lg:w-60 lg:border-r lg:border-slate-200/90 lg:overflow-y-auto";
+
+  const desktopInnerClass =
+    isExplicitDesktopOpen === true
+      ? "translate-x-0 opacity-100"
+      : isExplicitDesktopOpen === false
+      ? "-translate-x-4 opacity-0 pointer-events-none"
+      : "-translate-x-4 opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto";
+
   return (
     <>
       {/* Desktop Collapsible Sticky Sidebar */}
       <aside
-        aria-hidden={!desktopOpen}
+        aria-hidden={isExplicitDesktopOpen === false}
         style={{ height: "calc(100vh - 4rem)" }}
-        className={`bg-white shrink-0 hidden md:block print:hidden sticky top-16 self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${
-          desktopOpen
-            ? "w-60 border-r border-slate-200/90"
-            : "w-0 border-r-0 overflow-hidden"
-        }`}
+        className={`bg-white shrink-0 hidden md:block print:hidden sticky top-16 self-start overflow-y-auto custom-scrollbar transition-[width,border-color] duration-300 ease-in-out ${desktopAsideClass}`}
       >
-        <div
-          className={`w-full p-4 transition-[transform,opacity] duration-300 ease-in-out ${
-            desktopOpen
-              ? "translate-x-0 opacity-100"
-              : "-translate-x-4 opacity-0 pointer-events-none"
-          }`}
-        >
+        <div className={`w-full p-4 transition-[transform,opacity] duration-300 ease-in-out ${desktopInnerClass}`}>
           {renderMenuContent(false)}
         </div>
       </aside>

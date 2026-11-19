@@ -37,7 +37,7 @@ export const DEV_ROLE_PROFILES: Record<DevUserRole, DevRoleProfile> = {
     roleLabel: "Partner Jasa",
     catalogMenuName: "Jasa",
     businessMode: "Jasa",
-    description: "Kelola Jasa, Pelanggan, Permintaan, Penawaran, Invoice & Order",
+    description: "Kelola Jasa, Pelanggan, Penawaran, Invoice & Order",
   },
 };
 
@@ -97,132 +97,11 @@ export interface CustomerPartnerInfo {
   partnerRole: "PARTNER_PRODUCT" | "PARTNER_SERVICE";
   partnerName: string;
   partnerType: "Produk" | "Jasa";
-  source?: "Input partner" | "Akun customer";
-}
-
-export interface DevPartnerOption {
-  id: string;
-  name: string;
-  type: "Produk" | "Jasa";
-  city: string;
-}
-
-export const DEV_PARTNER_OPTIONS: DevPartnerOption[] = [
-  { id: "PRT-PRD-01", name: "Mitra Retail Nusantara", type: "Produk", city: "Bandung" },
-  { id: "PRT-PRD-02", name: "CV Sumber Makmur Distribusi", type: "Produk", city: "Jakarta" },
-  { id: "PRT-PRD-03", name: "PT Sentosa Elektronik Indonesia", type: "Produk", city: "Surabaya" },
-  { id: "PRT-PRD-04", name: "UD Berkah Jaya Abadi", type: "Produk", city: "Semarang" },
-  { id: "PRT-PRD-05", name: "PT Global Niaga Mandiri", type: "Produk", city: "Bandung" },
-  { id: "PRT-SRV-01", name: "Studio Kreasi Mandiri", type: "Jasa", city: "Bandung" },
-  { id: "PRT-SRV-02", name: "PT Solusi Digital Nusantara", type: "Jasa", city: "Jakarta" },
-  { id: "PRT-SRV-03", name: "Biro Konsultan Prima Strategi", type: "Jasa", city: "Bandung" },
-  { id: "PRT-SRV-04", name: "CV Teknika Layanan Terpadu", type: "Jasa", city: "Yogyakarta" },
-  { id: "PRT-SRV-05", name: "Agensi Visual Kreatif Karsa", type: "Jasa", city: "Surabaya" },
-];
-
-const CUSTOMER_PARTNER_STORAGE_KEY = "araya_dev_customer_partners";
-const PRODUCT_PARTNER_STORAGE_KEY = "araya_dev_product_partners";
-
-export function saveCustomerPartnerAssignment(
-  customerName: string,
-  partnerName: string,
-  partnerType: "Produk" | "Jasa",
-  source: "Input partner" | "Akun customer" = "Input partner"
-): void {
-  if (typeof window === "undefined" || !customerName.trim() || !partnerName.trim()) return;
-  try {
-    const raw = localStorage.getItem(CUSTOMER_PARTNER_STORAGE_KEY);
-    const map: Record<string, CustomerPartnerInfo> = raw ? JSON.parse(raw) : {};
-    map[customerName.trim().toLowerCase()] = {
-      partnerRole: partnerType === "Jasa" ? "PARTNER_SERVICE" : "PARTNER_PRODUCT",
-      partnerName: partnerName.trim(),
-      partnerType,
-      source,
-    };
-    localStorage.setItem(CUSTOMER_PARTNER_STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    /* ignore storage error */
-  }
 }
 
 export function getCustomerPartnerInfo(customerName: string): CustomerPartnerInfo {
-  const key = (customerName || "").trim().toLowerCase();
-  if (typeof window !== "undefined" && key) {
-    try {
-      const raw = localStorage.getItem(CUSTOMER_PARTNER_STORAGE_KEY);
-      if (raw) {
-        const map: Record<string, CustomerPartnerInfo> = JSON.parse(raw);
-        if (map[key]) {
-          return {
-            ...map[key],
-            source: map[key].source || "Input partner",
-          };
-        }
-      }
-    } catch {
-      /* ignore storage error */
-    }
-  }
-  const isAccountCustomer = key.includes("maju bersama") || key.includes("budi santoso") || key.includes("dudi santoso");
-  if (
-    isAccountCustomer ||
-    key.includes("murdo") ||
-    key.includes("karya mandiri") ||
-    key.includes("mega logistik") ||
-    key.includes("sukses berkah")
-  ) {
-    return {
-      partnerRole: "PARTNER_SERVICE",
-      partnerName: "Studio Kreasi Mandiri",
-      partnerType: "Jasa",
-      source: isAccountCustomer ? "Akun customer" : "Input partner",
-    };
-  }
-  return {
-    partnerRole: "PARTNER_PRODUCT",
-    partnerName: "Mitra Retail Nusantara",
-    partnerType: "Produk",
-    source: "Input partner",
-  };
-}
-
-export function saveProductPartnerAssignment(
-  productName: string,
-  partnerName: string,
-  partnerType: "Produk" | "Jasa"
-): void {
-  if (typeof window === "undefined" || !productName.trim() || !partnerName.trim()) return;
-  try {
-    const raw = localStorage.getItem(PRODUCT_PARTNER_STORAGE_KEY);
-    const map: Record<string, CustomerPartnerInfo> = raw ? JSON.parse(raw) : {};
-    map[productName.trim().toLowerCase()] = {
-      partnerRole: partnerType === "Jasa" ? "PARTNER_SERVICE" : "PARTNER_PRODUCT",
-      partnerName: partnerName.trim(),
-      partnerType,
-    };
-    localStorage.setItem(PRODUCT_PARTNER_STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    /* ignore storage error */
-  }
-}
-
-export function getProductPartnerInfo(
-  productName: string,
-  category: "Produk" | "Jasa" = "Produk"
-): CustomerPartnerInfo {
-  const key = (productName || "").trim().toLowerCase();
-  if (typeof window !== "undefined" && key) {
-    try {
-      const raw = localStorage.getItem(PRODUCT_PARTNER_STORAGE_KEY);
-      if (raw) {
-        const map: Record<string, CustomerPartnerInfo> = JSON.parse(raw);
-        if (map[key]) return map[key];
-      }
-    } catch {
-      /* ignore storage error */
-    }
-  }
-  if (category === "Jasa") {
+  const lower = (customerName || "").toLowerCase();
+  if (lower.includes("murdo") || lower.includes("karya mandiri")) {
     return {
       partnerRole: "PARTNER_SERVICE",
       partnerName: "Studio Kreasi Mandiri",
@@ -235,4 +114,3 @@ export function getProductPartnerInfo(
     partnerType: "Produk",
   };
 }
-

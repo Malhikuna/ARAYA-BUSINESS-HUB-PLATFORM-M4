@@ -21,7 +21,7 @@ const QUICK_MENU_LINKS: QuickMenuLink[] = [
   { id: "nav-pelanggan-tambah", label: "Tambah pelanggan baru", subtitle: "Formulir | Pendaftaran pelanggan baru", href: "/pelanggan/tambah", category: "Pelanggan", keywords: "tambah buat registrasi pelanggan baru" },
   { id: "nav-produk", label: "Katalog produk & jasa", subtitle: "Katalog | Item fisik & layanan jasa", href: "/produk", category: "Katalog", keywords: "katalog produk jasa daftar item tarif stok" },
   { id: "nav-produk-tambah", label: "Tambah item katalog baru", subtitle: "Formulir | Penambahan katalog baru", href: "/produk/tambah", category: "Katalog", keywords: "tambah buat produk jasa katalog baru" },
-  { id: "nav-permintaan", label: "Permintaan penawaran (RFQ)", subtitle: "Transaksi | Permintaan layanan jasa", href: "/permintaan", category: "Transaksi", keywords: "permintaan rfq request order penawaran jasa" },
+  // Catatan: Pintasan /permintaan ditunda sementara hingga halaman src/app/permintaan siap
   { id: "nav-penawaran", label: "Penawaran penjualan", subtitle: "Transaksi | Dokumen penawaran harga", href: "/penawaran", category: "Transaksi", keywords: "penawaran quotation surat penawaran harga" },
   { id: "nav-invoice", label: "Invoice & penagihan", subtitle: "Transaksi | Faktur & status pembayaran", href: "/invoice", category: "Transaksi", keywords: "invoice tagihan faktur bayar piutang" },
   { id: "nav-order", label: "Order penjualan", subtitle: "Transaksi | Pesanan & pengiriman barang", href: "/order", category: "Transaksi", keywords: "order pesanan surat jalan sales order" },
@@ -49,13 +49,14 @@ export function GlobalSearchBar() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const matchedMenus = useMemo(() => {
-    const allowedLinks = isDev
-      ? activeRole === "ADMIN"
-        ? QUICK_MENU_LINKS.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
+    const baseLinks = QUICK_MENU_LINKS.filter((l) => !l.href.startsWith("/permintaan"));
+    // Konsisten pada mode dev maupun non-dev: peran activeRole (ADMIN saat !isDev) menentukan tautan aktif
+    const allowedLinks =
+      activeRole === "ADMIN"
+        ? baseLinks.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
         : activeRole === "PARTNER_PRODUCT"
-        ? QUICK_MENU_LINKS.filter((l) => !l.href.startsWith("/penawaran") && !l.href.startsWith("/permintaan"))
-        : QUICK_MENU_LINKS
-      : QUICK_MENU_LINKS.filter((l) => !l.href.startsWith("/permintaan"));
+        ? baseLinks.filter((l) => !l.href.startsWith("/penawaran"))
+        : baseLinks;
 
     if (!normalizedQuery) return allowedLinks.slice(0, 5);
 
@@ -71,16 +72,16 @@ export function GlobalSearchBar() {
 
     let savedList: Customer[] = [];
     try { savedList = JSON.parse(rawSaved); } catch { savedList = []; }
-    const allCustomers = [
+    const allCustomers: Customer[] = [
       ...savedList,
-      ...initialCustomers.filter((c) => !savedList.some((s) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase())),
+      ...initialCustomers.filter((c: Customer) => !savedList.some((s: Customer) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase())),
     ];
     const roleFiltered = activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE"
-      ? allCustomers.filter((c) => getCustomerPartnerInfo(c.name).partnerRole === activeRole)
+      ? allCustomers.filter((c: Customer) => getCustomerPartnerInfo(c.name).partnerRole === activeRole)
       : allCustomers;
 
     const customerMatches: QuickMenuLink[] = roleFiltered
-      .filter((c) => {
+      .filter((c: Customer) => {
         const pInfo = getCustomerPartnerInfo(c.name);
         return (
           c.name.toLowerCase().includes(normalizedQuery) ||
@@ -89,7 +90,7 @@ export function GlobalSearchBar() {
           (activeRole === "ADMIN" && pInfo.partnerName.toLowerCase().includes(normalizedQuery))
         );
       })
-      .map((c) => {
+      .map((c: Customer) => {
         const pInfo = getCustomerPartnerInfo(c.name);
         return {
           id: `cust-${c.id}`,
