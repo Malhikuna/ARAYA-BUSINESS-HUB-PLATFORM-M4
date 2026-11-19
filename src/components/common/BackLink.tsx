@@ -5,12 +5,14 @@ import { ArrowLeft } from "lucide-react";
 export interface BackLinkProps {
   href: string;
   label: string;
+  onClick?: () => void;
 }
 
-export function BackLink({ href, label }: BackLinkProps) {
+export function BackLink({ href, label, onClick }: BackLinkProps) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-[#19376d] mb-5 group transition-colors"
     >
       <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-[#19376d] group-hover:-translate-x-0.5 transition-all" />
