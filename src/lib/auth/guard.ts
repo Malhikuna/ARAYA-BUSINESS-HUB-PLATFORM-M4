@@ -32,15 +32,28 @@ export function getAuthUser(request: Request): AuthUser | null {
   }
 
   const partnerId = request.headers.get('x-partner-id') || undefined;
-  const email = request.headers.get('x-user-email') || undefined;
+  const rawUnitUsahaId = request.headers.get('x-unit-usaha-id');
+  const parsedUnitUsahaId = rawUnitUsahaId ? Number(rawUnitUsahaId) : NaN;
+  const unitUsahaId = Number.isFinite(parsedUnitUsahaId) ? parsedUnitUsahaId : undefined;
+  const division = request.headers.get('x-user-division') || null;
+  const isSuperAdmin = request.headers.get('x-user-super-admin') === 'true';
+  const rawPermissions = request.headers.get('x-user-permissions');
+  const permissions = rawPermissions
+    ? rawPermissions.split(',').map((p) => p.trim()).filter(Boolean)
+    : undefined;
   const name = request.headers.get('x-user-name') || undefined;
+  const email = request.headers.get('x-user-email') || undefined;
 
   return {
     userId,
     role,
     partnerId,
-    email,
+    unitUsahaId,
+    division,
+    isSuperAdmin,
+    permissions,
     name,
+    email,
   };
 }
 
