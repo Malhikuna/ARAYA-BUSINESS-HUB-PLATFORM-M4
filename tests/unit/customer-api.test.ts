@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateCustomerInput, CustomerValidationError } from '../../src/lib/services/customer.service';
+import { detectCityFromAddress } from '../../src/lib/data/mock-customers';
 import { GET as getCustomersHandler, POST as createCustomerHandler } from '../../src/app/api/m4/v1/customers/route';
 import { GET as getCustomerByIdHandler } from '../../src/app/api/m4/v1/customers/[id]/route';
 
@@ -18,6 +19,40 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
         (err: unknown) => {
           assert.ok(err instanceof CustomerValidationError);
           assert.equal(err.fields.name, 'Nama pelanggan wajib diisi.');
+          return true;
+        },
+      );
+    });
+
+    it('harus menolak jika nama pelanggan hanya berupa angka', () => {
+      assert.throws(
+        () => {
+          validateCustomerInput({
+            name: '787878787878',
+            email: 'test@example.com',
+            phone: '08123456789',
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof CustomerValidationError);
+          assert.equal(err.fields.name, 'Nama pelanggan tidak boleh hanya berupa angka.');
+          return true;
+        },
+      );
+    });
+
+    it('harus menolak jika nama pelanggan kurang dari 5 karakter', () => {
+      assert.throws(
+        () => {
+          validateCustomerInput({
+            name: 'I7',
+            email: 'test@example.com',
+            phone: '08123456789',
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof CustomerValidationError);
+          assert.equal(err.fields.name, 'Nama pelanggan minimal 5 karakter.');
           return true;
         },
       );
@@ -52,6 +87,23 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
         (err: unknown) => {
           assert.ok(err instanceof CustomerValidationError);
           assert.ok(err.fields.phone.includes('minimal 8 digit'));
+          return true;
+        },
+      );
+    });
+
+    it('harus menolak jika nomor telepon mengandung spasi', () => {
+      assert.throws(
+        () => {
+          validateCustomerInput({
+            name: 'PT Contoh',
+            email: 'valid@example.com',
+            phone: '08 11 98 76 785',
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof CustomerValidationError);
+          assert.equal(err.fields.phone, 'Nomor telepon tidak boleh mengandung spasi.');
           return true;
         },
       );
@@ -153,6 +205,29 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
       const json = await res.json();
       assert.equal(json.success, false);
       assert.equal(json.error.code, 'CUSTOMER_NOT_FOUND');
+    });
+  });
+
+  describe('3. Deteksi Kota Pelanggan (detectCityFromAddress)', () => {
+    it('harus mendeteksi kota jika alamat hanya berupa nama kota seperti "Jambi"', () => {
+      assert.equal(detectCityFromAddress('Jambi'), 'Jambi');
+      assert.equal(detectCityFromAddress('jambi'), 'Jambi');
+      assert.equal(detectCityFromAddress('Kota Jambi'), 'Jambi');
+    });
+
+    it('harus mendeteksi kota dari alamat lengkap yang memuat nama kota di akhir atau di dalam alamat', () => {
+      assert.equal(detectCityFromAddress('Jl. Kolonel Abunjani No. 5, Jambi'), 'Jambi');
+      assert.equal(detectCityFromAddress('Jl. Asia Afrika No. 45, Bandung'), 'Bandung');
+      assert.equal(detectCityFromAddress('Jl. Sudirman No. 88, Jakarta Selatan'), 'Jakarta Selatan');
+    });
+
+    it('harus mendeteksi kota non-default jika dimasukkan alamat tunggal tanpa kata kunci jalan', () => {
+      assert.equal(detectCityFromAddress('Ciamis'), 'Ciamis');
+    });
+
+    it('harus mengembalikan fallback jika alamat kosong', () => {
+      assert.equal(detectCityFromAddress('', 'Bandung'), 'Bandung');
+      assert.equal(detectCityFromAddress('   ', 'Surabaya'), 'Surabaya');
     });
   });
 });
