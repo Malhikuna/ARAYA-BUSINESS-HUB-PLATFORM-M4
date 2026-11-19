@@ -1,18 +1,45 @@
-import type { Role } from './types';
+import type { JwtPayload, Role } from './types';
 
 interface RouteRule {
   pattern: RegExp;
   allowedRoles: Array<Role | string>;
 }
 
+interface PermissionRule {
+  pattern: RegExp;
+  methods?: string[];
+  anyOf: string[];
+}
+
 // Pola rute publik yang tidak memerlukan otentikasi Bearer JWT
 const PUBLIC_ROUTE_PATTERNS: RegExp[] = [
+  /^\/api\/(?:m4\/)?v1\/auth\/login$/,
   /^\/api\/(?:m4\/)?v1\/webhooks\/.*/, // Webhook Midtrans diverifikasi via signature HMAC/SHA-512
   /^\/api\/(?:m4\/)?v1\/health$/,
   /^\/api\/(?:m4\/)?v1\/openapi(?:\.json)?$/,
   /^\/api\/(?:m4\/)?v1\/docs$/,
   /^\/docs$/,
   /^\/api-docs$/,
+];
+
+// Pemetaan 15 permission m4.* resmi dari JWT Modul 1 v1.1.0 ke rute API M4
+const ROUTE_PERMISSION_RULES: PermissionRule[] = [
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations\/[^/]+\/status$/, methods: ['PATCH', 'POST'], anyOf: ['m4.quotations.approve', 'm4.quotations.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations\/[^/]+\/convert$/, methods: ['POST'], anyOf: ['m4.invoices.manage', 'm4.quotations.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations(?:\/.*)?$/, methods: ['GET'], anyOf: ['m4.quotations.read', 'm4.quotations.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations(?:\/.*)?$/, methods: ['POST', 'PUT', 'PATCH', 'DELETE'], anyOf: ['m4.quotations.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/invoices\/[^/]+\/payments(?:\/.*)?$/, methods: ['POST', 'PATCH'], anyOf: ['m4.payments.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/invoices(?:\/.*)?$/, methods: ['GET'], anyOf: ['m4.invoices.read', 'm4.invoices.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/invoices(?:\/.*)?$/, methods: ['POST', 'PUT', 'PATCH', 'DELETE'], anyOf: ['m4.invoices.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/orders(?:\/.*)?$/, methods: ['GET'], anyOf: ['m4.orders.read', 'm4.orders.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/orders(?:\/.*)?$/, methods: ['POST'], anyOf: ['m4.orders.create', 'm4.orders.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/orders(?:\/.*)?$/, methods: ['PUT', 'PATCH', 'DELETE'], anyOf: ['m4.orders.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/products(?:\/.*)?$/, methods: ['GET'], anyOf: ['m4.products.read', 'm4.products.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/products(?:\/.*)?$/, methods: ['POST', 'PUT', 'PATCH', 'DELETE'], anyOf: ['m4.products.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/customers(?:\/.*)?$/, methods: ['GET'], anyOf: ['m4.customers.read', 'm4.customers.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/customers(?:\/.*)?$/, methods: ['POST', 'PUT', 'PATCH', 'DELETE'], anyOf: ['m4.customers.manage'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/dashboard-summary(?:\/.*)?$/, methods: ['GET'], anyOf: ['m4.reports.read'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/tax-rates(?:\/.*)?$/, methods: ['POST', 'PUT', 'PATCH', 'DELETE'], anyOf: ['m4.taxes.manage'] },
 ];
 
 // Matriks otorisasi berbasis peran (RBAC) per rute API (mendukung prefix /api/m4/v1 dan /api/v1)
@@ -101,4 +128,35 @@ export function isRoleAuthorized(userRole: Role | string, allowedRoles: Array<Ro
   }
   const normalizedUserRole = normalizeRoleCode(String(userRole));
   return allowedRoles.some((r) => normalizeRoleCode(String(r)) === normalizedUserRole);
+}
+
+/**
+ * Dapatkan daftar permission m4.* (salah satu wajib dimiliki) untuk path & method tertentu.
+ */
+export function getRequiredPermissionsForPath(pathname: string, method: string): string[] | null {
+  const upperMethod = method.toUpperCase();
+  for (const rule of ROUTE_PERMISSION_RULES) {
+    if (rule.pattern.test(pathname) && (!rule.methods || rule.methods.includes(upperMethod))) {
+      return rule.anyOf;
+    }
+  }
+  return null;
+}
+
+/**
+ * Validasi permission m4.* dari JWT Modul 1 (bypass untuk super admin; fallback ke role jika token tanpa klaim permissions).
+ */
+export function isPermissionAuthorized(
+  payload: Pick<JwtPayload, 'is_super_admin' | 'permissions'>,
+  pathname: string,
+  method: string
+): boolean {
+  if (payload.is_super_admin === true) return true;
+  if (!Array.isArray(payload.permissions)) return true;
+
+  const required = getRequiredPermissionsForPath(pathname, method);
+  if (!required || required.length === 0) return true;
+
+  const owned = new Set(payload.permissions.map((p) => String(p).trim().toLowerCase()));
+  return required.some((perm) => owned.has(perm.toLowerCase()));
 }

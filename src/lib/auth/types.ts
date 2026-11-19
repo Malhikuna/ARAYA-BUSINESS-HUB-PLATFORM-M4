@@ -19,6 +19,7 @@ export interface JwtPayload {
   unit_usaha_id?: number | string | null;
   partner_id?: number | string | null;
   is_super_admin?: boolean;
+  permissions?: string[];
   email?: string;
   iat?: number;
   exp?: number;
@@ -30,6 +31,9 @@ export interface AuthUser {
   role: Role | string;
   partnerId?: string;
   unitUsahaId?: number;
+  division?: string | null;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
   name?: string;
   email?: string;
 }

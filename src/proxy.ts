@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyJwt } from './lib/auth/jwt';
-import { isPublicPath, getAllowedRolesForPath, isRoleAuthorized } from './lib/auth/rbac';
+import {
+  isPublicPath,
+  getAllowedRolesForPath,
+  isRoleAuthorized,
+  isPermissionAuthorized,
+} from './lib/auth/rbac';
 import { createAuthErrorResponse, generateTraceId } from './lib/auth/response';
 
 const SERVICE_KEY_EXPECTED = process.env.SERVICE_KEY || 'araya-m4-service-key-2026';
@@ -92,10 +97,21 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { sub, user_id, role, partner_id, unit_usaha_id, email, name } = verification.payload;
+  const {
+    sub,
+    user_id,
+    role,
+    partner_id,
+    unit_usaha_id,
+    division,
+    is_super_admin,
+    permissions,
+    email,
+    name,
+  } = verification.payload;
   const effectiveUserId = String(user_id ?? sub ?? '');
 
-  // 5. Verifikasi otorisasi peran (RBAC)
+  // 5. Verifikasi otorisasi peran (RBAC) & permission m4.* dari JWT Modul 1
   const allowedRoles = getAllowedRolesForPath(pathname);
   if (!isRoleAuthorized(role, allowedRoles)) {
     return applyCorsHeaders(
@@ -109,14 +125,31 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  if (!isPermissionAuthorized(verification.payload, pathname, request.method)) {
+    return applyCorsHeaders(
+      createAuthErrorResponse(
+        'FORBIDDEN',
+        `Hak akses permission tidak mencukupi untuk mengakses '${request.method.toUpperCase()} ${pathname}'.`,
+        traceId,
+        403
+      ),
+      traceId
+    );
+  }
+
   // 6. Teruskan konteks identitas pengguna melalui header internal
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', effectiveUserId);
   requestHeaders.set('x-user-role', String(role));
   requestHeaders.set('x-request-id', traceId);
   if (name) requestHeaders.set('x-user-name', String(name));
-  if (partner_id) requestHeaders.set('x-partner-id', String(partner_id));
-  if (unit_usaha_id) requestHeaders.set('x-unit-usaha-id', String(unit_usaha_id));
+  if (partner_id != null) requestHeaders.set('x-partner-id', String(partner_id));
+  if (unit_usaha_id != null) requestHeaders.set('x-unit-usaha-id', String(unit_usaha_id));
+  if (division) requestHeaders.set('x-user-division', String(division));
+  if (is_super_admin) requestHeaders.set('x-user-super-admin', 'true');
+  if (Array.isArray(permissions) && permissions.length > 0) {
+    requestHeaders.set('x-user-permissions', permissions.join(','));
+  }
   if (email) requestHeaders.set('x-user-email', email);
 
   const response = NextResponse.next({

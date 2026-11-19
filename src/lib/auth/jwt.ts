@@ -1,60 +1,7 @@
 import type { JwtPayload, Role } from './types';
+import { fetchMeFromM1 } from './m1-client';
 
 const DEFAULT_DEV_SECRET = process.env.JWT_SECRET || 'araya-m1-jwt-dev-secret-key-2026';
-const DEFAULT_M1_API_URL = process.env.M1_API_URL || 'https://ppl-m1-be.vercel.app/api/m1/v1';
-
-interface M1MeResponse {
-  success?: boolean;
-  data?: {
-    user_id?: number | string;
-    name?: string;
-    role?: string;
-    division?: string | null;
-    partner_id?: number | string | null;
-    unit_usaha_id?: number | string | null;
-    is_super_admin?: boolean;
-    email?: string;
-  };
-}
-
-async function verifyTokenViaM1(token: string): Promise<JwtPayload | null> {
-  try {
-    const res = await fetch(`${DEFAULT_M1_API_URL}/me`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(3500),
-    });
-
-    if (!res.ok) {
-      return null;
-    }
-
-    const body = (await res.json()) as M1MeResponse;
-    if (!body?.success || !body.data || body.data.user_id === undefined) {
-      return null;
-    }
-
-    const { user_id, name, role, division, partner_id, unit_usaha_id, is_super_admin, email } = body.data;
-    const effectiveRole = role || (is_super_admin ? 'administrator' : 'partner');
-
-    return {
-      sub: String(user_id),
-      user_id,
-      name,
-      role: effectiveRole,
-      division: division ?? undefined,
-      partner_id: partner_id ?? undefined,
-      unit_usaha_id: unit_usaha_id ?? undefined,
-      is_super_admin,
-      email,
-    };
-  } catch {
-    return null;
-  }
-}
 
 // Preset mock tokens untuk kebutuhan testing dan integrasi awal sebelum M1 siap
 const MOCK_TOKENS: Record<string, JwtPayload> = {
@@ -225,9 +172,17 @@ export async function verifyJwt(
     if (!isSigValid) {
       // Fallback: jika signature 32-byte HS256 diterbitkan oleh server M1 dengan secret berbeda, verifikasi via GET /api/m1/v1/me
       if (secret === DEFAULT_DEV_SECRET && sigBytes.byteLength === 32) {
-        const m1Profile = await verifyTokenViaM1(token);
+        const m1Profile = await fetchMeFromM1(token);
         if (m1Profile) {
-          return { valid: true, payload: { ...payload, ...m1Profile } };
+          // Pertahankan array permissions dari payload JWT karena GET /me M1 tidak mengembalikannya
+          return {
+            valid: true,
+            payload: {
+              ...payload,
+              ...m1Profile,
+              permissions: Array.isArray(payload.permissions) ? payload.permissions : undefined,
+            },
+          };
         }
       }
       return { valid: false, error: 'Tanda tangan kriptografi token tidak valid' };
