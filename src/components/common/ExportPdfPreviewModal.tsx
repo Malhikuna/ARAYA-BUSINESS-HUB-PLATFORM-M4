@@ -117,32 +117,40 @@ export function ExportPdfPreviewModal({
           <div className="bg-white max-w-205 mx-auto rounded-sm shadow-md border border-slate-300 p-5 sm:px-7 sm:py-6 flex flex-col justify-between min-h-145 space-y-5 text-slate-800">
             <div className="space-y-5">
               {/* Kop Dokumen Araya Business Hub */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b-2 border-[#19376d]">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-md bg-[#19376d] text-white font-heading font-bold text-base flex items-center justify-center shrink-0">
-                    A
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-heading font-bold text-slate-900 tracking-wide whitespace-nowrap">
-                      ARAYA BUSINESS HUB
+              <div className="pb-3.5 border-b-2 border-[#19376d] space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-md bg-[#19376d] text-white font-heading font-bold text-base flex items-center justify-center shrink-0">
+                      A
                     </div>
-                    <div className="text-[10.5px] text-slate-500 whitespace-nowrap">{documentSubtitle}</div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-heading font-bold text-slate-900 tracking-wide">
+                        ARAYA BUSINESS HUB
+                      </div>
+                      <div className="text-[11px] text-slate-500 leading-snug">
+                        {documentSubtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-600 sm:text-right shrink-0">
+                    <span className="font-semibold text-slate-700">Dicetak:</span> {printedAtLabel}
                   </div>
                 </div>
 
-                <div className="text-[10.5px] text-slate-600 sm:text-right space-y-0.5 shrink-0">
-                  <div className="whitespace-nowrap">
-                    <span className="font-semibold text-slate-700">Dicetak:</span> {printedAtLabel}
-                  </div>
-                  <div className="whitespace-nowrap">
+                {filters.length > 0 && (
+                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-y-1 text-[11px] text-slate-600">
                     {filters.map((filter, idx) => (
                       <React.Fragment key={filter.label}>
-                        {idx > 0 && <span aria-hidden="true" className="mx-1.5 text-slate-400">|</span>}
-                        <span className="font-semibold text-slate-700">{filter.label}:</span> <span>{filter.value}</span>
+                        {idx > 0 && <span aria-hidden="true" className="mx-2 text-slate-300">|</span>}
+                        <span>
+                          <span className="font-semibold text-slate-700">{filter.label}:</span>{" "}
+                          <span>{filter.value}</span>
+                        </span>
                       </React.Fragment>
                     ))}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Kotak Ringkasan Metrik (Hanya di Halaman 1 seperti dokumen PDF asli) */}
