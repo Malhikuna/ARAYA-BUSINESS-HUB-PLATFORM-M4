@@ -55,9 +55,9 @@ describe('M3 Partner Adapter, UUID Mapper & Auto-Upsert Suite (PRO-306)', () => 
       }
     });
 
-    it('mendukung direct lookup GET /partners/{id} dengan schema OpenAPI M3 (kategori_usaha & dual ID)', async () => {
+    it('mendukung direct lookup GET /partners/{id}/ dengan schema OpenAPI M3 (kategori_usaha & dual ID)', async () => {
       const mockFetch: typeof fetch = async (input) => {
-        assert.equal(String(input), 'https://m3.example.test/api/m3/v1/partners/PRT-20261108-A9F2');
+        assert.equal(String(input), 'https://m3.example.test/api/m3/v1/partners/PRT-20261108-A9F2/');
         return new Response(
           JSON.stringify({
             success: true,
@@ -90,15 +90,15 @@ describe('M3 Partner Adapter, UUID Mapper & Auto-Upsert Suite (PRO-306)', () => 
       assert.equal(record.status, 'terverifikasi');
     });
 
-    it('fallback ke list GET /partners?status=terverifikasi&per_page=100 saat hanya ada userId atau direct 404', async () => {
+    it('fallback ke list GET /partners/?status=terverifikasi&per_page=100 saat hanya ada userId atau direct 404', async () => {
       const calls: string[] = [];
       const mockFetch: typeof fetch = async (input) => {
         const url = String(input);
         calls.push(url);
-        if (url.endsWith('/partners/9')) {
+        if (url.endsWith('/partners/9/')) {
           return new Response(JSON.stringify({ success: false }), { status: 404 });
         }
-        assert.equal(url, 'https://m3.example.test/api/m3/v1/partners?status=terverifikasi&per_page=100');
+        assert.equal(url, 'https://m3.example.test/api/m3/v1/partners/?status=terverifikasi&per_page=100');
         return new Response(
           JSON.stringify({
             success: true,

@@ -41,9 +41,9 @@ function normalizeIsVerified(item: Record<string, unknown>): boolean {
 
 function buildM3PartnersUrl(baseUrl: string): string {
   const clean = baseUrl.trim().replace(/\/+$/, '');
-  if (clean.endsWith('/partners')) return clean;
-  if (clean.endsWith('/api/m3/v1')) return `${clean}/partners`;
-  return `${clean}/api/m3/v1/partners`;
+  if (clean.endsWith('/partners')) return `${clean}/`;
+  if (clean.endsWith('/api/m3/v1')) return `${clean}/partners/`;
+  return `${clean}/api/m3/v1/partners/`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -161,7 +161,7 @@ export async function fetchPartnerFromM3(
   try {
     const directId = options.partnerId?.trim();
     if (directId) {
-      const directUrl = `${partnersUrl}/${encodeURIComponent(directId)}`;
+      const directUrl = `${partnersUrl}${encodeURIComponent(directId)}/`;
       const directRes = await fetchFn(directUrl, {
         method: 'GET',
         headers,
