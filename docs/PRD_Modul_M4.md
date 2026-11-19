@@ -106,9 +106,8 @@ Seluruh kebutuhan bisnis pada dokumen BRD diturunkan secara langsung ke dalam Us
 
 Use case diagram di bawah ini menggambarkan sembilan use case Modul 4 beserta aktornya. Skenario setiap use case mengikuti Dokumen PPL revisi, termasuk alur permintaan jasa (`UC-03` sampai `UC-05`) dan customer yang memakai akun (`UC-05`, `UC-07`, `UC-09`).
 
-![Gambar 2.1 — Use Case Diagram Modul 4 Penawaran & Tagihan Penjualan](gambar_prd/gambar_01.png)
-
-_Gambar 2.1 — Use Case Diagram Modul 4 Penawaran & Tagihan Penjualan_
+> 📋 **Gambar 2.1 — Use Case Diagram Modul 4 Penawaran & Tagihan Penjualan**  
+> _(Diagram visual use case resmi tercantum pada lampiran Dokumen PPL dan repositori desain Google Drive. Pemetaan hubungan use case, aktor, dan user story disajikan lengkap pada tabel dan spesifikasi skenario di bawah)._
 
 Hubungan setiap use case dengan user story dan acceptance criteria-nya:
 
@@ -342,43 +341,21 @@ _Kondisi Akhir (Skenario Alternatif):_ Customer hanya dapat melihat order milikn
 
 ## 2.4 Activity Diagram per Use Case
 
-Activity diagram menggambarkan alur aktivitas aktor dan sistem pada setiap use case, mencakup skenario utama dan alternatif. Decision hanya muncul pada titik pengkondisian.
+Activity diagram menggambarkan alur aktivitas aktor dan sistem pada setiap use case, mencakup skenario utama dan alternatif. Decision hanya muncul pada titik pengkondisian. Diagram visual resmi tercantum pada Dokumen PPL Bab 2.4:
 
-![Gambar 2.2 — Activity Diagram UC-01 Mengelola Data Produk/Jasa](gambar_prd/gambar_02.png)
+| No | Identifikasi Diagram | Judul Use Case Terkait | Ringkasan Alur Utama |
+| :--- | :--- | :--- | :--- |
+| 1 | **Gambar 2.2** | `UC-01` Mengelola Data Produk/Jasa | Validasi tipe usaha, CRUD katalog, isolasi role partner |
+| 2 | **Gambar 2.3** | `UC-02` Mengelola Data Pelanggan | Pencatatan pelanggan partner, validasi kontak & duplikasi |
+| 3 | **Gambar 2.4** | `UC-03` Mengelola Permintaan Jasa | Penerimaan form M5 (`K-06`), notifikasi baru, antrean penawaran |
+| 4 | **Gambar 2.5** | `UC-04` Membuat Penawaran | Pembuatan draft penawaran, kalkulasi subtotal, kirim WA |
+| 5 | **Gambar 2.6** | `UC-05` Menyetujui Penawaran | Verifikasi customer berakun M1, persetujuan penawaran resmi |
+| 6 | **Gambar 2.7** | `UC-06` Membuat Invoice | Konversi penawaran disetujui / order checkout M5 ke invoice |
+| 7 | **Gambar 2.8** | `UC-07` Membayar Invoice | Integrasi payment gateway Midtrans Snap & webhook SHA-512 |
+| 8 | **Gambar 2.9** | `UC-08` Memperbarui Status Order | Transisi status order: `baru` -> `diproses` -> `selesai` |
+| 9 | **Gambar 2.10** | `UC-09` Melihat Status Order | Pelacakan status progres pesanan oleh customer berakun |
 
-_Gambar 2.2 — Activity Diagram UC-01 Mengelola Data Produk/Jasa_
-
-![Gambar 2.3 — Activity Diagram UC-02 Mengelola Data Pelanggan](gambar_prd/gambar_03.png)
-
-_Gambar 2.3 — Activity Diagram UC-02 Mengelola Data Pelanggan_
-
-![Gambar 2.4 — Activity Diagram UC-03 Mengelola Permintaan Jasa](gambar_prd/gambar_04.png)
-
-_Gambar 2.4 — Activity Diagram UC-03 Mengelola Permintaan Jasa_
-
-![Gambar 2.5 — Activity Diagram UC-04 Membuat Penawaran](gambar_prd/gambar_05.png)
-
-_Gambar 2.5 — Activity Diagram UC-04 Membuat Penawaran_
-
-![Gambar 2.6 — Activity Diagram UC-05 Menyetujui Penawaran](gambar_prd/gambar_06.png)
-
-_Gambar 2.6 — Activity Diagram UC-05 Menyetujui Penawaran_
-
-![Gambar 2.7 — Activity Diagram UC-06 Membuat Invoice](gambar_prd/gambar_07.png)
-
-_Gambar 2.7 — Activity Diagram UC-06 Membuat Invoice_
-
-![Gambar 2.8 — Activity Diagram UC-07 Membayar Invoice](gambar_prd/gambar_08.png)
-
-_Gambar 2.8 — Activity Diagram UC-07 Membayar Invoice_
-
-![Gambar 2.9 — Activity Diagram UC-08 Memperbarui Status Order](gambar_prd/gambar_09.png)
-
-_Gambar 2.9 — Activity Diagram UC-08 Memperbarui Status Order_
-
-![Gambar 2.10 — Activity Diagram UC-09 Melihat Status Order](gambar_prd/gambar_10.png)
-
-_Gambar 2.10 — Activity Diagram UC-09 Melihat Status Order_
+> _(Catatan: Berkas grafis diagram aktivitas Gambar 2.2 s/d Gambar 2.10 didokumentasikan pada lampiran Dokumen PPL & repositori Google Drive tim)._
 
 ---
 
@@ -390,7 +367,22 @@ Transaksi penjualan masuk melalui dua jalur sesuai tipe usaha partner. Jalur pro
 
 _Diagram 3.1 — Alur Proses Bisnis To-Be Modul 4: Jalur Produk (Checkout M5) dan Jalur Jasa (Permintaan -> Penawaran)_
 
-![Diagram 3.1 — Alur Proses Bisnis To-Be Modul 4](gambar_prd/gambar_11.png)
+```mermaid
+flowchart TD
+  subgraph JalurProduk ["Jalur 1: Produk (E-Commerce M5)"]
+    P1[Customer Checkout di M5] --> P2[M4 Terbitkan Order & Invoice]
+  end
+  subgraph JalurJasa ["Jalur 2: Jasa (Permintaan & Penawaran)"]
+    J1[Customer Kirim Permintaan M5] --> J2[Partner Jasa Buat Penawaran M4]
+    J2 --> J3[Kirim Penawaran ke WhatsApp Customer]
+    J3 --> J4[Customer Setujui dari Akun]
+    J4 --> J5[Partner Buat Invoice]
+  end
+  P2 --> INV[Invoice Terbit - Belum Lunas]
+  J5 --> INV
+  INV --> PAY[Customer Bayar via Midtrans Sandbox]
+  PAY --> ORD[Order Diproses & Selesai]
+```
 
 ## 3.2 Arsitektur Teknis Aplikasi Full-Stack (Next.js App Router & Supabase)
 
@@ -404,49 +396,26 @@ Modul 4 diimplementasikan sebagai aplikasi **Next.js 16 Full-Stack (App Router)*
 
 Class diagram BCE memetakan setiap use case ke satu kelas boundary (halaman/form), satu kelas control (controller/service), dan kelas entity yang dipakai. Entity dipetakan ke tabel Supabase: `ProdukJasa -> products_services`, `Pelanggan -> customers`, `Permintaan -> service_requests`, `Penawaran -> quotations`, `PenawaranItem -> quotation_items`, `Invoice -> invoices`, `Order -> orders`, `OrderItem -> order_items`. Partner (M3), AkunCustomer (M1), Payment Gateway, dan WhatsApp adalah sistem luar.
 
-![Gambar 3.1 — Class Diagram BCE Modul 4](gambar_prd/gambar_12.png)
-
-_Gambar 3.1 — Class Diagram BCE Modul 4_
+> 📋 **Gambar 3.1 — Class Diagram BCE Modul 4**  
+> _(Diagram arsitektur visual BCE terlampir pada Dokumen PPL Bab 3.3 & repositori Google Drive. Pemetaan kelas Entity ke tabel database diuraikan lengkap pada Bab 5.3 Kamus Data)._
 
 ## 3.4 Sequence Diagram per Use Case
 
-Sequence diagram menggambarkan urutan pesan antara aktor, boundary, control, entity, dan sistem luar untuk skenario utama dan alternatif (blok `alt/else`) setiap use case.
+Sequence diagram menggambarkan urutan pesan antara aktor, boundary, control, entity, dan sistem luar untuk skenario utama dan alternatif (blok `alt/else`) setiap use case. Berkas grafis sequence diagram resmi terlampir pada Dokumen PPL Bab 3.4:
 
-![Gambar 3.2 — Sequence Diagram UC-01 Mengelola Data Produk/Jasa](gambar_prd/gambar_13.png)
+| No | Identifikasi Diagram | Judul Sequence Use Case | Komponen yang Terlibat |
+| :--- | :--- | :--- | :--- |
+| 1 | **Gambar 3.2** | `UC-01` Mengelola Data Produk/Jasa | `ProductView` ↔ `ProductService` ↔ `products_services` |
+| 2 | **Gambar 3.3** | `UC-02` Mengelola Data Pelanggan | `CustomerView` ↔ `CustomerService` ↔ `customers` |
+| 3 | **Gambar 3.4** | `UC-03` Mengelola Permintaan Jasa | `M5 Form` ↔ `ServiceRequestService` ↔ `service_requests` |
+| 4 | **Gambar 3.5** | `UC-04` Membuat Penawaran | `QuotationView` ↔ `QuotationService` ↔ `quotations` & WA |
+| 5 | **Gambar 3.6** | `UC-05` Menyetujui Penawaran | `CustomerPortal` ↔ `QuotationService` ↔ `quotations` |
+| 6 | **Gambar 3.7** | `UC-06` Membuat Invoice | `InvoiceView` ↔ `InvoiceService` ↔ `invoices` |
+| 7 | **Gambar 3.8** | `UC-07` Membayar Invoice | `CustomerPortal` ↔ `Midtrans API` ↔ `WebhookHandler` |
+| 8 | **Gambar 3.9** | `UC-08` Memperbarui Status Order | `OrderView` ↔ `OrderService` ↔ `orders` |
+| 9 | **Gambar 3.10** | `UC-09` Melihat Status Order | `CustomerPortal` ↔ `OrderService` ↔ `orders` |
 
-_Gambar 3.2 — Sequence Diagram UC-01 Mengelola Data Produk/Jasa_
-
-![Gambar 3.3 — Sequence Diagram UC-02 Mengelola Data Pelanggan](gambar_prd/gambar_14.png)
-
-_Gambar 3.3 — Sequence Diagram UC-02 Mengelola Data Pelanggan_
-
-![Gambar 3.4 — Sequence Diagram UC-03 Mengelola Permintaan Jasa](gambar_prd/gambar_15.png)
-
-_Gambar 3.4 — Sequence Diagram UC-03 Mengelola Permintaan Jasa_
-
-![Gambar 3.5 — Sequence Diagram UC-04 Membuat Penawaran](gambar_prd/gambar_16.png)
-
-_Gambar 3.5 — Sequence Diagram UC-04 Membuat Penawaran_
-
-![Gambar 3.6 — Sequence Diagram UC-05 Menyetujui Penawaran](gambar_prd/gambar_17.png)
-
-_Gambar 3.6 — Sequence Diagram UC-05 Menyetujui Penawaran_
-
-![Gambar 3.7 — Sequence Diagram UC-06 Membuat Invoice](gambar_prd/gambar_18.png)
-
-_Gambar 3.7 — Sequence Diagram UC-06 Membuat Invoice_
-
-![Gambar 3.8 — Sequence Diagram UC-07 Membayar Invoice](gambar_prd/gambar_19.png)
-
-_Gambar 3.8 — Sequence Diagram UC-07 Membayar Invoice_
-
-![Gambar 3.9 — Sequence Diagram UC-08 Memperbarui Status Order](gambar_prd/gambar_20.png)
-
-_Gambar 3.9 — Sequence Diagram UC-08 Memperbarui Status Order_
-
-![Gambar 3.10 — Sequence Diagram UC-09 Melihat Status Order](gambar_prd/gambar_21.png)
-
-_Gambar 3.10 — Sequence Diagram UC-09 Melihat Status Order_
+> _(Catatan: Visual interaksi sequence diagram Gambar 3.2 s/d Gambar 3.10 didokumentasikan pada lampiran Dokumen PPL & repositori Google Drive tim)._
 
 ---
 
@@ -544,9 +513,8 @@ Basis data Modul 4 menggunakan **PostgreSQL 17** yang dikelola melalui **Prisma 
 
 Diagram di bawah ini menggambarkan 11 tabel milik Modul 4 (termasuk tabel baru `service_requests` dan kolom baru pada `customers` dan `quotations`), dua entitas referensi milik M3 dan M1, beserta kunci utama (PK), kunci tamu (FK), unique constraint (UQ), dan kardinalitas relasinya pada Supabase PostgreSQL 17:
 
-![Gambar 5.1 — Entity Relationship Diagram (ERD) Modul 4 setelah penyesuaian alur permintaan jasa ([baru] = tabel/kolom baru, [ubah] = nilai status berubah)](gambar_prd/gambar_22.png)
-
-_Gambar 5.1 — Entity Relationship Diagram (ERD) Modul 4 setelah penyesuaian alur permintaan jasa (`[baru]` = tabel/kolom baru, `[ubah]` = nilai status berubah)_
+> 🗄️ **Gambar 5.1 — Entity Relationship Diagram (ERD) Modul 4**  
+> _(Diagram visual skema ERD resolusi tinggi mengacu pada lampiran Dokumen PPL Bab 5.2. Definisi teknis skema, tipe data kolom, constraint, dan relasi foreign key 11 tabel PostgreSQL disajikan lengkap pada Kamus Data Bab 5.3 di bawah)._
 
 ## 5.3 Kamus Data (Data Dictionary) Seluruh Tabel Database
 

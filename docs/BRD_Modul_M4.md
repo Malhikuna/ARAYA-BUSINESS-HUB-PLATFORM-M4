@@ -81,9 +81,23 @@ Tiga aktor memakai M4 secara langsung; sisanya menentukan atau bergantung pada M
 
 Transaksi masuk lewat dua jalur sesuai tipe usaha. Jalur produk: customer checkout dari katalog M5, lalu M4 membuat order dan invoice. Jalur jasa: customer mengisi form permintaan di M5, partner jasa membuat penawaran dan mengirimkannya ke WhatsApp customer, lalu customer menyetujuinya dari akun dan partner membuat invoice. Kedua jalur bertemu saat invoice terbit, lalu mengikuti alur bayar, proses, dan pantau yang sama.
 
-![Gambar 1. Proses bisnis to-be M4: jalur produk dan jalur jasa](gambar_brd/gambar_01.png)
+```mermaid
+flowchart TD
+  subgraph JalurProduk ["1. Jalur Produk"]
+    A[Customer Checkout di M5] --> B[M4 Terbitkan Order & Invoice]
+  end
+  subgraph JalurJasa ["2. Jalur Jasa"]
+    C[Customer Kirim Permintaan M5] --> D[Partner Buat Penawaran M4]
+    D --> E[Kirim ke WhatsApp & Disetujui Customer]
+    E --> F[Partner Buat Invoice]
+  end
+  B --> G[Invoice Terbit - Belum Lunas]
+  F --> G
+  G --> H[Pembayaran via Midtrans Sandbox]
+  H --> I[Invoice Lunas & Pesanan Diproses]
+```
 
-_Gambar 1. Proses bisnis to-be M4: jalur produk dan jalur jasa_
+_Gambar 1. Proses bisnis to-be M4: jalur produk dan jalur jasa (diagram visual resmi terlampir pada Dokumen PPL & Desain Arsitektur)._
 
 Penawaran hanya dipakai pada jalur jasa, karena harga jasa perlu disesuaikan dengan permintaan customer. Rincian per langkah ada di activity diagram UC-01 sampai UC-09 di Dokumen PPL dan Dokumen Teknis Bab 2.2.
 
