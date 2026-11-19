@@ -55,34 +55,81 @@ describe('M3 Partner Adapter, UUID Mapper & Auto-Upsert Suite (PRO-306)', () => 
       }
     });
 
-    it('menormalkan payload array M3 dengan status terverifikasi dan tipe_usaha SERVICE', async () => {
+    it('mendukung direct lookup GET /partners/{id} dengan schema OpenAPI M3 (kategori_usaha & dual ID)', async () => {
       const mockFetch: typeof fetch = async (input) => {
-        assert.equal(String(input), 'https://m3.example.test/api/m3/v1/partners');
+        assert.equal(String(input), 'https://m3.example.test/api/m3/v1/partners/PRT-20261108-A9F2');
         return new Response(
           JSON.stringify({
             success: true,
-            data: [
-              {
-                partner_id: 'ptr_m3_service_01',
-                user_id: 'usr_m3_service_01',
-                tipe_usaha: 'SERVICE',
-                status: 'terverifikasi',
-              },
-            ],
+            message: 'Detail partner ditemukan',
+            data: {
+              id: 7,
+              partner_id: 'PRT-20261108-A9F2',
+              user_id: 42,
+              nama_usaha: 'Studio Desain Araya',
+              kategori_usaha: 'Jasa',
+              status: 'terverifikasi',
+            },
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
       };
 
       const record = await fetchPartnerFromM3({
-        partnerId: 'ptr_m3_service_01',
-        m3ApiUrl: 'https://m3.example.test',
+        partnerId: 'PRT-20261108-A9F2',
+        m3ApiUrl: 'https://m3.example.test/api/m3/v1',
         fetchImpl: mockFetch,
       });
 
       assert.ok(record);
+      assert.equal(record.partner_id, 'PRT-20261108-A9F2');
+      assert.equal(record.numeric_id, '7');
+      assert.equal(record.user_id, '42');
       assert.equal(record.tipe_usaha, 'jasa');
       assert.equal(record.is_verified, true);
+      assert.equal(record.status, 'terverifikasi');
+    });
+
+    it('fallback ke list GET /partners?status=terverifikasi&per_page=100 saat hanya ada userId atau direct 404', async () => {
+      const calls: string[] = [];
+      const mockFetch: typeof fetch = async (input) => {
+        const url = String(input);
+        calls.push(url);
+        if (url.endsWith('/partners/9')) {
+          return new Response(JSON.stringify({ success: false }), { status: 404 });
+        }
+        assert.equal(url, 'https://m3.example.test/api/m3/v1/partners?status=terverifikasi&per_page=100');
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 9,
+                partner_id: 'PRT-20261110-B1C2',
+                user_id: 99,
+                kategori_usaha: 'Produk',
+                status: 'terverifikasi',
+              },
+            ],
+            meta: { page: 1, per_page: 100, total: 1, total_pages: 1 },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      };
+
+      const byNumericFallback = await fetchPartnerFromM3({
+        partnerId: '9',
+        userId: '99',
+        m3ApiUrl: 'https://m3.example.test',
+        fetchImpl: mockFetch,
+      });
+
+      assert.ok(byNumericFallback);
+      assert.equal(calls.length, 2);
+      assert.equal(byNumericFallback.partner_id, 'PRT-20261110-B1C2');
+      assert.equal(byNumericFallback.numeric_id, '9');
+      assert.equal(byNumericFallback.tipe_usaha, 'produk');
+      assert.equal(byNumericFallback.is_verified, true);
     });
 
     it('mengembalikan null pada network error atau HTTP 500 dari M3', async () => {
@@ -218,6 +265,67 @@ describe('M3 Partner Adapter, UUID Mapper & Auto-Upsert Suite (PRO-306)', () => 
           ),
         (err: unknown) => err instanceof PartnerForbiddenError && err.status === 403
       );
+    });
+
+    it('harus menyinkronkan is_verified=false dan menolak 403 saat Partner di-suspend (ditangguhkan) di M3', async () => {
+      const tempPartnerId = crypto.randomUUID();
+      const tempUserId = crypto.randomUUID();
+
+      try {
+        await ensurePartnerProfile({
+          partner_id: tempPartnerId,
+          user_id: tempUserId,
+          tipe_usaha: 'jasa',
+          is_verified: true,
+        });
+
+        const suspendedFetch: typeof fetch = async () =>
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                id: 101,
+                partner_id: tempPartnerId,
+                user_id: tempUserId,
+                kategori_usaha: 'Jasa',
+                status: 'ditangguhkan',
+                alasan_penangguhan: 'Pelanggaran ketentuan',
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          );
+
+        await assert.rejects(
+          () =>
+            resolveAndVerifyPartnerProfile(
+              { userId: tempUserId, role: 'Partner', partnerId: tempPartnerId },
+              { m3ApiUrl: 'https://m3.example.test', fetchImpl: suspendedFetch }
+            ),
+          (err: unknown) =>
+            err instanceof PartnerForbiddenError &&
+            err.status === 403 &&
+            err.message.includes('ditangguhkan')
+        );
+
+        const cached = await prisma.partner_profiles.findUnique({
+          where: { partner_id: tempPartnerId },
+        });
+        assert.equal(cached?.is_verified, false);
+
+        const offlineFetch: typeof fetch = async () => {
+          throw new Error('Timeout');
+        };
+        await assert.rejects(
+          () =>
+            resolveAndVerifyPartnerProfile(
+              { userId: tempUserId, role: 'Partner', partnerId: tempPartnerId },
+              { m3ApiUrl: 'https://m3.example.test', fetchImpl: offlineFetch }
+            ),
+          (err: unknown) => err instanceof PartnerForbiddenError && err.status === 403
+        );
+      } finally {
+        await prisma.partner_profiles.deleteMany({ where: { partner_id: tempPartnerId } });
+      }
     });
 
     it('harus mencegah P2002 pada ensurePartnerProfile jika user_id sama namun partner_id berubah', async () => {

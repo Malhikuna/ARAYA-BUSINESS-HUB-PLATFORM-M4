@@ -135,6 +135,37 @@ export async function ensurePartnerProfile(input: EnsurePartnerProfileInput) {
   });
 }
 
+async function revokePartnerVerificationInDb(
+  rawPartnerIds: Array<string | undefined>,
+  rawUserIds: Array<string | undefined>
+): Promise<void> {
+  const partnerUuids = Array.from(
+    new Set(
+      rawPartnerIds
+        .filter((v): v is string => Boolean(v && v.trim()))
+        .map((v) => resolveDbUuid(v, 'partner'))
+    )
+  );
+  const userUuids = Array.from(
+    new Set(
+      rawUserIds
+        .filter((v): v is string => Boolean(v && v.trim()))
+        .map((v) => resolveDbUuid(v, 'user'))
+    )
+  );
+
+  const filters = [
+    ...(partnerUuids.length > 0 ? [{ partner_id: { in: partnerUuids } }] : []),
+    ...(userUuids.length > 0 ? [{ user_id: { in: userUuids } }] : []),
+  ];
+  if (filters.length === 0) return;
+
+  await prisma.partner_profiles.updateMany({
+    where: { OR: filters, is_verified: true },
+    data: { is_verified: false, updated_at: new Date() },
+  });
+}
+
 function isDevMockPartner(authUser: AuthUser): boolean {
   return authUser.partnerId === 'ptr_01J9ZN5R1D' || authUser.userId === 'usr_mock_partner_001';
 }
@@ -165,7 +196,15 @@ export async function resolveAndVerifyPartnerProfile(
 
   if (m3Record) {
     if (!m3Record.is_verified) {
-      throw new PartnerForbiddenError('Akun Partner belum terverifikasi di Modul 3.');
+      await revokePartnerVerificationInDb(
+        [m3Record.partner_id, m3Record.numeric_id, authUser.partnerId],
+        [m3Record.user_id, authUser.userId]
+      );
+      const reason =
+        m3Record.status === 'ditangguhkan'
+          ? 'Akun Partner sedang ditangguhkan di Modul 3.'
+          : 'Akun Partner belum terverifikasi di Modul 3.';
+      throw new PartnerForbiddenError(reason);
     }
     const resolvedPartnerId = resolveDbUuid(m3Record.partner_id, 'partner');
     const resolvedUserId = m3Record.user_id ? resolveDbUuid(m3Record.user_id, 'user') : dbUserId;
