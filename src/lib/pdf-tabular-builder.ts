@@ -102,15 +102,15 @@ export function buildTabularReportPdfBytes(config: TabularReportConfig): Uint8Ar
       drawText(config.subtitle, MARGIN_X + 36, 59, "F1", 8.5, COLOR_SLATE_500)
     );
     cmds.push(
-      drawText(`Dicetak: ${formattedDate}`, 355, 45, "F1", 8, COLOR_SLATE_700)
+      drawText(`Dicetak: ${formattedDate}`, 380, 46, "F1", 8, COLOR_SLATE_700)
     );
     cmds.push(
-      drawText(config.filterSummaryLine, 355, 58, "F1", 7.5, COLOR_SLATE_500)
+      drawText(config.filterSummaryLine, MARGIN_X, 73, "F1", 7.5, COLOR_SLATE_500)
     );
 
     cmds.push("0.85 0.88 0.92 RG");
     cmds.push("1 w");
-    cmds.push(drawLine(MARGIN_X, 72, TABLE_RIGHT_X, 72));
+    cmds.push(drawLine(MARGIN_X, 80, TABLE_RIGHT_X, 80));
   };
 
   const startNewPage = () => {
@@ -122,7 +122,7 @@ export function buildTabularReportPdfBytes(config: TabularReportConfig): Uint8Ar
   startNewPage();
 
   const cardWidth = (CONTENT_WIDTH - 24) / 3;
-  const cardY = 84;
+  const cardY = 90;
   const cardH = 46;
 
   config.summaryCards.forEach((card, idx) => {
@@ -145,7 +145,7 @@ export function buildTabularReportPdfBytes(config: TabularReportConfig): Uint8Ar
     );
   });
 
-  let cursorY = 144;
+  let cursorY = 150;
   const renderTableHeader = (cmds: string[], topY: number) => {
     cmds.push("0.94 0.96 0.98 rg");
     cmds.push(drawRect(MARGIN_X, topY, CONTENT_WIDTH, 22, "f"));
