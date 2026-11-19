@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateTraceId, createAuthErrorResponse, createSuccessResponse } from '@/lib/auth/response';
-import { getAuthUser } from '@/lib/auth/guard';
+import { requireServicePartner } from '@/lib/auth/partner-guard';
 import {
   getQuotations,
   createQuotation,
@@ -12,11 +12,18 @@ export async function GET(request: Request) {
   const traceId = request.headers.get('x-request-id') || generateTraceId();
 
   try {
+    const auth = await requireServicePartner(request, { traceId });
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || undefined;
     const status = searchParams.get('status') || undefined;
     const customer_id = searchParams.get('customer_id') || undefined;
-    const partner_id = searchParams.get('partner_id') || undefined;
+    const partner_id = auth.partnerProfile
+      ? auth.partnerProfile.partner_id
+      : searchParams.get('partner_id') || undefined;
     const page = searchParams.get('page') ? Number(searchParams.get('page')) : undefined;
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
 
@@ -48,9 +55,12 @@ export async function POST(request: Request) {
       return createAuthErrorResponse('INVALID_BODY', 'Payload request body wajib berupa JSON yang valid.', traceId, 400);
     }
 
-    const authUser = getAuthUser(request);
-    const quotation = await createQuotation(body, authUser?.partnerId);
+    const auth = await requireServicePartner(request, { traceId });
+    if (!auth.ok) {
+      return auth.response;
+    }
 
+    const quotation = await createQuotation(body, auth.partnerProfile?.partner_id);
     return createSuccessResponse(quotation, 201, traceId);
   } catch (error) {
     if (error instanceof EmptyQuotationItemsError) {

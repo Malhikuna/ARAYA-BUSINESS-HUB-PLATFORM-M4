@@ -1,101 +1,40 @@
-import { z } from "zod";
-import { prisma } from "../prisma";
+import { prisma } from '../prisma';
+import { partnerExistsInDb, SEEDED_PARTNER_JASA_ID } from './partner-profile.service';
+import {
+  createProductSchema,
+  updateProductSchema,
+  ProductValidationError,
+  DuplicateSkuError,
+  ProductNotFoundError,
+  ProductHasTransactionsError,
+  formatZodError,
+  normalizeProductType,
+  type CreateProductInput,
+  type UpdateProductInput,
+  type GetProductsQuery,
+} from './product.schema';
 
-export const DEFAULT_PARTNER_ID = "00000000-0000-0000-0000-000000000001";
+export {
+  createProductSchema,
+  updateProductSchema,
+  ProductValidationError,
+  DuplicateSkuError,
+  ProductNotFoundError,
+  ProductHasTransactionsError,
+  formatZodError,
+  normalizeProductType,
+  type CreateProductInput,
+  type UpdateProductInput,
+  type GetProductsQuery,
+};
 
-export const createProductSchema = z.object({
-  sku: z
-    .string()
-    .trim()
-    .min(3, "SKU minimal 3 karakter.")
-    .max(50, "SKU maksimal 50 karakter.")
-    .regex(/^[A-Za-z0-9_-]+$/, "SKU hanya boleh berisi huruf, angka, tanda hubung (-), dan garis bawah (_).")
-    .transform((val) => val.toUpperCase()),
-  name: z.string().trim().min(1, "Nama produk/jasa tidak boleh kosong.").max(150, "Nama produk/jasa maksimal 150 karakter."),
-  description: z.string().trim().max(1000, "Deskripsi maksimal 1000 karakter.").nullable().optional(),
-  type: z
-    .string()
-    .trim()
-    .transform((val) => {
-      const upper = val.toUpperCase();
-      if (upper === "JASA" || upper === "SERVICE") return "SERVICE";
-      if (upper === "BARANG" || upper === "PRODUK" || upper === "PRODUCT") return "PRODUCT";
-      if (upper === "ASSET" || upper === "ASET") return "ASSET";
-      return upper;
-    })
-    .refine((val) => ["PRODUCT", "SERVICE", "ASSET"].includes(val), {
-      message: "Tipe harus bernilai PRODUCT, SERVICE, atau ASSET.",
-    }),
-  price: z.coerce.number().nonnegative("Harga tidak boleh bernilai negatif.").finite("Harga harus berupa angka yang valid."),
-  unit: z.string().trim().max(20, "Satuan maksimal 20 karakter.").default("pcs"),
-  stock: z.coerce.number().int("Stok harus bilangan bulat.").nonnegative("Stok tidak boleh negatif.").default(0),
-  tax_rate_id: z.string().uuid("ID tarif pajak harus berupa UUID valid.").nullable().optional(),
-  partner_id: z.string().uuid("ID Partner harus berupa UUID valid.").optional(),
-  is_active: z.boolean().optional().default(true),
-});
-
-export const updateProductSchema = createProductSchema.partial();
-
-export type CreateProductInput = z.infer<typeof createProductSchema>;
-export type UpdateProductInput = z.infer<typeof updateProductSchema>;
-
-export interface GetProductsQuery {
-  search?: string;
-  type?: string;
-  is_active?: boolean | string;
-  page?: number;
-  limit?: number;
-  partner_id?: string;
-}
-
-export class ProductValidationError extends Error {
-  code = "VALIDATION_ERROR";
-  fields: Record<string, string>;
-
-  constructor(message: string, fields: Record<string, string>) {
-    super(message);
-    this.name = "ProductValidationError";
-    this.fields = fields;
-  }
-}
-
-export class DuplicateSkuError extends Error {
-  code = "DUPLICATE_SKU";
-
-  constructor(sku: string) {
-    super(`Produk atau jasa dengan SKU '${sku}' sudah terdaftar.`);
-    this.name = "DuplicateSkuError";
-  }
-}
-
-export class ProductNotFoundError extends Error {
-  code = "PRODUCT_NOT_FOUND";
-
-  constructor(id: string) {
-    super(`Produk atau jasa dengan ID '${id}' tidak ditemukan.`);
-    this.name = "ProductNotFoundError";
-  }
-}
-
-export class ProductHasTransactionsError extends Error {
-  code = "CANNOT_DELETE_PRODUCT";
-
-  constructor(message: string) {
-    super(message);
-    this.name = "ProductHasTransactionsError";
-  }
-}
-
-export function formatZodError(error: z.ZodError): Record<string, string> {
-  const fields: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.join(".") || "root";
-    if (!fields[key]) {
-      fields[key] = issue.message;
-    }
-  }
-  return fields;
-}
+const TAX_RATE_SELECT = {
+  select: {
+    id: true,
+    name: true,
+    rate: true,
+  },
+} as const;
 
 export async function getProducts(query: GetProductsQuery = {}) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -106,15 +45,19 @@ export async function getProducts(query: GetProductsQuery = {}) {
   const where: Record<string, unknown> = {};
 
   if (search) {
-    where.OR = [{ name: { contains: search, mode: "insensitive" as const } }, { sku: { contains: search, mode: "insensitive" as const } }, { description: { contains: search, mode: "insensitive" as const } }];
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' as const } },
+      { sku: { contains: search, mode: 'insensitive' as const } },
+      { description: { contains: search, mode: 'insensitive' as const } },
+    ];
   }
 
   if (query.type) {
-    where.type = query.type.toUpperCase();
+    where.type = normalizeProductType(query.type);
   }
 
   if (query.is_active !== undefined) {
-    where.is_active = query.is_active === true || query.is_active === "true";
+    where.is_active = query.is_active === true || query.is_active === 'true';
   }
 
   if (query.partner_id) {
@@ -126,16 +69,8 @@ export async function getProducts(query: GetProductsQuery = {}) {
       where,
       skip,
       take: limit,
-      include: {
-        tax_rates: {
-          select: {
-            id: true,
-            name: true,
-            rate: true,
-          },
-        },
-      },
-      orderBy: [{ is_active: "desc" }, { created_at: "desc" }],
+      include: { tax_rates: TAX_RATE_SELECT },
+      orderBy: [{ is_active: 'desc' }, { created_at: 'desc' }],
     }),
     prisma.products_services.count({ where }),
   ]);
@@ -154,15 +89,7 @@ export async function getProducts(query: GetProductsQuery = {}) {
 export async function getProductById(id: string) {
   const product = await prisma.products_services.findUnique({
     where: { id },
-    include: {
-      tax_rates: {
-        select: {
-          id: true,
-          name: true,
-          rate: true,
-        },
-      },
-    },
+    include: { tax_rates: TAX_RATE_SELECT },
   });
 
   if (!product) {
@@ -173,30 +100,39 @@ export async function getProductById(id: string) {
 }
 
 function withAutoServiceSku(rawInput: unknown): unknown {
-  if (!rawInput || typeof rawInput !== "object") return rawInput;
+  if (!rawInput || typeof rawInput !== 'object') return rawInput;
   const obj = rawInput as Record<string, unknown>;
-  const rawType = typeof obj.type === "string" ? obj.type.trim().toUpperCase() : "";
-  const isService = rawType === "SERVICE" || rawType === "JASA";
-  const hasName = typeof obj.name === "string" && obj.name.trim().length > 0;
-  const hasSku = typeof obj.sku === "string" && obj.sku.trim().length > 0;
+  const rawType = typeof obj.type === 'string' ? obj.type.trim().toUpperCase() : '';
+  const isService = rawType === 'SERVICE' || rawType === 'JASA';
+  const hasName = typeof obj.name === 'string' && obj.name.trim().length > 0;
+  const hasSku = typeof obj.sku === 'string' && obj.sku.trim().length > 0;
   if (isService && hasName && !hasSku) {
-    const period = new Date().toISOString().slice(0, 7).replace("-", "");
+    const period = new Date().toISOString().slice(0, 7).replace('-', '');
     const suffix = Math.floor(1000 + Math.random() * 9000);
     return { ...obj, sku: `SRV-${period}-${suffix}`, stock: 0 };
   }
   return rawInput;
 }
 
+async function assertPartnerReferenceValid(partnerId: string): Promise<void> {
+  const exists = await partnerExistsInDb(partnerId);
+  if (!exists) {
+    throw new ProductValidationError('Partner tidak terdaftar.', {
+      partner_id: `Partner dengan ID '${partnerId}' tidak ditemukan di partner_profiles.`,
+    });
+  }
+}
+
 export async function createProduct(rawInput: unknown, authPartnerId?: string) {
   const parsed = createProductSchema.safeParse(withAutoServiceSku(rawInput));
   if (!parsed.success) {
-    throw new ProductValidationError("Data produk/jasa tidak valid.", formatZodError(parsed.error));
+    throw new ProductValidationError('Data produk/jasa tidak valid.', formatZodError(parsed.error));
   }
 
   const data = parsed.data;
-  const partnerId = authPartnerId || data.partner_id || DEFAULT_PARTNER_ID;
+  const partnerId = authPartnerId ?? data.partner_id ?? SEEDED_PARTNER_JASA_ID;
+  await assertPartnerReferenceValid(partnerId);
 
-  // Cek duplikasi SKU
   const existingSku = await prisma.products_services.findUnique({
     where: { sku: data.sku },
   });
@@ -204,13 +140,12 @@ export async function createProduct(rawInput: unknown, authPartnerId?: string) {
     throw new DuplicateSkuError(data.sku);
   }
 
-  // Jika tax_rate_id disertakan, pastikan ada di database
   if (data.tax_rate_id) {
     const taxRate = await prisma.tax_rates.findUnique({
       where: { id: data.tax_rate_id },
     });
     if (!taxRate) {
-      throw new ProductValidationError("Data pajak tidak valid.", {
+      throw new ProductValidationError('Data pajak tidak valid.', {
         tax_rate_id: `Tarif pajak dengan ID '${data.tax_rate_id}' tidak ditemukan.`,
       });
     }
@@ -222,22 +157,14 @@ export async function createProduct(rawInput: unknown, authPartnerId?: string) {
       name: data.name,
       description: data.description ?? null,
       type: data.type,
-      unit: data.unit ?? "pcs",
-      stock: data.type === "SERVICE" ? 0 : (data.stock ?? 0),
+      unit: data.unit ?? 'pcs',
+      stock: data.type === 'SERVICE' ? 0 : (data.stock ?? 0),
       price: data.price,
       partner_id: partnerId,
       tax_rate_id: data.tax_rate_id ?? null,
       is_active: data.is_active ?? true,
     },
-    include: {
-      tax_rates: {
-        select: {
-          id: true,
-          name: true,
-          rate: true,
-        },
-      },
-    },
+    include: { tax_rates: TAX_RATE_SELECT },
   });
 }
 
@@ -246,12 +173,11 @@ export async function updateProduct(id: string, rawInput: unknown) {
 
   const parsed = updateProductSchema.safeParse(rawInput);
   if (!parsed.success) {
-    throw new ProductValidationError("Data pembaruan produk/jasa tidak valid.", formatZodError(parsed.error));
+    throw new ProductValidationError('Data pembaruan produk/jasa tidak valid.', formatZodError(parsed.error));
   }
 
   const data = parsed.data;
 
-  // Jika SKU diubah, cek duplikasi
   if (data.sku) {
     const existingSku = await prisma.products_services.findUnique({
       where: { sku: data.sku },
@@ -261,13 +187,12 @@ export async function updateProduct(id: string, rawInput: unknown) {
     }
   }
 
-  // Jika tax_rate_id diubah
   if (data.tax_rate_id) {
     const taxRate = await prisma.tax_rates.findUnique({
       where: { id: data.tax_rate_id },
     });
     if (!taxRate) {
-      throw new ProductValidationError("Data pajak tidak valid.", {
+      throw new ProductValidationError('Data pajak tidak valid.', {
         tax_rate_id: `Tarif pajak dengan ID '${data.tax_rate_id}' tidak ditemukan.`,
       });
     }
@@ -287,22 +212,13 @@ export async function updateProduct(id: string, rawInput: unknown) {
       ...(data.is_active !== undefined && { is_active: data.is_active }),
       updated_at: new Date(),
     },
-    include: {
-      tax_rates: {
-        select: {
-          id: true,
-          name: true,
-          rate: true,
-        },
-      },
-    },
+    include: { tax_rates: TAX_RATE_SELECT },
   });
 }
 
 export async function deleteProduct(id: string) {
   await getProductById(id);
 
-  // Cek relasi transaksi di quotation_items, invoice_items, atau order_items
   const [quotationItemsCount, invoiceItemsCount, orderItemsCount] = await Promise.all([
     prisma.quotation_items.count({ where: { product_service_id: id } }),
     prisma.invoice_items.count({ where: { product_service_id: id } }),
@@ -310,7 +226,9 @@ export async function deleteProduct(id: string) {
   ]);
 
   if (quotationItemsCount > 0 || invoiceItemsCount > 0 || orderItemsCount > 0) {
-    throw new ProductHasTransactionsError("Produk/jasa tidak dapat dihapus karena tercatat dalam riwayat transaksi penawaran, pesanan, atau tagihan.");
+    throw new ProductHasTransactionsError(
+      'Produk/jasa tidak dapat dihapus karena tercatat dalam riwayat transaksi penawaran, pesanan, atau tagihan.'
+    );
   }
 
   return prisma.products_services.delete({
@@ -320,14 +238,14 @@ export async function deleteProduct(id: string) {
 
 export async function createProductsBulk(items: unknown[], authPartnerId?: string) {
   if (!Array.isArray(items) || items.length === 0) {
-    throw new ProductValidationError("Daftar produk/jasa wajib diisi.", {
-      items: "Daftar item tidak boleh kosong.",
+    throw new ProductValidationError('Daftar produk/jasa wajib diisi.', {
+      items: 'Daftar item tidak boleh kosong.',
     });
   }
 
-  const partnerId = authPartnerId || DEFAULT_PARTNER_ID;
   const validatedItems: CreateProductInput[] = [];
   const skuSet = new Set<string>();
+  const partnerIdsToCheck = new Set<string>();
 
   for (let i = 0; i < items.length; i++) {
     const parsed = createProductSchema.safeParse(withAutoServiceSku(items[i]));
@@ -339,7 +257,12 @@ export async function createProductsBulk(items: unknown[], authPartnerId?: strin
       throw new DuplicateSkuError(parsed.data.sku);
     }
     skuSet.add(parsed.data.sku);
+    partnerIdsToCheck.add(authPartnerId ?? parsed.data.partner_id ?? SEEDED_PARTNER_JASA_ID);
     validatedItems.push(parsed.data);
+  }
+
+  for (const pid of partnerIdsToCheck) {
+    await assertPartnerReferenceValid(pid);
   }
 
   const existingProducts = await prisma.products_services.findMany({
@@ -358,14 +281,14 @@ export async function createProductsBulk(items: unknown[], authPartnerId?: strin
           name: item.name,
           description: item.description ?? null,
           type: item.type,
-          unit: item.unit ?? "pcs",
-          stock: item.type === "SERVICE" ? 0 : (item.stock ?? 0),
+          unit: item.unit ?? 'pcs',
+          stock: item.type === 'SERVICE' ? 0 : (item.stock ?? 0),
           price: item.price,
-          partner_id: item.partner_id || partnerId,
+          partner_id: authPartnerId ?? item.partner_id ?? SEEDED_PARTNER_JASA_ID,
           tax_rate_id: item.tax_rate_id ?? null,
           is_active: item.is_active ?? true,
         },
-      }),
-    ),
+      })
+    )
   );
 }

@@ -1,10 +1,9 @@
 import { z } from 'zod';
 import { prisma } from '../prisma';
 import { calculateQuotationTotals, roundHalfUp } from './calculation.service';
+import { partnerExistsInDb, SEEDED_PARTNER_JASA_ID } from './partner-profile.service';
 
 export { calculateQuotationTotals, roundHalfUp };
-
-export const DEFAULT_PARTNER_ID = '00000000-0000-0000-0000-000000000001';
 
 export type QuotationStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 
@@ -26,7 +25,10 @@ export const quotationItemSchema = z.object({
 
 export const createQuotationSchema = z.object({
   customer_id: z.string().uuid('ID pelanggan wajib berupa UUID yang valid.'),
-  partner_id: z.string().uuid('ID partner harus berupa UUID yang valid.').optional(),
+  partner_id: z
+    .string()
+    .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'ID partner harus berupa UUID yang valid.')
+    .optional(),
   quotation_date: z.string().optional(),
   valid_until: z.string().optional(),
   status: z
@@ -196,7 +198,12 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
   }
 
   const data = parsed.data;
-  const partnerId = authPartnerId || data.partner_id || DEFAULT_PARTNER_ID;
+  const partnerId = authPartnerId ?? data.partner_id ?? SEEDED_PARTNER_JASA_ID;
+  if (!(await partnerExistsInDb(partnerId))) {
+    throw new QuotationValidationError('Partner tidak terdaftar.', {
+      partner_id: `Partner dengan ID '${partnerId}' tidak ditemukan di partner_profiles.`,
+    });
+  }
 
   // 1. Verifikasi Pelanggan
   const customer = await prisma.customers.findUnique({

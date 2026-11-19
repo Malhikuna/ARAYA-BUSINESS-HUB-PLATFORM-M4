@@ -288,6 +288,7 @@ export type products_servicesWhereInput = {
   invoice_items?: Prisma.Invoice_itemsListRelationFilter
   order_items?: Prisma.Order_itemsListRelationFilter
   tax_rates?: Prisma.XOR<Prisma.Tax_ratesNullableScalarRelationFilter, Prisma.tax_ratesWhereInput> | null
+  partner_profiles?: Prisma.XOR<Prisma.Partner_profilesScalarRelationFilter, Prisma.partner_profilesWhereInput>
   quotation_items?: Prisma.Quotation_itemsListRelationFilter
 }
 
@@ -308,6 +309,7 @@ export type products_servicesOrderByWithRelationInput = {
   invoice_items?: Prisma.invoice_itemsOrderByRelationAggregateInput
   order_items?: Prisma.order_itemsOrderByRelationAggregateInput
   tax_rates?: Prisma.tax_ratesOrderByWithRelationInput
+  partner_profiles?: Prisma.partner_profilesOrderByWithRelationInput
   quotation_items?: Prisma.quotation_itemsOrderByRelationAggregateInput
 }
 
@@ -331,6 +333,7 @@ export type products_servicesWhereUniqueInput = Prisma.AtLeast<{
   invoice_items?: Prisma.Invoice_itemsListRelationFilter
   order_items?: Prisma.Order_itemsListRelationFilter
   tax_rates?: Prisma.XOR<Prisma.Tax_ratesNullableScalarRelationFilter, Prisma.tax_ratesWhereInput> | null
+  partner_profiles?: Prisma.XOR<Prisma.Partner_profilesScalarRelationFilter, Prisma.partner_profilesWhereInput>
   quotation_items?: Prisma.Quotation_itemsListRelationFilter
 }, "id" | "sku">
 
@@ -386,10 +389,10 @@ export type products_servicesCreateInput = {
   is_active?: boolean
   created_at?: Date | string
   updated_at?: Date | string
-  partner_id: string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutProducts_servicesInput
   order_items?: Prisma.order_itemsCreateNestedManyWithoutProducts_servicesInput
   tax_rates?: Prisma.tax_ratesCreateNestedOneWithoutProducts_servicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutProducts_servicesInput
   quotation_items?: Prisma.quotation_itemsCreateNestedManyWithoutProducts_servicesInput
 }
 
@@ -424,10 +427,10 @@ export type products_servicesUpdateInput = {
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutProducts_servicesNestedInput
   order_items?: Prisma.order_itemsUpdateManyWithoutProducts_servicesNestedInput
   tax_rates?: Prisma.tax_ratesUpdateOneWithoutProducts_servicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutProducts_servicesNestedInput
   quotation_items?: Prisma.quotation_itemsUpdateManyWithoutProducts_servicesNestedInput
 }
 
@@ -478,7 +481,6 @@ export type products_servicesUpdateManyMutationInput = {
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type products_servicesUncheckedUpdateManyInput = {
@@ -495,6 +497,16 @@ export type products_servicesUncheckedUpdateManyInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   partner_id?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type Products_servicesListRelationFilter = {
+  every?: Prisma.products_servicesWhereInput
+  some?: Prisma.products_servicesWhereInput
+  none?: Prisma.products_servicesWhereInput
+}
+
+export type products_servicesOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type Products_servicesScalarRelationFilter = {
@@ -560,14 +572,46 @@ export type products_servicesSumOrderByAggregateInput = {
   price?: Prisma.SortOrder
 }
 
-export type Products_servicesListRelationFilter = {
-  every?: Prisma.products_servicesWhereInput
-  some?: Prisma.products_servicesWhereInput
-  none?: Prisma.products_servicesWhereInput
+export type products_servicesCreateNestedManyWithoutPartner_profilesInput = {
+  create?: Prisma.XOR<Prisma.products_servicesCreateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.products_servicesCreateWithoutPartner_profilesInput[] | Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput | Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput[]
+  createMany?: Prisma.products_servicesCreateManyPartner_profilesInputEnvelope
+  connect?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
 }
 
-export type products_servicesOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
+export type products_servicesUncheckedCreateNestedManyWithoutPartner_profilesInput = {
+  create?: Prisma.XOR<Prisma.products_servicesCreateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.products_servicesCreateWithoutPartner_profilesInput[] | Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput | Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput[]
+  createMany?: Prisma.products_servicesCreateManyPartner_profilesInputEnvelope
+  connect?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+}
+
+export type products_servicesUpdateManyWithoutPartner_profilesNestedInput = {
+  create?: Prisma.XOR<Prisma.products_servicesCreateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.products_servicesCreateWithoutPartner_profilesInput[] | Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput | Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput[]
+  upsert?: Prisma.products_servicesUpsertWithWhereUniqueWithoutPartner_profilesInput | Prisma.products_servicesUpsertWithWhereUniqueWithoutPartner_profilesInput[]
+  createMany?: Prisma.products_servicesCreateManyPartner_profilesInputEnvelope
+  set?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  disconnect?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  delete?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  connect?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  update?: Prisma.products_servicesUpdateWithWhereUniqueWithoutPartner_profilesInput | Prisma.products_servicesUpdateWithWhereUniqueWithoutPartner_profilesInput[]
+  updateMany?: Prisma.products_servicesUpdateManyWithWhereWithoutPartner_profilesInput | Prisma.products_servicesUpdateManyWithWhereWithoutPartner_profilesInput[]
+  deleteMany?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
+}
+
+export type products_servicesUncheckedUpdateManyWithoutPartner_profilesNestedInput = {
+  create?: Prisma.XOR<Prisma.products_servicesCreateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.products_servicesCreateWithoutPartner_profilesInput[] | Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput | Prisma.products_servicesCreateOrConnectWithoutPartner_profilesInput[]
+  upsert?: Prisma.products_servicesUpsertWithWhereUniqueWithoutPartner_profilesInput | Prisma.products_servicesUpsertWithWhereUniqueWithoutPartner_profilesInput[]
+  createMany?: Prisma.products_servicesCreateManyPartner_profilesInputEnvelope
+  set?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  disconnect?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  delete?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  connect?: Prisma.products_servicesWhereUniqueInput | Prisma.products_servicesWhereUniqueInput[]
+  update?: Prisma.products_servicesUpdateWithWhereUniqueWithoutPartner_profilesInput | Prisma.products_servicesUpdateWithWhereUniqueWithoutPartner_profilesInput[]
+  updateMany?: Prisma.products_servicesUpdateManyWithWhereWithoutPartner_profilesInput | Prisma.products_servicesUpdateManyWithWhereWithoutPartner_profilesInput[]
+  deleteMany?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
 }
 
 export type products_servicesCreateNestedOneWithoutInvoice_itemsInput = {
@@ -598,8 +642,12 @@ export type products_servicesUpdateOneRequiredWithoutOrder_itemsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.products_servicesUpdateToOneWithWhereWithoutOrder_itemsInput, Prisma.products_servicesUpdateWithoutOrder_itemsInput>, Prisma.products_servicesUncheckedUpdateWithoutOrder_itemsInput>
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type products_servicesCreateNestedOneWithoutQuotation_itemsInput = {
@@ -658,6 +706,87 @@ export type products_servicesUncheckedUpdateManyWithoutTax_ratesNestedInput = {
   deleteMany?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
 }
 
+export type products_servicesCreateWithoutPartner_profilesInput = {
+  id?: string
+  sku: string
+  name: string
+  description?: string | null
+  type: string
+  unit?: string
+  stock?: number
+  price: runtime.Decimal | runtime.DecimalJsLike | number | string
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutProducts_servicesInput
+  order_items?: Prisma.order_itemsCreateNestedManyWithoutProducts_servicesInput
+  tax_rates?: Prisma.tax_ratesCreateNestedOneWithoutProducts_servicesInput
+  quotation_items?: Prisma.quotation_itemsCreateNestedManyWithoutProducts_servicesInput
+}
+
+export type products_servicesUncheckedCreateWithoutPartner_profilesInput = {
+  id?: string
+  sku: string
+  name: string
+  description?: string | null
+  type: string
+  unit?: string
+  stock?: number
+  price: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_rate_id?: string | null
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutProducts_servicesInput
+  order_items?: Prisma.order_itemsUncheckedCreateNestedManyWithoutProducts_servicesInput
+  quotation_items?: Prisma.quotation_itemsUncheckedCreateNestedManyWithoutProducts_servicesInput
+}
+
+export type products_servicesCreateOrConnectWithoutPartner_profilesInput = {
+  where: Prisma.products_servicesWhereUniqueInput
+  create: Prisma.XOR<Prisma.products_servicesCreateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput>
+}
+
+export type products_servicesCreateManyPartner_profilesInputEnvelope = {
+  data: Prisma.products_servicesCreateManyPartner_profilesInput | Prisma.products_servicesCreateManyPartner_profilesInput[]
+  skipDuplicates?: boolean
+}
+
+export type products_servicesUpsertWithWhereUniqueWithoutPartner_profilesInput = {
+  where: Prisma.products_servicesWhereUniqueInput
+  update: Prisma.XOR<Prisma.products_servicesUpdateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedUpdateWithoutPartner_profilesInput>
+  create: Prisma.XOR<Prisma.products_servicesCreateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedCreateWithoutPartner_profilesInput>
+}
+
+export type products_servicesUpdateWithWhereUniqueWithoutPartner_profilesInput = {
+  where: Prisma.products_servicesWhereUniqueInput
+  data: Prisma.XOR<Prisma.products_servicesUpdateWithoutPartner_profilesInput, Prisma.products_servicesUncheckedUpdateWithoutPartner_profilesInput>
+}
+
+export type products_servicesUpdateManyWithWhereWithoutPartner_profilesInput = {
+  where: Prisma.products_servicesScalarWhereInput
+  data: Prisma.XOR<Prisma.products_servicesUpdateManyMutationInput, Prisma.products_servicesUncheckedUpdateManyWithoutPartner_profilesInput>
+}
+
+export type products_servicesScalarWhereInput = {
+  AND?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
+  OR?: Prisma.products_servicesScalarWhereInput[]
+  NOT?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
+  id?: Prisma.UuidFilter<"products_services"> | string
+  sku?: Prisma.StringFilter<"products_services"> | string
+  name?: Prisma.StringFilter<"products_services"> | string
+  description?: Prisma.StringNullableFilter<"products_services"> | string | null
+  type?: Prisma.StringFilter<"products_services"> | string
+  unit?: Prisma.StringFilter<"products_services"> | string
+  stock?: Prisma.IntFilter<"products_services"> | number
+  price?: Prisma.DecimalFilter<"products_services"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_rate_id?: Prisma.UuidNullableFilter<"products_services"> | string | null
+  is_active?: Prisma.BoolFilter<"products_services"> | boolean
+  created_at?: Prisma.DateTimeFilter<"products_services"> | Date | string
+  updated_at?: Prisma.DateTimeFilter<"products_services"> | Date | string
+  partner_id?: Prisma.UuidFilter<"products_services"> | string
+}
+
 export type products_servicesCreateWithoutInvoice_itemsInput = {
   id?: string
   sku: string
@@ -670,9 +799,9 @@ export type products_servicesCreateWithoutInvoice_itemsInput = {
   is_active?: boolean
   created_at?: Date | string
   updated_at?: Date | string
-  partner_id: string
   order_items?: Prisma.order_itemsCreateNestedManyWithoutProducts_servicesInput
   tax_rates?: Prisma.tax_ratesCreateNestedOneWithoutProducts_servicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutProducts_servicesInput
   quotation_items?: Prisma.quotation_itemsCreateNestedManyWithoutProducts_servicesInput
 }
 
@@ -722,9 +851,9 @@ export type products_servicesUpdateWithoutInvoice_itemsInput = {
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   order_items?: Prisma.order_itemsUpdateManyWithoutProducts_servicesNestedInput
   tax_rates?: Prisma.tax_ratesUpdateOneWithoutProducts_servicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutProducts_servicesNestedInput
   quotation_items?: Prisma.quotation_itemsUpdateManyWithoutProducts_servicesNestedInput
 }
 
@@ -758,9 +887,9 @@ export type products_servicesCreateWithoutOrder_itemsInput = {
   is_active?: boolean
   created_at?: Date | string
   updated_at?: Date | string
-  partner_id: string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutProducts_servicesInput
   tax_rates?: Prisma.tax_ratesCreateNestedOneWithoutProducts_servicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutProducts_servicesInput
   quotation_items?: Prisma.quotation_itemsCreateNestedManyWithoutProducts_servicesInput
 }
 
@@ -810,9 +939,9 @@ export type products_servicesUpdateWithoutOrder_itemsInput = {
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutProducts_servicesNestedInput
   tax_rates?: Prisma.tax_ratesUpdateOneWithoutProducts_servicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutProducts_servicesNestedInput
   quotation_items?: Prisma.quotation_itemsUpdateManyWithoutProducts_servicesNestedInput
 }
 
@@ -846,10 +975,10 @@ export type products_servicesCreateWithoutQuotation_itemsInput = {
   is_active?: boolean
   created_at?: Date | string
   updated_at?: Date | string
-  partner_id: string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutProducts_servicesInput
   order_items?: Prisma.order_itemsCreateNestedManyWithoutProducts_servicesInput
   tax_rates?: Prisma.tax_ratesCreateNestedOneWithoutProducts_servicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutProducts_servicesInput
 }
 
 export type products_servicesUncheckedCreateWithoutQuotation_itemsInput = {
@@ -898,10 +1027,10 @@ export type products_servicesUpdateWithoutQuotation_itemsInput = {
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutProducts_servicesNestedInput
   order_items?: Prisma.order_itemsUpdateManyWithoutProducts_servicesNestedInput
   tax_rates?: Prisma.tax_ratesUpdateOneWithoutProducts_servicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutProducts_servicesNestedInput
 }
 
 export type products_servicesUncheckedUpdateWithoutQuotation_itemsInput = {
@@ -934,9 +1063,9 @@ export type products_servicesCreateWithoutTax_ratesInput = {
   is_active?: boolean
   created_at?: Date | string
   updated_at?: Date | string
-  partner_id: string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutProducts_servicesInput
   order_items?: Prisma.order_itemsCreateNestedManyWithoutProducts_servicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutProducts_servicesInput
   quotation_items?: Prisma.quotation_itemsCreateNestedManyWithoutProducts_servicesInput
 }
 
@@ -984,23 +1113,70 @@ export type products_servicesUpdateManyWithWhereWithoutTax_ratesInput = {
   data: Prisma.XOR<Prisma.products_servicesUpdateManyMutationInput, Prisma.products_servicesUncheckedUpdateManyWithoutTax_ratesInput>
 }
 
-export type products_servicesScalarWhereInput = {
-  AND?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
-  OR?: Prisma.products_servicesScalarWhereInput[]
-  NOT?: Prisma.products_servicesScalarWhereInput | Prisma.products_servicesScalarWhereInput[]
-  id?: Prisma.UuidFilter<"products_services"> | string
-  sku?: Prisma.StringFilter<"products_services"> | string
-  name?: Prisma.StringFilter<"products_services"> | string
-  description?: Prisma.StringNullableFilter<"products_services"> | string | null
-  type?: Prisma.StringFilter<"products_services"> | string
-  unit?: Prisma.StringFilter<"products_services"> | string
-  stock?: Prisma.IntFilter<"products_services"> | number
-  price?: Prisma.DecimalFilter<"products_services"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  tax_rate_id?: Prisma.UuidNullableFilter<"products_services"> | string | null
-  is_active?: Prisma.BoolFilter<"products_services"> | boolean
-  created_at?: Prisma.DateTimeFilter<"products_services"> | Date | string
-  updated_at?: Prisma.DateTimeFilter<"products_services"> | Date | string
-  partner_id?: Prisma.UuidFilter<"products_services"> | string
+export type products_servicesCreateManyPartner_profilesInput = {
+  id?: string
+  sku: string
+  name: string
+  description?: string | null
+  type: string
+  unit?: string
+  stock?: number
+  price: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_rate_id?: string | null
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+}
+
+export type products_servicesUpdateWithoutPartner_profilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUpdateManyWithoutProducts_servicesNestedInput
+  order_items?: Prisma.order_itemsUpdateManyWithoutProducts_servicesNestedInput
+  tax_rates?: Prisma.tax_ratesUpdateOneWithoutProducts_servicesNestedInput
+  quotation_items?: Prisma.quotation_itemsUpdateManyWithoutProducts_servicesNestedInput
+}
+
+export type products_servicesUncheckedUpdateWithoutPartner_profilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutProducts_servicesNestedInput
+  order_items?: Prisma.order_itemsUncheckedUpdateManyWithoutProducts_servicesNestedInput
+  quotation_items?: Prisma.quotation_itemsUncheckedUpdateManyWithoutProducts_servicesNestedInput
+}
+
+export type products_servicesUncheckedUpdateManyWithoutPartner_profilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  stock?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_rate_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type products_servicesCreateManyTax_ratesInput = {
@@ -1030,9 +1206,9 @@ export type products_servicesUpdateWithoutTax_ratesInput = {
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutProducts_servicesNestedInput
   order_items?: Prisma.order_itemsUpdateManyWithoutProducts_servicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutProducts_servicesNestedInput
   quotation_items?: Prisma.quotation_itemsUpdateManyWithoutProducts_servicesNestedInput
 }
 
@@ -1135,6 +1311,7 @@ export type products_servicesSelect<ExtArgs extends runtime.Types.Extensions.Int
   invoice_items?: boolean | Prisma.products_services$invoice_itemsArgs<ExtArgs>
   order_items?: boolean | Prisma.products_services$order_itemsArgs<ExtArgs>
   tax_rates?: boolean | Prisma.products_services$tax_ratesArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
   quotation_items?: boolean | Prisma.products_services$quotation_itemsArgs<ExtArgs>
   _count?: boolean | Prisma.Products_servicesCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["products_services"]>
@@ -1154,6 +1331,7 @@ export type products_servicesSelectCreateManyAndReturn<ExtArgs extends runtime.T
   updated_at?: boolean
   partner_id?: boolean
   tax_rates?: boolean | Prisma.products_services$tax_ratesArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["products_services"]>
 
 export type products_servicesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1171,6 +1349,7 @@ export type products_servicesSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   updated_at?: boolean
   partner_id?: boolean
   tax_rates?: boolean | Prisma.products_services$tax_ratesArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["products_services"]>
 
 export type products_servicesSelectScalar = {
@@ -1194,14 +1373,17 @@ export type products_servicesInclude<ExtArgs extends runtime.Types.Extensions.In
   invoice_items?: boolean | Prisma.products_services$invoice_itemsArgs<ExtArgs>
   order_items?: boolean | Prisma.products_services$order_itemsArgs<ExtArgs>
   tax_rates?: boolean | Prisma.products_services$tax_ratesArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
   quotation_items?: boolean | Prisma.products_services$quotation_itemsArgs<ExtArgs>
   _count?: boolean | Prisma.Products_servicesCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type products_servicesIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   tax_rates?: boolean | Prisma.products_services$tax_ratesArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }
 export type products_servicesIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   tax_rates?: boolean | Prisma.products_services$tax_ratesArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }
 
 export type $products_servicesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1210,6 +1392,7 @@ export type $products_servicesPayload<ExtArgs extends runtime.Types.Extensions.I
     invoice_items: Prisma.$invoice_itemsPayload<ExtArgs>[]
     order_items: Prisma.$order_itemsPayload<ExtArgs>[]
     tax_rates: Prisma.$tax_ratesPayload<ExtArgs> | null
+    partner_profiles: Prisma.$partner_profilesPayload<ExtArgs>
     quotation_items: Prisma.$quotation_itemsPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1623,6 +1806,7 @@ export interface Prisma__products_servicesClient<T, Null = never, ExtArgs extend
   invoice_items<T extends Prisma.products_services$invoice_itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.products_services$invoice_itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$invoice_itemsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   order_items<T extends Prisma.products_services$order_itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.products_services$order_itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$order_itemsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tax_rates<T extends Prisma.products_services$tax_ratesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.products_services$tax_ratesArgs<ExtArgs>>): Prisma.Prisma__tax_ratesClient<runtime.Types.Result.GetResult<Prisma.$tax_ratesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  partner_profiles<T extends Prisma.partner_profilesDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.partner_profilesDefaultArgs<ExtArgs>>): Prisma.Prisma__partner_profilesClient<runtime.Types.Result.GetResult<Prisma.$partner_profilesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   quotation_items<T extends Prisma.products_services$quotation_itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.products_services$quotation_itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$quotation_itemsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.

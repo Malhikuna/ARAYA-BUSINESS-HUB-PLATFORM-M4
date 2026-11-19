@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyJwt } from './lib/auth/jwt';
-import { isPublicPath, getAllowedRolesForPath, isRoleAuthorized } from './lib/auth/rbac';
+import type { JwtPayload } from './lib/auth/types';
+import {
+  isPublicPath,
+  getAllowedRolesForPath,
+  isRoleAuthorized,
+  isPermissionAuthorized,
+} from './lib/auth/rbac';
 import { createAuthErrorResponse, generateTraceId } from './lib/auth/response';
 
 const SERVICE_KEY_EXPECTED = process.env.SERVICE_KEY || 'araya-m4-service-key-2026';
@@ -20,6 +26,22 @@ function applyCorsHeaders(response: NextResponse, traceId: string): NextResponse
   return response;
 }
 
+function attachUserHeaders(requestHeaders: Headers, payload: JwtPayload, traceId: string): void {
+  const effectiveUserId = String(payload.user_id ?? payload.sub ?? '');
+  requestHeaders.set('x-user-id', effectiveUserId);
+  requestHeaders.set('x-user-role', String(payload.role));
+  requestHeaders.set('x-request-id', traceId);
+  if (payload.name) requestHeaders.set('x-user-name', String(payload.name));
+  if (payload.partner_id != null) requestHeaders.set('x-partner-id', String(payload.partner_id));
+  if (payload.unit_usaha_id != null) requestHeaders.set('x-unit-usaha-id', String(payload.unit_usaha_id));
+  if (payload.division) requestHeaders.set('x-user-division', String(payload.division));
+  if (payload.is_super_admin) requestHeaders.set('x-user-super-admin', 'true');
+  if (Array.isArray(payload.permissions) && payload.permissions.length > 0) {
+    requestHeaders.set('x-user-permissions', payload.permissions.join(','));
+  }
+  if (payload.email) requestHeaders.set('x-user-email', payload.email);
+}
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const traceId = request.headers.get('x-request-id') || generateTraceId();
@@ -29,8 +51,18 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return applyCorsHeaders(new NextResponse(null, { status: 204 }), traceId);
   }
 
-  // 1. Lewati pengecekan jika rute publik (misal: GET katalog produk, webhook payment gateway, openapi, docs, health)
+  // 1. Rute publik (misal: GET katalog produk, webhook, docs): tetap teruskan x-user-* bila Bearer valid disertakan
   if (isPublicPath(pathname, request.method)) {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+    if (token) {
+      const verification = await verifyJwt(token);
+      if (verification.valid && verification.payload) {
+        const requestHeaders = new Headers(request.headers);
+        attachUserHeaders(requestHeaders, verification.payload, traceId);
+        return applyCorsHeaders(NextResponse.next({ request: { headers: requestHeaders } }), traceId);
+      }
+    }
     return applyCorsHeaders(NextResponse.next(), traceId);
   }
 
@@ -92,10 +124,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { sub, user_id, role, partner_id, unit_usaha_id, email, name } = verification.payload;
-  const effectiveUserId = String(user_id ?? sub ?? '');
+  const { role } = verification.payload;
 
-  // 5. Verifikasi otorisasi peran (RBAC)
+  // 5. Verifikasi otorisasi peran (RBAC) & permission m4.* dari JWT Modul 1
   const allowedRoles = getAllowedRolesForPath(pathname);
   if (!isRoleAuthorized(role, allowedRoles)) {
     return applyCorsHeaders(
@@ -109,15 +140,21 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  if (!isPermissionAuthorized(verification.payload, pathname, request.method)) {
+    return applyCorsHeaders(
+      createAuthErrorResponse(
+        'FORBIDDEN',
+        `Hak akses permission tidak mencukupi untuk mengakses '${request.method.toUpperCase()} ${pathname}'.`,
+        traceId,
+        403
+      ),
+      traceId
+    );
+  }
+
   // 6. Teruskan konteks identitas pengguna melalui header internal
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-user-id', effectiveUserId);
-  requestHeaders.set('x-user-role', String(role));
-  requestHeaders.set('x-request-id', traceId);
-  if (name) requestHeaders.set('x-user-name', String(name));
-  if (partner_id) requestHeaders.set('x-partner-id', String(partner_id));
-  if (unit_usaha_id) requestHeaders.set('x-unit-usaha-id', String(unit_usaha_id));
-  if (email) requestHeaders.set('x-user-email', email);
+  attachUserHeaders(requestHeaders, verification.payload, traceId);
 
   const response = NextResponse.next({
     request: {

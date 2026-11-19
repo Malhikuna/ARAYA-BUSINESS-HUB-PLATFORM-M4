@@ -1,5 +1,7 @@
 import { generateTraceId, createAuthErrorResponse, createSuccessResponse } from '@/lib/auth/response';
+import { requireServicePartner } from '@/lib/auth/partner-guard';
 import {
+  getQuotationById,
   updateQuotationStatus,
   updateQuotationStatusSchema,
   QuotationNotFoundError,
@@ -19,6 +21,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (!body || typeof body !== 'object') {
       return createAuthErrorResponse('INVALID_BODY', 'Payload request body wajib berupa JSON yang valid.', traceId, 400);
+    }
+
+    const auth = await requireServicePartner(request, { traceId });
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    if (auth.partnerProfile) {
+      const existing = await getQuotationById(id);
+      if (existing.partner_id !== auth.partnerProfile.partner_id) {
+        return createAuthErrorResponse(
+          'FORBIDDEN',
+          'Anda tidak memiliki akses mengubah status penawaran partner lain.',
+          traceId,
+          403
+        );
+      }
     }
 
     const parsed = updateQuotationStatusSchema.safeParse(body);

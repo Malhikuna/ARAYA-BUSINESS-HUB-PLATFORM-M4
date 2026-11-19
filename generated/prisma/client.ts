@@ -31,8 +31,8 @@ export * from "./enums"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Connection_tests
- * const connection_tests = await prisma.connection_test.findMany()
+ * // Fetch zero or more Partner_profiles
+ * const partner_profiles = await prisma.partner_profiles.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -42,10 +42,15 @@ export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts exten
 export { Prisma }
 
 /**
- * Model connection_test
- * 
+ * Model partner_profiles
+ * Fallback profil Partner M3 untuk verifikasi tipe_usaha dan is_verified (PRO-305)
  */
-export type connection_test = Prisma.connection_testModel
+export type partner_profiles = Prisma.partner_profilesModel
+/**
+ * Model service_requests
+ * Permintaan Jasa dari Katalog M5 untuk dibuatkan Penawaran / Quotation (PRO-302)
+ */
+export type service_requests = Prisma.service_requestsModel
 /**
  * Model customers
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

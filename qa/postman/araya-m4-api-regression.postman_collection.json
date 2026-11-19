@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "araya-m4-api-regression",
     "name": "Araya M4 API Regression",
-    "description": "Smoke and regression checks for public documentation and authentication contracts.",
+    "description": "Regression suite for Modul 4: Public OpenAPI/Swagger docs, Auth/RBAC, M4-US1 (Products & Customers), and M4-US2 (Quotations).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -104,6 +104,311 @@
             "exec": [
               "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
               "pm.test('returns admin profile', function () { var body = pm.response.json(); pm.expect(body.data.role).to.eql('Admin'); pm.expect(String(body.data.user_id)).to.eql('1'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US1: List products returns paginated envelope",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('returns standard list envelope', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.data).to.be.an('array'); pm.expect(body.meta).to.be.an('object'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US1: Create service product auto-generates SRV- SKU (TB-06)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Jasa Konsultasi Newman {{$timestamp}}\",\n  \"type\": \"SERVICE\",\n  \"unit\": \"Paket\",\n  \"price\": 75000\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('auto-generates SRV- SKU and saves id', function () {",
+              "  var body = pm.response.json();",
+              "  pm.expect(body.success).to.eql(true);",
+              "  pm.expect(body.data.sku).to.match(/^SRV-/);",
+              "  pm.environment.set('createdProductId', body.data.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US1: Reject incomplete product payload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 400', function () { pm.response.to.have.status(400); });",
+              "pm.test('returns VALIDATION_ERROR', function () { pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US1: Create valid customer",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var ts = Date.now();",
+              "pm.environment.set('testCustEmail', 'newman.' + ts + '@example.com');",
+              "pm.environment.set('testCustPhone', '0812' + String(ts).slice(-8));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('saves createdCustomerId', function () {",
+              "  var body = pm.response.json();",
+              "  pm.expect(body.success).to.eql(true);",
+              "  pm.environment.set('createdCustomerId', body.data.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"PT Newman Regresi\",\n  \"email\": \"{{testCustEmail}}\",\n  \"phone\": \"{{testCustPhone}}\",\n  \"address\": \"Jl. Tamansari No. 1, Bandung\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/customers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "customers"]
+        }
+      }
+    },
+    {
+      "name": "US1: Reject duplicate customer email with 409",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"PT Duplikat\",\n  \"email\": \"{{testCustEmail}}\",\n  \"phone\": \"089988776655\",\n  \"address\": \"Bandung\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/customers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "customers"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 409', function () { pm.response.to.have.status(409); });",
+              "pm.test('returns duplicate error envelope', function () { pm.expect(pm.response.json().success).to.eql(false); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US2: Reject quotation with empty items",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"{{createdCustomerId}}\",\n  \"items\": []\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/quotations",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "quotations"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 400 or 422', function () { pm.expect([400, 422]).to.include(pm.response.code); });",
+              "pm.test('returns error envelope', function () { pm.expect(pm.response.json().success).to.eql(false); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US2: Create valid quotation with PNW- number and PENDING_APPROVAL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"{{createdCustomerId}}\",\n  \"items\": [\n    {\n      \"product_service_id\": \"{{createdProductId}}\",\n      \"quantity\": 2,\n      \"unit_price\": 75000,\n      \"tax_rate\": 11\n    }\n  ],\n  \"notes\": \"Pengujian regresi Newman M4-US2\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/quotations",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "quotations"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('returns PNW- number and PENDING_APPROVAL status', function () {",
+              "  var body = pm.response.json();",
+              "  pm.expect(body.success).to.eql(true);",
+              "  pm.expect(body.data.quotation_number).to.match(/^PNW-/);",
+              "  pm.expect(body.data.status).to.eql('PENDING_APPROVAL');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "US2: List quotations returns paginated envelope",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/m4/v1/quotations",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "m4", "v1", "quotations"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('returns standard list envelope', function () { var body = pm.response.json(); pm.expect(body.success).to.eql(true); pm.expect(body.data).to.be.an('array'); });"
             ]
           }
         }

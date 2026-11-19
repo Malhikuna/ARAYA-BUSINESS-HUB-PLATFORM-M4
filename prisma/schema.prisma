@@ -7,23 +7,62 @@ datasource db {
   provider = "postgresql"
 }
 
-model connection_test {
-  id         Int      @id @default(autoincrement())
-  checked_at DateTime @default(now()) @db.Timestamptz(3)
+/// Fallback profil Partner M3 untuk verifikasi tipe_usaha dan is_verified (PRO-305)
+model partner_profiles {
+  partner_id        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String              @unique @db.Uuid
+  tipe_usaha        String              @db.VarChar(20)
+  is_verified       Boolean             @default(false)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @db.Timestamptz(6)
+  products_services products_services[]
+  quotations        quotations[]
+  orders            orders[]
+  invoices          invoices[]
+  service_requests  service_requests[]
+
+  @@index([user_id], map: "idx_partner_profiles_user_id")
+  @@index([is_verified], map: "idx_partner_profiles_is_verified")
+}
+
+/// Permintaan Jasa dari Katalog M5 untuk dibuatkan Penawaran / Quotation (PRO-302)
+model service_requests {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partner_id       String           @db.Uuid
+  customer_id      String?          @db.Uuid
+  customer_user_id String?          @db.Uuid
+  customer_name    String           @db.VarChar(150)
+  customer_email   String           @db.VarChar(255)
+  customer_phone   String           @db.VarChar(20)
+  title            String           @db.VarChar(200)
+  description      String?
+  status           String           @default("baru") @db.VarChar(30)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime         @default(now()) @db.Timestamptz(6)
+  partner_profiles partner_profiles @relation(fields: [partner_id], references: [partner_id], onDelete: Restrict, onUpdate: Cascade, map: "fk_service_requests_partner")
+  customers        customers?       @relation(fields: [customer_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_service_requests_customer")
+  quotations       quotations?
+
+  @@index([partner_id], map: "idx_service_requests_partner_id")
+  @@index([customer_user_id], map: "idx_service_requests_customer_user_id")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model customers {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String       @db.VarChar(150)
-  email      String       @unique @db.VarChar(255)
-  phone      String       @unique @db.VarChar(20)
-  address    String?
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at DateTime     @default(now()) @db.Timestamptz(6)
-  invoices   invoices[]
-  orders     orders[]
-  quotations quotations[]
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?            @db.Uuid
+  name             String             @db.VarChar(150)
+  email            String             @unique @db.VarChar(255)
+  phone            String             @unique @db.VarChar(20)
+  address          String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  invoices         invoices[]
+  orders           orders[]
+  quotations       quotations[]
+  service_requests service_requests[]
+
+  @@index([user_id], map: "idx_customers_user_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -81,10 +120,11 @@ model invoices {
   snap_token      String?
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
-  invoice_items   invoice_items[]
-  customers       customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_invoices_customer")
-  orders          orders?         @relation(fields: [order_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_invoices_order")
-  quotations      quotations?     @relation(fields: [quotation_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_invoices_quotation")
+  invoice_items    invoice_items[]
+  customers        customers        @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_invoices_customer")
+  orders           orders?          @relation(fields: [order_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_invoices_order")
+  quotations       quotations?      @relation(fields: [quotation_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_invoices_quotation")
+  partner_profiles partner_profiles @relation(fields: [partner_id], references: [partner_id], onDelete: Restrict, onUpdate: Cascade, map: "fk_invoices_partner")
 
   @@index([customer_id], map: "idx_invoices_customer")
   @@index([partner_id], map: "idx_invoices_partner")
@@ -127,9 +167,11 @@ model orders {
   status_updated_at DateTime      @default(now()) @db.Timestamptz(6)
   invoices          invoices?
   order_items       order_items[]
-  customers         customers     @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_orders_customer")
+  customers         customers        @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_orders_customer")
+  partner_profiles  partner_profiles @relation(fields: [partner_id], references: [partner_id], onDelete: Restrict, onUpdate: Cascade, map: "fk_orders_partner")
 
   @@index([customer_id], map: "idx_orders_customer")
+  @@index([partner_id], map: "idx_orders_partner_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -147,13 +189,15 @@ model products_services {
   is_active       Boolean           @default(true)
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   updated_at      DateTime          @default(now()) @db.Timestamptz(6)
-  partner_id      String            @db.Uuid
-  invoice_items   invoice_items[]
-  order_items     order_items[]
-  tax_rates       tax_rates?        @relation(fields: [tax_rate_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_products_tax_rate")
-  quotation_items quotation_items[]
+  partner_id       String            @db.Uuid
+  invoice_items    invoice_items[]
+  order_items      order_items[]
+  tax_rates        tax_rates?        @relation(fields: [tax_rate_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_products_tax_rate")
+  partner_profiles partner_profiles  @relation(fields: [partner_id], references: [partner_id], onDelete: Restrict, onUpdate: Cascade, map: "fk_products_services_partner")
+  quotation_items  quotation_items[]
 
   @@index([tax_rate_id], map: "idx_products_tax_rate")
+  @@index([partner_id], map: "idx_products_services_partner_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -181,25 +225,31 @@ model quotation_items {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model quotations {
-  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  quotation_number String            @unique @db.VarChar(30)
-  customer_id      String            @db.Uuid
-  partner_id       String            @db.Uuid
-  quotation_date   DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
-  valid_until      DateTime?         @db.Date
-  status           String            @default("PENDING_APPROVAL") @db.VarChar(30)
-  subtotal         Decimal           @default(0) @db.Decimal(15, 2)
-  discount_amount  Decimal           @default(0) @db.Decimal(15, 2)
-  tax_amount       Decimal           @default(0) @db.Decimal(15, 2)
-  total_amount     Decimal           @default(0) @db.Decimal(15, 2)
-  notes            String?
-  created_at       DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime          @default(now()) @db.Timestamptz(6)
-  invoices         invoices?
-  quotation_items  quotation_items[]
-  customers        customers         @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_quotations_customer")
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quotation_number   String            @unique @db.VarChar(30)
+  service_request_id String?           @unique @db.Uuid
+  customer_id        String            @db.Uuid
+  partner_id         String            @db.Uuid
+  quotation_date     DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
+  valid_until        DateTime?         @db.Date
+  status             String            @default("draf") @db.VarChar(30)
+  sent_at            DateTime?         @db.Timestamptz(6)
+  approved_at        DateTime?         @db.Timestamptz(6)
+  subtotal           Decimal           @default(0) @db.Decimal(15, 2)
+  discount_amount    Decimal           @default(0) @db.Decimal(15, 2)
+  tax_amount         Decimal           @default(0) @db.Decimal(15, 2)
+  total_amount       Decimal           @default(0) @db.Decimal(15, 2)
+  notes              String?
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime          @default(now()) @db.Timestamptz(6)
+  invoices           invoices?
+  quotation_items    quotation_items[]
+  customers          customers         @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_quotations_customer")
+  partner_profiles   partner_profiles  @relation(fields: [partner_id], references: [partner_id], onDelete: Restrict, onUpdate: Cascade, map: "fk_quotations_partner")
+  service_requests   service_requests? @relation(fields: [service_request_id], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "fk_quotations_service_request")
 
   @@index([customer_id], map: "idx_quotations_customer")
+  @@index([partner_id], map: "idx_quotations_partner_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
