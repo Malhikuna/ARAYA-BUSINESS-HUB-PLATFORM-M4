@@ -12,6 +12,7 @@ import type { AuthUser } from './types';
 export interface PartnerGuardOptions {
   requiredTipeUsaha?: PartnerBusinessType;
   requireAuth?: boolean;
+  allowCustomer?: boolean;
   traceId?: string;
   m3ApiUrl?: string;
   fetchImpl?: typeof fetch;
@@ -21,6 +22,7 @@ export type AuthorizePartnerResult =
   | {
       ok: true;
       isAdmin: boolean;
+      isCustomer: boolean;
       authUser: AuthUser | null;
       partnerProfile: ResolvedPartnerProfile | null;
     }
@@ -36,6 +38,10 @@ export function isAdminRole(role: string): boolean {
 
 export function isPartnerRole(role: string): boolean {
   return role.trim().toLowerCase() === 'partner';
+}
+
+export function isCustomerRole(role: string): boolean {
+  return role.trim().toLowerCase() === 'customer';
 }
 
 /**
@@ -68,11 +74,15 @@ export async function authorizePartnerOrAdmin(
         response: createAuthErrorResponse('UNAUTHENTICATED', 'Autentikasi diperlukan.', traceId, 401),
       };
     }
-    return { ok: true, isAdmin: false, authUser: null, partnerProfile: null };
+    return { ok: true, isAdmin: false, isCustomer: false, authUser: null, partnerProfile: null };
   }
 
   if (isAdminRole(user.role)) {
-    return { ok: true, isAdmin: true, authUser: user, partnerProfile: null };
+    return { ok: true, isAdmin: true, isCustomer: false, authUser: user, partnerProfile: null };
+  }
+
+  if (options.allowCustomer && isCustomerRole(user.role)) {
+    return { ok: true, isAdmin: false, isCustomer: true, authUser: user, partnerProfile: null };
   }
 
   if (!isPartnerRole(user.role)) {
@@ -107,7 +117,7 @@ export async function authorizePartnerOrAdmin(
       };
     }
 
-    return { ok: true, isAdmin: false, authUser: user, partnerProfile };
+    return { ok: true, isAdmin: false, isCustomer: false, authUser: user, partnerProfile };
   } catch (error) {
     if (error instanceof PartnerForbiddenError) {
       return {

@@ -1,89 +1,37 @@
-import { z } from 'zod';
 import { prisma } from '../prisma';
 import { calculateQuotationTotals, roundHalfUp } from './calculation.service';
 import { partnerExistsInDb, SEEDED_PARTNER_JASA_ID } from './partner-profile.service';
+import {
+  createQuotationSchema,
+  QuotationConflictError,
+  QuotationForbiddenError,
+  QuotationNotFoundError,
+  QuotationValidationError,
+  InvalidQuotationStatusError,
+  serializeQuotationFinancials,
+  type QuotationStatus,
+} from './quotation.schema';
 
 export { calculateQuotationTotals, roundHalfUp };
+export * from './quotation.schema';
 
-export type QuotationStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+const QUOTATION_INCLUDE = {
+  customers: true,
+  service_requests: {
+    select: { id: true, title: true, status: true, customer_user_id: true },
+  },
+  quotation_items: {
+    include: {
+      products_services: true,
+    },
+  },
+} as const;
 
-export const VALID_QUOTATION_STATUSES: QuotationStatus[] = [
-  'DRAFT',
-  'PENDING_APPROVAL',
-  'APPROVED',
-  'REJECTED',
-];
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
-export const quotationItemSchema = z.object({
-  product_service_id: z.string().uuid('ID produk/jasa wajib berupa UUID yang valid.'),
-  description: z.string().trim().max(1000).nullable().optional(),
-  quantity: z.coerce.number().positive('Kuantitas item harus lebih besar dari 0.'),
-  unit_price: z.coerce.number().nonnegative('Harga satuan tidak boleh negatif.'),
-  discount_amount: z.coerce.number().nonnegative('Diskon item tidak boleh negatif.').optional().default(0),
-  tax_rate: z.coerce.number().min(0, 'Tarif pajak minimal 0%').max(100, 'Tarif pajak maksimal 100%').optional().default(0),
-});
-
-export const createQuotationSchema = z.object({
-  customer_id: z.string().uuid('ID pelanggan wajib berupa UUID yang valid.'),
-  partner_id: z
-    .string()
-    .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'ID partner harus berupa UUID yang valid.')
-    .optional(),
-  quotation_date: z.string().optional(),
-  valid_until: z.string().optional(),
-  status: z
-    .enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'] as const)
-    .optional()
-    .default('PENDING_APPROVAL'),
-  notes: z.string().trim().max(2000).nullable().optional(),
-  items: z.array(quotationItemSchema).min(1, 'Item penawaran tidak boleh kosong. Minimal satu produk/jasa wajib disertakan.'),
-});
-
-export const updateQuotationStatusSchema = z.object({
-  status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'] as const, {
-    message: "Status harus bernilai 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', atau 'REJECTED'.",
-  }),
-});
-
-export type CreateQuotationInput = z.infer<typeof createQuotationSchema>;
-
-export class EmptyQuotationItemsError extends Error {
-  code = 'EMPTY_QUOTATION_ITEMS';
-  constructor() {
-    super('Item penawaran tidak boleh kosong. Minimal satu produk/jasa wajib disertakan.');
-    this.name = 'EmptyQuotationItemsError';
-  }
-}
-
-export class QuotationValidationError extends Error {
-  code = 'VALIDATION_ERROR';
-  constructor(message: string, public fields: Record<string, string>) {
-    super(message);
-    this.name = 'QuotationValidationError';
-  }
-}
-
-export class QuotationNotFoundError extends Error {
-  code = 'QUOTATION_NOT_FOUND';
-  constructor(id: string) {
-    super(`Penawaran dengan ID '${id}' tidak ditemukan.`);
-    this.name = 'QuotationNotFoundError';
-  }
-}
-
-export class InvalidQuotationStatusError extends Error {
-  code = 'INVALID_QUOTATION_STATUS';
-  constructor(message: string) {
-    super(message);
-    this.name = 'InvalidQuotationStatusError';
-  }
-}
-
-export async function generateQuotationNumber(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]): Promise<string> {
+export async function generateQuotationNumber(tx: PrismaTx): Promise<string> {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const period = `${year}${month}`;
+  const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const seq = await tx.document_sequences.upsert({
     where: {
@@ -92,25 +40,18 @@ export async function generateQuotationNumber(tx: Parameters<Parameters<typeof p
         period,
       },
     },
-    update: {
-      last_number: { increment: 1 },
-      updated_at: new Date(),
-    },
-    create: {
-      document_type: 'QUOTATION',
-      period,
-      last_number: 1,
-    },
+    update: { last_number: { increment: 1 }, updated_at: new Date() },
+    create: { document_type: 'QUOTATION', period, last_number: 1 },
   });
 
-  const paddedSequence = String(seq.last_number).padStart(4, '0');
-  return `PNW-${period}-${paddedSequence}`;
+  return `PNW-${period}-${String(seq.last_number).padStart(4, '0')}`;
 }
 
 export async function getQuotations(query: {
   search?: string;
   status?: string;
   customer_id?: string;
+  customer_user_id?: string;
   partner_id?: string;
   page?: number;
   limit?: number;
@@ -120,7 +61,6 @@ export async function getQuotations(query: {
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = {};
-
   if (query.search) {
     const s = query.search.trim();
     where.OR = [
@@ -128,10 +68,12 @@ export async function getQuotations(query: {
       { customers: { name: { contains: s, mode: 'insensitive' as const } } },
     ];
   }
-
-  if (query.status) where.status = query.status.toUpperCase();
+  if (query.status) where.status = query.status.trim().toLowerCase();
   if (query.customer_id) where.customer_id = query.customer_id;
   if (query.partner_id) where.partner_id = query.partner_id;
+  if (query.customer_user_id) {
+    where.customers = { user_id: query.customer_user_id };
+  }
 
   const [items, total] = await Promise.all([
     prisma.quotations.findMany({
@@ -139,15 +81,10 @@ export async function getQuotations(query: {
       skip,
       take: limit,
       include: {
-        customers: {
-          select: { id: true, name: true, email: true, phone: true },
-        },
+        customers: { select: { id: true, user_id: true, name: true, email: true, phone: true } },
+        service_requests: { select: { id: true, title: true, status: true } },
         quotation_items: {
-          include: {
-            products_services: {
-              select: { id: true, sku: true, name: true, type: true },
-            },
-          },
+          include: { products_services: { select: { id: true, sku: true, name: true, type: true } } },
         },
       },
       orderBy: { created_at: 'desc' },
@@ -156,13 +93,8 @@ export async function getQuotations(query: {
   ]);
 
   return {
-    items,
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit) || 1,
-    },
+    items: items.map((item) => serializeQuotationFinancials(item)),
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
   };
 }
 
@@ -170,21 +102,78 @@ export async function getQuotationById(id: string) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const quotation = await prisma.quotations.findFirst({
     where: isUuid ? { OR: [{ id }, { quotation_number: id }] } : { quotation_number: id },
-    include: {
-      customers: true,
-      quotation_items: {
-        include: {
-          products_services: true,
-        },
-      },
-    },
+    include: QUOTATION_INCLUDE,
   });
 
   if (!quotation) {
     throw new QuotationNotFoundError(id);
   }
+  return serializeQuotationFinancials(quotation);
+}
 
-  return quotation;
+async function resolveServiceRequestForQuotation(
+  tx: PrismaTx,
+  serviceRequestId: string,
+  partnerId: string,
+  explicitCustomerId?: string
+): Promise<string> {
+  const req = await tx.service_requests.findUnique({
+    where: { id: serviceRequestId },
+    include: { quotations: { select: { id: true, quotation_number: true } } },
+  });
+
+  if (!req) {
+    throw new QuotationValidationError('Permintaan jasa tidak ditemukan.', {
+      service_request_id: `Permintaan jasa dengan ID '${serviceRequestId}' tidak terdaftar.`,
+    });
+  }
+  if (req.partner_id !== partnerId) {
+    throw new QuotationForbiddenError('Anda tidak memiliki akses ke permintaan jasa partner lain.');
+  }
+  if (req.quotations || req.status !== 'baru') {
+    throw new QuotationConflictError(
+      `Permintaan jasa ini sudah memiliki penawaran atau berstatus '${req.status}'.`
+    );
+  }
+
+  if (explicitCustomerId) {
+    if (req.customer_id && req.customer_id !== explicitCustomerId) {
+      throw new QuotationValidationError('Pelanggan tidak sesuai dengan permintaan jasa.', {
+        customer_id: 'customer_id tidak cocok dengan pelanggan pada permintaan jasa.',
+      });
+    }
+    return explicitCustomerId;
+  }
+
+  if (req.customer_id) return req.customer_id;
+
+  const existing = await tx.customers.findFirst({
+    where: {
+      OR: [
+        { email: req.customer_email.toLowerCase() },
+        { phone: req.customer_phone },
+      ],
+    },
+  });
+  if (existing) {
+    if (!existing.user_id && req.customer_user_id) {
+      await tx.customers.update({
+        where: { id: existing.id },
+        data: { user_id: req.customer_user_id, updated_at: new Date() },
+      });
+    }
+    return existing.id;
+  }
+
+  const created = await tx.customers.create({
+    data: {
+      user_id: req.customer_user_id,
+      name: req.customer_name,
+      email: req.customer_email.toLowerCase(),
+      phone: req.customer_phone,
+    },
+  });
+  return created.id;
 }
 
 export async function createQuotation(rawInput: unknown, authPartnerId?: string) {
@@ -205,50 +194,73 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
     });
   }
 
-  // 1. Verifikasi Pelanggan
-  const customer = await prisma.customers.findUnique({
-    where: { id: data.customer_id },
-  });
-  if (!customer) {
-    throw new QuotationValidationError('Pelanggan tidak ditemukan.', {
-      customer_id: `Pelanggan dengan ID '${data.customer_id}' tidak ditemukan.`,
-    });
-  }
-
-  // 2. Verifikasi Keberadaan Seluruh Produk/Jasa
+  // Validasi seluruh item wajib berupa Jasa aktif (type = 'SERVICE', is_active = true) milik Partner
   const productIds = Array.from(new Set(data.items.map((it) => it.product_service_id)));
   const existingProducts = await prisma.products_services.findMany({
     where: { id: { in: productIds } },
-    select: { id: true, name: true, is_active: true },
+    select: { id: true, name: true, type: true, is_active: true, partner_id: true },
   });
-  const foundProductIds = new Set(existingProducts.map((p) => p.id));
-  const missingProductIds = productIds.filter((id) => !foundProductIds.has(id));
-
-  if (missingProductIds.length > 0) {
+  const productMap = new Map(existingProducts.map((p) => [p.id, p]));
+  const missingIds = productIds.filter((id) => !productMap.has(id));
+  if (missingIds.length > 0) {
     throw new QuotationValidationError('Produk atau jasa tidak ditemukan.', {
-      product_service_id: `Produk/jasa dengan ID '${missingProductIds.join(', ')}' tidak terdaftar di sistem.`,
+      product_service_id: `Item dengan ID '${missingIds.join(', ')}' tidak terdaftar di sistem.`,
     });
   }
 
-  // 3. Kalkulasi Finansial (Round-Half-Up, Non-Float) via Calculation Service (PRO-48)
+  const invalidItems = existingProducts.filter(
+    (p) => p.type !== 'SERVICE' || !p.is_active || p.partner_id !== partnerId
+  );
+  if (invalidItems.length > 0) {
+    throw new QuotationValidationError(
+      'Penawaran hanya dapat menggunakan item Jasa aktif milik Partner.',
+      {
+        items: `Item '${invalidItems.map((i) => i.name).join(', ')}' bukan Jasa aktif milik Partner.`,
+      }
+    );
+  }
+
   const totals = calculateQuotationTotals(data.items);
 
-  // 4. Simpan dalam Prisma Transaction Atomik
-  return prisma.$transaction(async (tx) => {
-    const quotationNumber = await generateQuotationNumber(tx);
+  const created = await prisma.$transaction(async (tx) => {
+    let customerId = data.customer_id;
 
+    if (data.service_request_id) {
+      customerId = await resolveServiceRequestForQuotation(
+        tx,
+        data.service_request_id,
+        partnerId,
+        customerId
+      );
+    }
+
+    if (!customerId) {
+      throw new QuotationValidationError('Pelanggan tidak ditemukan.', {
+        customer_id: 'ID pelanggan wajib diisi.',
+      });
+    }
+
+    const customer = await tx.customers.findUnique({ where: { id: customerId } });
+    if (!customer) {
+      throw new QuotationValidationError('Pelanggan tidak ditemukan.', {
+        customer_id: `Pelanggan dengan ID '${customerId}' tidak ditemukan.`,
+      });
+    }
+
+    const quotationNumber = await generateQuotationNumber(tx);
     const quotation = await tx.quotations.create({
       data: {
         quotation_number: quotationNumber,
-        customer_id: data.customer_id,
+        service_request_id: data.service_request_id ?? null,
+        customer_id: customerId,
         partner_id: partnerId,
         quotation_date: data.quotation_date ? new Date(data.quotation_date) : new Date(),
         valid_until: data.valid_until ? new Date(data.valid_until) : null,
-        status: data.status || 'PENDING_APPROVAL',
-        subtotal: totals.subtotal,
-        discount_amount: totals.discount_amount,
-        tax_amount: totals.tax_amount,
-        total_amount: totals.total_amount,
+        status: data.service_request_id ? 'draf' : data.status || 'draf',
+        subtotal: totals.formatted.subtotal,
+        discount_amount: totals.formatted.total_discount,
+        tax_amount: totals.formatted.tax_total,
+        total_amount: totals.formatted.grand_total,
         notes: data.notes ?? null,
         quotation_items: {
           create: totals.calculatedItems.map((it) => ({
@@ -264,36 +276,45 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
           })),
         },
       },
-      include: {
-        customers: true,
-        quotation_items: {
-          include: {
-            products_services: true,
-          },
-        },
-      },
+      include: QUOTATION_INCLUDE,
     });
+
+    if (data.service_request_id) {
+      const updatedReq = await tx.service_requests.updateMany({
+        where: { id: data.service_request_id, status: 'baru' },
+        data: { status: 'sudah_ditawarkan', customer_id: customerId, updated_at: new Date() },
+      });
+      if (updatedReq.count === 0) {
+        throw new QuotationConflictError('Permintaan jasa sudah dibuatkan penawaran.');
+      }
+    }
 
     return quotation;
   });
+
+  return serializeQuotationFinancials(created);
 }
 
 export async function updateQuotationStatus(id: string, newStatus: QuotationStatus) {
   const quotation = await getQuotationById(id);
 
-  if (quotation.status === 'APPROVED' && newStatus !== 'APPROVED') {
-    throw new InvalidQuotationStatusError('Penawaran yang sudah berstatus APPROVED tidak dapat diubah lagi.');
+  if (quotation.status === 'disetujui' && newStatus !== 'disetujui') {
+    throw new InvalidQuotationStatusError(
+      'Penawaran yang sudah berstatus disetujui tidak dapat diubah lagi.'
+    );
   }
 
-  return prisma.quotations.update({
+  const now = new Date();
+  const updated = await prisma.quotations.update({
     where: { id: quotation.id },
     data: {
       status: newStatus,
-      updated_at: new Date(),
+      ...(newStatus === 'terkirim' && !quotation.sent_at ? { sent_at: now } : {}),
+      ...(newStatus === 'disetujui' && !quotation.approved_at ? { approved_at: now } : {}),
+      updated_at: now,
     },
-    include: {
-      customers: true,
-      quotation_items: true,
-    },
+    include: QUOTATION_INCLUDE,
   });
+
+  return serializeQuotationFinancials(updated);
 }

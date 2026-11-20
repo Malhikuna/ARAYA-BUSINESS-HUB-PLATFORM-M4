@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { generateTraceId, createAuthErrorResponse, createSuccessResponse } from '@/lib/auth/response';
 import { requireServicePartner } from '@/lib/auth/partner-guard';
+import { resolveDbUuid } from '@/lib/services/partner-profile.service';
 import {
   getQuotations,
   createQuotation,
   QuotationValidationError,
+  QuotationConflictError,
+  QuotationForbiddenError,
   EmptyQuotationItemsError,
 } from '@/lib/services/quotation.service';
 
@@ -12,7 +15,7 @@ export async function GET(request: Request) {
   const traceId = request.headers.get('x-request-id') || generateTraceId();
 
   try {
-    const auth = await requireServicePartner(request, { traceId });
+    const auth = await requireServicePartner(request, { traceId, allowCustomer: true });
     if (!auth.ok) {
       return auth.response;
     }
@@ -24,10 +27,22 @@ export async function GET(request: Request) {
     const partner_id = auth.partnerProfile
       ? auth.partnerProfile.partner_id
       : searchParams.get('partner_id') || undefined;
+    const customer_user_id =
+      auth.isCustomer && auth.authUser
+        ? resolveDbUuid(auth.authUser.userId, 'user')
+        : undefined;
     const page = searchParams.get('page') ? Number(searchParams.get('page')) : undefined;
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
 
-    const result = await getQuotations({ search, status, customer_id, partner_id, page, limit });
+    const result = await getQuotations({
+      search,
+      status,
+      customer_id,
+      customer_user_id,
+      partner_id,
+      page,
+      limit,
+    });
 
     return NextResponse.json(
       {
@@ -67,6 +82,14 @@ export async function POST(request: Request) {
       return createAuthErrorResponse(error.code, error.message, traceId, 422, {
         items: error.message,
       });
+    }
+
+    if (error instanceof QuotationConflictError) {
+      return createAuthErrorResponse(error.code, error.message, traceId, 409);
+    }
+
+    if (error instanceof QuotationForbiddenError) {
+      return createAuthErrorResponse(error.code, error.message, traceId, 403);
     }
 
     if (error instanceof QuotationValidationError) {
