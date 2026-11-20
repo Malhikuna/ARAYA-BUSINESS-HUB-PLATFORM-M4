@@ -29,7 +29,7 @@ export const DEV_ROLE_PROFILES: Record<DevUserRole, DevRoleProfile> = {
     roleLabel: "Partner Produk",
     catalogMenuName: "Produk",
     businessMode: "Produk",
-    description: "Kelola Produk, Penawaran, Invoice & Order",
+    description: "Kelola Produk, Pelanggan, Invoice & Order",
   },
   PARTNER_SERVICE: {
     id: "PARTNER_SERVICE",
@@ -37,7 +37,7 @@ export const DEV_ROLE_PROFILES: Record<DevUserRole, DevRoleProfile> = {
     roleLabel: "Partner Jasa",
     catalogMenuName: "Jasa",
     businessMode: "Jasa",
-    description: "Kelola Jasa, Penawaran, Invoice & Order",
+    description: "Kelola Jasa, Pelanggan, Penawaran, Invoice & Order",
   },
 };
 
@@ -114,4 +114,3 @@ export function getCustomerPartnerInfo(customerName: string): CustomerPartnerInf
     partnerType: "Produk",
   };
 }
-

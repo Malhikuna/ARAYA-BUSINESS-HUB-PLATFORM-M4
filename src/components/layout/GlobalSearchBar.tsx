@@ -21,6 +21,7 @@ const QUICK_MENU_LINKS: QuickMenuLink[] = [
   { id: "nav-pelanggan-tambah", label: "Tambah pelanggan baru", subtitle: "Formulir | Pendaftaran pelanggan baru", href: "/pelanggan/tambah", category: "Pelanggan", keywords: "tambah buat registrasi pelanggan baru" },
   { id: "nav-produk", label: "Katalog produk & jasa", subtitle: "Katalog | Item fisik & layanan jasa", href: "/produk", category: "Katalog", keywords: "katalog produk jasa daftar item tarif stok" },
   { id: "nav-produk-tambah", label: "Tambah item katalog baru", subtitle: "Formulir | Penambahan katalog baru", href: "/produk/tambah", category: "Katalog", keywords: "tambah buat produk jasa katalog baru" },
+  // Catatan: Pintasan /permintaan ditunda sementara hingga halaman src/app/permintaan siap
   { id: "nav-penawaran", label: "Penawaran penjualan", subtitle: "Transaksi | Dokumen penawaran harga", href: "/penawaran", category: "Transaksi", keywords: "penawaran quotation surat penawaran harga" },
   { id: "nav-invoice", label: "Invoice & penagihan", subtitle: "Transaksi | Faktur & status pembayaran", href: "/invoice", category: "Transaksi", keywords: "invoice tagihan faktur bayar piutang" },
   { id: "nav-order", label: "Order penjualan", subtitle: "Transaksi | Pesanan & pengiriman barang", href: "/order", category: "Transaksi", keywords: "order pesanan surat jalan sales order" },
@@ -48,9 +49,14 @@ export function GlobalSearchBar() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const matchedMenus = useMemo(() => {
-    const allowedLinks = isDev && activeRole === "ADMIN"
-      ? QUICK_MENU_LINKS.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
-      : QUICK_MENU_LINKS;
+    const baseLinks = QUICK_MENU_LINKS.filter((l) => !l.href.startsWith("/permintaan"));
+    // Konsisten pada mode dev maupun non-dev: peran activeRole (ADMIN saat !isDev) menentukan tautan aktif
+    const allowedLinks =
+      activeRole === "ADMIN"
+        ? baseLinks.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
+        : activeRole === "PARTNER_PRODUCT"
+        ? baseLinks.filter((l) => !l.href.startsWith("/penawaran"))
+        : baseLinks;
 
     if (!normalizedQuery) return allowedLinks.slice(0, 5);
 
@@ -66,16 +72,16 @@ export function GlobalSearchBar() {
 
     let savedList: Customer[] = [];
     try { savedList = JSON.parse(rawSaved); } catch { savedList = []; }
-    const allCustomers = [
+    const allCustomers: Customer[] = [
       ...savedList,
-      ...initialCustomers.filter((c) => !savedList.some((s) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase())),
+      ...initialCustomers.filter((c: Customer) => !savedList.some((s: Customer) => s.id === c.id || s.name.toLowerCase() === c.name.toLowerCase())),
     ];
     const roleFiltered = activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE"
-      ? allCustomers.filter((c) => getCustomerPartnerInfo(c.name).partnerRole === activeRole)
+      ? allCustomers.filter((c: Customer) => getCustomerPartnerInfo(c.name).partnerRole === activeRole)
       : allCustomers;
 
     const customerMatches: QuickMenuLink[] = roleFiltered
-      .filter((c) => {
+      .filter((c: Customer) => {
         const pInfo = getCustomerPartnerInfo(c.name);
         return (
           c.name.toLowerCase().includes(normalizedQuery) ||
@@ -84,7 +90,7 @@ export function GlobalSearchBar() {
           (activeRole === "ADMIN" && pInfo.partnerName.toLowerCase().includes(normalizedQuery))
         );
       })
-      .map((c) => {
+      .map((c: Customer) => {
         const pInfo = getCustomerPartnerInfo(c.name);
         return {
           id: `cust-${c.id}`,
@@ -118,7 +124,7 @@ export function GlobalSearchBar() {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-md mx-6 hidden sm:block">
+    <div ref={containerRef} className="relative flex-1 min-w-0 max-w-45 md:max-w-60 lg:max-w-md mx-2 sm:mx-3 md:mx-4 lg:mx-6 hidden sm:block">
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
           <Search className="w-4 h-4" />
@@ -159,7 +165,7 @@ export function GlobalSearchBar() {
         <div
           id="global-search-results"
           role="listbox"
-          className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden z-50 max-h-96 overflow-y-auto custom-scrollbar animate-fade-in"
+          className="absolute left-0 w-72 sm:w-80 md:w-96 max-w-[calc(100vw-2rem)] mt-2 bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden z-50 max-h-96 overflow-y-auto custom-scrollbar animate-fade-in"
         >
           {normalizedQuery && matchedMenus.length === 0 ? (
             <div className="p-6 text-center space-y-1">
