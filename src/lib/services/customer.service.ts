@@ -55,7 +55,6 @@ export class CustomerHasTransactionsError extends Error {
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_CLEAN_REGEX = /^[+0-9\s-]{8,20}$/;
 
 export function validateCustomerInput(input: Partial<CustomerInput>, isUpdate = false): CustomerInput {
   const fields: Record<string, string> = {};
@@ -70,6 +69,12 @@ export function validateCustomerInput(input: Partial<CustomerInput>, isUpdate = 
       fields.name = 'Nama pelanggan wajib diisi.';
     } else if (name.length > 150) {
       fields.name = 'Nama pelanggan maksimal 150 karakter.';
+    } else if (/^\d+$/.test(name.replace(/\s/g, ''))) {
+      fields.name = 'Nama pelanggan tidak boleh hanya berupa angka.';
+    } else if (!/[a-zA-Z]/.test(name)) {
+      fields.name = 'Nama pelanggan harus mengandung huruf.';
+    } else if (name.length < 3) {
+      fields.name = 'Nama pelanggan minimal 3 karakter.';
     }
   }
 
@@ -86,10 +91,17 @@ export function validateCustomerInput(input: Partial<CustomerInput>, isUpdate = 
   if (!isUpdate || input.phone !== undefined) {
     if (!phone) {
       fields.phone = 'Nomor telepon pelanggan wajib diisi.';
-    } else if (!PHONE_CLEAN_REGEX.test(phone)) {
-      fields.phone = 'Nomor telepon minimal 8 digit dan hanya boleh angka/tanda +.';
     } else if (phone.length > 20) {
       fields.phone = 'Nomor telepon maksimal 20 karakter.';
+    } else if (/\s/.test(phone)) {
+      fields.phone = 'Nomor telepon tidak boleh mengandung spasi.';
+    } else if (!/^\+?[0-9-]+$/.test(phone)) {
+      fields.phone = 'Nomor telepon hanya boleh angka, tanda hubung (-), atau tanda + di awal.';
+    } else {
+      const digitsOnly = phone.replace(/\D/g, '');
+      if (digitsOnly.length < 8) {
+        fields.phone = 'Nomor telepon minimal 8 digit.';
+      }
     }
   }
 
