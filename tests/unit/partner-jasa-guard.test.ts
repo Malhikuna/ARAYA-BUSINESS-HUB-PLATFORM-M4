@@ -265,7 +265,7 @@ describe('Partner Jasa Guard & Catalog Filter Test Suite (PRO-306)', () => {
               'Content-Type': 'application/json',
               authorization: `Bearer ${produkToken}`,
             },
-            body: JSON.stringify({ status: 'APPROVED' }),
+            body: JSON.stringify({ status: 'disetujui' }),
           }),
           { params: Promise.resolve({ id: existingQuotation.id }) }
         );
