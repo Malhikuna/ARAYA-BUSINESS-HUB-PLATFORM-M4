@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useSyncExternalStore, Suspense } from "react";
+import React, { useEffect, useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { IdCard, Phone, Mail, MapPin, AlertCircle, Pencil } from "lucide-react";
-import { findCustomerById } from "@/lib/data/mock-customers";
+import { findCustomerById, detectCityFromAddress } from "@/lib/data/mock-customers";
 import { Customer } from "@/types/customer";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { CustomerProfileSidebar } from "@/components/pelanggan/CustomerProfileSidebar";
+import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
 
 const emptySubscribe = () => () => {};
 
@@ -27,7 +28,7 @@ function LihatPelangganDetailView({ customer }: { customer: Customer }) {
     <>
       <Breadcrumb
         separator="/"
-        items={[{ label: "Pelanggan", href: "/pelanggan" }, { label: "Detail" }]}
+        items={[{ label: "Pelanggan", href: "/pelanggan" }, { label: "Detail Pelanggan" }]}
         className="mb-3"
       />
       <BackLink href="/pelanggan" label="Kembali ke daftar pelanggan" />
@@ -73,7 +74,7 @@ function LihatPelangganDetailView({ customer }: { customer: Customer }) {
               <span className="block text-xs font-semibold text-slate-800 mb-1.5">Kota operasional</span>
               <div className="w-full h-11 px-4 rounded-xl bg-[#f8fafc] border border-slate-200/80 text-xs text-slate-800 flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{customer.city || "Bandung"}</span>
+                <span>{detectCityFromAddress(customer.address || "", customer.city || "Bandung")}</span>
               </div>
             </div>
           </div>
@@ -82,7 +83,7 @@ function LihatPelangganDetailView({ customer }: { customer: Customer }) {
             <span className="block text-xs font-semibold text-slate-800 mb-1.5">Email</span>
             <div className="w-full h-11 px-4 rounded-xl bg-[#f8fafc] border border-slate-200/80 text-xs text-slate-800 flex items-center gap-2">
               <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>{customer.email && customer.email !== "-" ? customer.email : "Belum diisi"}</span>
+              <span>{customer.email && customer.email !== "-" ? customer.email.toLowerCase() : "Belum diisi"}</span>
             </div>
           </div>
 
@@ -116,7 +117,7 @@ function LihatPelangganDetailView({ customer }: { customer: Customer }) {
           initials={customer.initials}
           displayName={customer.name}
           phoneText={customer.phone}
-          emailText={customer.email && customer.email !== "-" ? customer.email : "Belum diisi"}
+          emailText={customer.email && customer.email !== "-" ? customer.email.toLowerCase() : "Belum diisi"}
           addressText={customer.address}
           isItalicPlaceholder={false}
           customerId={customer.id}
@@ -127,11 +128,25 @@ function LihatPelangganDetailView({ customer }: { customer: Customer }) {
 }
 
 function LihatPelangganContent() {
+  const router = useRouter();
   const isMounted = useIsMounted();
   const routeParams = useParams<{ id: string }>();
   const customerId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
+  const { isDev, activeRole } = useDevRole();
+  const customer = isMounted ? findCustomerById(customerId) : undefined;
+  const isMismatchedRole =
+    isDev &&
+    Boolean(customer) &&
+    ((activeRole === "PARTNER_PRODUCT" && getCustomerPartnerInfo(customer!.name).partnerRole !== "PARTNER_PRODUCT") ||
+      (activeRole === "PARTNER_SERVICE" && getCustomerPartnerInfo(customer!.name).partnerRole !== "PARTNER_SERVICE"));
 
-  if (!isMounted) {
+  useEffect(() => {
+    if (isMounted && isMismatchedRole) {
+      router.replace("/pelanggan");
+    }
+  }, [isMounted, isMismatchedRole, router]);
+
+  if (!isMounted || isMismatchedRole) {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
@@ -139,8 +154,6 @@ function LihatPelangganContent() {
       </div>
     );
   }
-
-  const customer = findCustomerById(customerId);
 
   if (!customer) {
     return (

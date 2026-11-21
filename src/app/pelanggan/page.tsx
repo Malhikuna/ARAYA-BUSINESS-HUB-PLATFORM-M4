@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
 import {
   initialCustomers, getCustomerInitials, detectCityFromAddress, subscribeCustomerStorage,
   getStoredCustomers, getServerStoredCustomers, getStoredCustomerUpdates, getServerStoredCustomerUpdates,
@@ -75,13 +74,16 @@ function DaftarPelangganContent() {
         if (flag === "updated") {
           showToast("Perubahan pelanggan tersimpan", `Data "${toastName}" berhasil diperbarui.`);
         } else {
-          showToast("Pelanggan tersimpan", `Data "${toastName}" sudah tersedia untuk penawaran, invoice, dan order.`);
+          showToast("Pelanggan tersimpan", "Data sudah tersedia untuk penawaran, invoice, dan order.");
         }
       } catch { /* ignore */ }
     };
-    queueMicrotask(consumeFlashToast);
+    const timerId = window.setTimeout(consumeFlashToast, 20);
     window.addEventListener("araya-storage-update", consumeFlashToast);
-    return () => window.removeEventListener("araya-storage-update", consumeFlashToast);
+    return () => {
+      window.clearTimeout(timerId);
+      window.removeEventListener("araya-storage-update", consumeFlashToast);
+    };
   }, [showToast]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,6 +91,15 @@ function DaftarPelangganContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isExportPreviewOpen, setIsExportPreviewOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    if (!isDev) return;
+    const onRoleChange = () => {
+      setCustomerToDelete(null); setIsExportPreviewOpen(false); setSelectedCity("Semua kota"); setCurrentPage(1);
+    };
+    window.addEventListener("araya-dev-role-change", onRoleChange);
+    return () => window.removeEventListener("araya-dev-role-change", onRoleChange);
+  }, [isDev]);
 
   const handleDismiss = useCallback(() => {
     setToastStatus("exiting");
@@ -101,15 +112,10 @@ function DaftarPelangganContent() {
       if (newNameParam) {
         const addr = addressParam || "Jl. Asia Afrika No. 45, Bandung";
         saveNewCustomerToStorage({
-          id: `CUST-${Date.now()}`,
-          name: newNameParam,
-          initials: getCustomerInitials(newNameParam, 2),
-          avatarBg: "bg-blue-100 text-blue-700",
-          phone: phoneParam || "0812 3456 7890",
-          email: emailParam || "kontak@majubersama.co.id",
-          address: addr,
-          city: detectCityFromAddress(addr, "Bandung"),
-          createdAt: new Date().toISOString(),
+          id: `CUST-${Date.now()}`, name: newNameParam, initials: getCustomerInitials(newNameParam, 2),
+          avatarBg: "bg-blue-100 text-blue-700", phone: phoneParam || "0812 3456 7890",
+          email: (emailParam || "kontak@majubersama.co.id").trim().toLowerCase(), address: addr,
+          city: detectCityFromAddress(addr, "Bandung"), createdAt: new Date().toISOString(),
         });
       }
       window.history.replaceState(null, "", "/pelanggan");
@@ -129,10 +135,22 @@ function DaftarPelangganContent() {
       ? baseList.map((item) => (updatedCustomers[item.id] ? { ...item, ...updatedCustomers[item.id] } : item))
       : baseList;
     const allActive = deletedCustomerIds.length > 0 ? afterUpdates.filter((item) => !deletedCustomerIds.includes(item.id)) : afterUpdates;
-    if (isDev && (activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE")) {
-      return allActive.filter((item) => getCustomerPartnerInfo(item.name).partnerRole === activeRole);
-    }
-    return allActive;
+    const roleFiltered =
+      isDev && (activeRole === "PARTNER_PRODUCT" || activeRole === "PARTNER_SERVICE")
+        ? allActive.filter((item) => getCustomerPartnerInfo(item.name).partnerRole === activeRole)
+        : allActive;
+    return [...roleFiltered]
+      .map((item) => {
+        const resolvedCity = detectCityFromAddress(item.address || "", item.city || "Bandung");
+        return item.city === resolvedCity ? item : { ...item, city: resolvedCity };
+      })
+      .sort((a, b) => {
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
   }, [savedCustomers, updatedCustomers, deletedCustomerIds, isDev, activeRole]);
 
   const availableCities = useMemo(() => {
@@ -165,23 +183,15 @@ function DaftarPelangganContent() {
   const currentData = filteredCustomers.slice(startIndex, endIndex);
 
   const recentNewCount = useMemo(() => {
-    if (currentTime === 0) return 0;
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    return savedCustomers.filter((c) => {
-      if (deletedCustomerIds.includes(c.id)) return false;
-      if (!c.id.startsWith("CUST-")) return false;
-      if (!c.createdAt) return true;
-      const createdTime = new Date(c.createdAt).getTime();
-      return !isNaN(createdTime) && currentTime - createdTime < ONE_DAY_MS;
-    }).length;
-  }, [savedCustomers, deletedCustomerIds, currentTime]);
+    return customerList.filter((c) => Boolean(c.isNew)).length;
+  }, [customerList]);
 
   const totalCount = customerList.length;
-  const newlyCreatedCount = savedCustomers.filter((c) => !deletedCustomerIds.includes(c.id) && c.id.startsWith("CUST-")).length;
+  const newlyCreatedCount = recentNewCount;
   const newThisMonthCount = 3 + newlyCreatedCount;
 
   const handleConfirmExportPdf = () => {
-    downloadCustomerReportPdf({ customers: filteredCustomers, totalRegistered: totalCount, activeCustomers: 15, selectedCity, searchTerm });
+    downloadCustomerReportPdf({ customers: filteredCustomers, totalRegistered: totalCount, activeCustomers: Math.min(15, totalCount), selectedCity, searchTerm });
     setIsExportPreviewOpen(false);
     showToast("Laporan PDF berhasil diunduh", `${filteredCustomers.length} data pelanggan telah diekspor ke dalam dokumen PDF.`);
   };
@@ -204,11 +214,10 @@ function DaftarPelangganContent() {
       <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismiss} />
       <Breadcrumb separator="/" items={[{ label: "Pelanggan" }]} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-16.5 relative">
-        <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight shrink-0">Daftar pelanggan</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 min-h-16.5 relative">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight shrink-0">Daftar pelanggan</h1>
         <div className="w-full sm:w-auto flex items-center justify-end min-h-13">
-          <Link href="/pelanggan/tambah" className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto animate-fade-in">
-            <Plus className="w-4 h-4" />
+          <Link href="/pelanggan/tambah" className="inline-flex items-center justify-center px-5 h-10 sm:h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold shadow-xs transition-all w-full sm:w-auto animate-fade-in">
             <span>Tambah pelanggan</span>
           </Link>
         </div>
@@ -237,7 +246,7 @@ function DaftarPelangganContent() {
         ]}
         summaryCards={[
           { label: "Total Pelanggan Terdaftar", value: `${totalCount} Pelanggan`, accent: "navy" },
-          { label: "Pelanggan Aktif", value: "15 Transaksi berjalan", accent: "teal" },
+          { label: "Pelanggan Aktif", value: `${Math.min(15, totalCount)} Transaksi berjalan`, accent: "teal" },
           { label: "Data Terekspor (Sesuai Filter)", value: `${filteredCustomers.length} Data pelanggan`, accent: "navy", highlightValue: true },
         ]}
         columns={[
@@ -247,7 +256,7 @@ function DaftarPelangganContent() {
           { header: "Email", className: "text-slate-700 break-all" },
           { header: "Alamat Lengkap", className: "text-slate-700" },
         ]}
-        rows={filteredCustomers.map((item, idx) => [idx + 1, item.name, item.phone, item.email, item.address])}
+        rows={filteredCustomers.map((item, idx) => [idx + 1, item.name, item.phone, item.email ? item.email.toLowerCase() : "-", item.address])}
         emptyMessage="Tidak ada data pelanggan yang sesuai dengan filter pencarian."
         totalItems={filteredCustomers.length}
         itemLabel="pelanggan"
