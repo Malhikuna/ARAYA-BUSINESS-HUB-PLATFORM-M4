@@ -47,8 +47,16 @@ export function QuotationPrintDocument({ quotation }: QuotationPrintDocumentProp
           </p>
           <p className="text-[10px] font-medium text-slate-700">
             Status:{" "}
-            <span className={isApproved ? "text-emerald-700 font-bold" : "text-amber-700 font-bold"}>
-              {isApproved ? "Disetujui" : "Menunggu Persetujuan"}
+            <span
+              className={
+                isApproved
+                  ? "text-emerald-700 font-bold"
+                  : quotation.status === "DRAFT"
+                  ? "text-slate-700 font-bold"
+                  : "text-amber-700 font-bold"
+              }
+            >
+              {isApproved ? "Disetujui" : quotation.status === "DRAFT" ? "Draf" : "Terkirim"}
             </span>
           </p>
         </div>

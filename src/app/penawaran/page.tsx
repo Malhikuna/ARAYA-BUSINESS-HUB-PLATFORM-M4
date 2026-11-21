@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
@@ -10,58 +8,102 @@ import { QuotationMetricCards } from "@/components/penawaran/QuotationMetricCard
 import { QuotationFilterBar } from "@/components/penawaran/QuotationFilterBar";
 import { QuotationTable } from "@/components/penawaran/QuotationTable";
 import { formatRupiah } from "@/lib/format";
+import { Quotation, QuotationFilterStatus } from "@/types/quotation";
 import {
-  Quotation,
-  QuotationFilterStatus,
-} from "@/types/quotation";
-import {
+  initialQuotations,
   getStoredQuotations,
   fetchQuotationsListFromDatabase,
   subscribeQuotationStorage,
   formatTanggalIndo,
+  deleteQuotationFromStorage,
+  saveUpdatedQuotationToStorage,
 } from "@/lib/data/mock-quotations";
+import { updatePermintaanStatus } from "@/lib/data/mock-permintaan";
+import { QuotationDeleteModal } from "@/components/penawaran/QuotationDeleteModal";
+import { QuotationEditModal } from "@/components/penawaran/QuotationEditModal";
+import { matchesQuotationQuery } from "@/lib/search-matchers";
 
 const ITEMS_PER_PAGE = 10;
 
 /**
  * Halaman utama Daftar Penawaran.
- * Menampilkan ringkasan metrik, filter pencarian & status, tabel data, serta fitur ekspor PDF.
+ * Menampilkan ringkasan metrik (Draf, Terkirim, Disetujui), tab filter status, tabel penawaran, serta modal PDF.
  */
 export default function PenawaranPage() {
-  const [quotations, setQuotations] = useState<Quotation[]>(() => getStoredQuotations());
+  const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
+  const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
+  const [quotationToEdit, setQuotationToEdit] = useState<Quotation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<QuotationFilterStatus>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [previewDateLabel] = useState<string>(() =>
-    typeof window === "undefined"
-      ? ""
-      : new Date().toLocaleDateString("id-ID", { dateStyle: "long" })
-  );
+  const [previewDateLabel, setPreviewDateLabel] = useState<string>("");
   const [toastState, setToastState] = useState<{
     status: ToastStatus;
     title: string;
     description: string;
-  }>(() => {
-    if (typeof window === "undefined") return { status: "hidden", title: "", description: "" };
-    try {
-      const toastType = sessionStorage.getItem("araya_show_quotation_toast");
-      if (toastType === "created") {
-        sessionStorage.removeItem("araya_show_quotation_toast");
-        return { status: "visible", title: "Penawaran berhasil dibuat", description: "Menunggu persetujuan." };
-      }
-      if (toastType === "approved") {
-        sessionStorage.removeItem("araya_show_quotation_toast");
-        return { status: "visible", title: "Penawaran disetujui", description: "Invoice sekarang dapat dibuat." };
-      }
-    } catch {
-      // ignore
-    }
-    return { status: "hidden", title: "", description: "" };
+  }>({
+    status: "hidden",
+    title: "",
+    description: "",
   });
 
+  const handleConfirmDelete = () => {
+    if (!quotationToDelete) return;
+    const target = quotationToDelete;
+    deleteQuotationFromStorage(target.id, target.quotation_number);
+    // Penawaran draf dihapus -> permintaan kembali Baru agar dapat ditawar ulang (BR-13: satu permintaan satu penawaran)
+    if (target.permintaan_id) updatePermintaanStatus(target.permintaan_id, "Baru");
+    setQuotationToDelete(null);
+    setToastState({
+      status: "visible",
+      title: "Penawaran Dihapus",
+      description: `Dokumen penawaran ${target.quotation_number} berhasil dihapus.`,
+    });
+  };
+
+  const handleSaveEdit = (updated: Quotation) => {
+    saveUpdatedQuotationToStorage(updated);
+    setQuotationToEdit(null);
+    setToastState({
+      status: "visible",
+      title: "Perubahan Disimpan",
+      description: `Data penawaran ${updated.quotation_number} berhasil diperbarui.`,
+    });
+  };
+
   useEffect(() => {
-    // Ambil data resmi dari database PostgreSQL
+    // 1. Sinkronkan data dari client storage & tanggal hari ini
+    const timer = window.setTimeout(() => {
+      setQuotations(getStoredQuotations());
+      setPreviewDateLabel(new Date().toLocaleDateString("id-ID", { dateStyle: "long" }));
+
+      // 2. Cek flash toast notification dari session storage
+      try {
+        const toastType = sessionStorage.getItem("araya_show_quotation_toast");
+        const toastNum = sessionStorage.getItem("araya_show_quotation_toast_number");
+        if (toastType === "created" || toastType === "draft") {
+          sessionStorage.removeItem("araya_show_quotation_toast");
+          sessionStorage.removeItem("araya_show_quotation_toast_number");
+          setToastState({
+            status: "visible",
+            title: `Penawaran ${toastNum || "PNW-0006"} tersimpan sebagai draf.`,
+            description: "Penawaran siap ditinjau dan dikirimkan ke WhatsApp customer.",
+          });
+        } else if (toastType === "approved") {
+          sessionStorage.removeItem("araya_show_quotation_toast");
+          setToastState({
+            status: "visible",
+            title: "Penawaran disetujui",
+            description: "Invoice sekarang dapat dibuat.",
+          });
+        }
+      } catch {
+        // ignore
+      }
+    }, 0);
+
+    // 3. Ambil data resmi dari database PostgreSQL jika ada
     fetchQuotationsListFromDatabase().then((dbList) => {
       if (dbList.length > 0) {
         setQuotations(dbList);
@@ -72,36 +114,38 @@ export default function PenawaranPage() {
       setQuotations(getStoredQuotations());
     });
 
-    return () => unsubscribe();
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+    };
   }, []);
 
   const metrics = useMemo(() => {
-    const total = quotations.length;
-    const approved = quotations.filter((q) => q.status === "APPROVED").length;
-    const pending = quotations.filter((q) => q.status === "PENDING_APPROVAL" || q.status === "DRAFT").length;
-    return { total, approved, pending };
+    const draf = quotations.filter((q) => q.status === "DRAFT").length;
+    const terkirim = quotations.filter(
+      (q) => q.status === "PENDING_APPROVAL" || q.status === "REJECTED"
+    ).length;
+    const disetujui = quotations.filter((q) => q.status === "APPROVED").length;
+    return { draf, terkirim, disetujui };
   }, [quotations]);
 
   const filteredData = useMemo(() => {
     const list = quotations.filter((item) => {
-      const matchesSearch =
-        item.quotation_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = matchesQuotationQuery(item, searchQuery);
 
       const matchesStatus =
         statusFilter === "ALL" ||
-        (statusFilter === "APPROVED" && item.status === "APPROVED") ||
-        (statusFilter === "PENDING_APPROVAL" && (item.status === "PENDING_APPROVAL" || item.status === "DRAFT"));
+        (statusFilter === "DRAFT" && item.status === "DRAFT") ||
+        (statusFilter === "SENT" && (item.status === "PENDING_APPROVAL" || item.status === "REJECTED")) ||
+        (statusFilter === "APPROVED" && item.status === "APPROVED");
 
       return matchesSearch && matchesStatus;
     });
 
-    // Menunggu persetujuan di paling atas (Action-First priority), diikuti disetujui
+    // Urutan: Dokumen baru (isNew) di paling atas, kemudian diurutkan berdasarkan tanggal terbaru
     return list.sort((a, b) => {
-      const isPendingA = a.status === "PENDING_APPROVAL" || a.status === "DRAFT";
-      const isPendingB = b.status === "PENDING_APPROVAL" || b.status === "DRAFT";
-      if (isPendingA && !isPendingB) return -1;
-      if (!isPendingA && isPendingB) return 1;
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
       const dateCompare = (b.quotation_date || "").localeCompare(a.quotation_date || "");
       if (dateCompare !== 0) return dateCompare;
       return (b.quotation_number || "").localeCompare(a.quotation_number || "");
@@ -128,34 +172,23 @@ export default function PenawaranPage() {
       <Breadcrumb items={[{ label: "Penawaran" }]} />
 
       {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Daftar penawaran
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Kelola estimasi harga, penawaran resmi, dan persetujuan klien.
-          </p>
-        </div>
-
-        <Link
-          href="/penawaran/tambah"
-          prefetch={false}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#19376d] hover:bg-[#142c57] shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah penawaran</span>
-        </Link>
+      <div>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">
+          Daftar penawaran
+        </h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Penawaran dibuat dari permintaan customer.
+        </p>
       </div>
 
-      {/* Kartu Metrik */}
+      {/* Kartu Metrik Ringkasan (Draf, Terkirim, Disetujui) */}
       <QuotationMetricCards
-        totalCount={metrics.total}
-        approvedCount={metrics.approved}
-        pendingCount={metrics.pending}
+        drafCount={metrics.draf}
+        terkirimCount={metrics.terkirim}
+        disetujuiCount={metrics.disetujui}
       />
 
-      {/* Filter Pencarian, Status & Ekspor */}
+      {/* Filter Bar (Pencarian, Tab Status & Tombol Ekspor) */}
       <QuotationFilterBar
         searchTerm={searchQuery}
         selectedStatus={statusFilter}
@@ -164,7 +197,7 @@ export default function PenawaranPage() {
           setCurrentPage(1);
         }}
         onStatusChange={(val) => {
-          setStatusFilter(val as QuotationFilterStatus);
+          setStatusFilter(val);
           setCurrentPage(1);
         }}
         onOpenExportPreview={() => setIsExportOpen(true)}
@@ -179,6 +212,22 @@ export default function PenawaranPage() {
         startIndex={startIndex}
         endIndex={endIndex}
         onPageChange={setCurrentPage}
+        onRequestEdit={(item) => setQuotationToEdit(item)}
+        onRequestDelete={(item) => setQuotationToDelete(item)}
+      />
+
+      {/* Modal Konfirmasi Hapus */}
+      <QuotationDeleteModal
+        quotation={quotationToDelete}
+        onCancel={() => setQuotationToDelete(null)}
+        onConfirm={handleConfirmDelete}
+      />
+
+      {/* Modal Ubah Penawaran */}
+      <QuotationEditModal
+        quotation={quotationToEdit}
+        onClose={() => setQuotationToEdit(null)}
+        onSave={handleSaveEdit}
       />
 
       {/* Modal Ekspor PDF */}
@@ -193,30 +242,36 @@ export default function PenawaranPage() {
             value:
               statusFilter === "APPROVED"
                 ? "Disetujui"
-                : statusFilter === "PENDING_APPROVAL"
-                ? "Menunggu persetujuan"
+                : statusFilter === "DRAFT"
+                ? "Draf"
+                : statusFilter === "SENT"
+                ? "Terkirim"
                 : "Semua status",
           },
           { label: "Cari", value: searchQuery.trim() ? `"${searchQuery.trim()}"` : "Semua" },
         ]}
         summaryCards={[
-          { label: "Total Penawaran", value: `${metrics.total} Penawaran`, accent: "navy" },
-          { label: "Disetujui", value: `${metrics.approved} Disetujui`, accent: "teal" },
-          { label: "Menunggu", value: `${metrics.pending} Menunggu`, accent: "navy", highlightValue: true },
+          { label: "Draf", value: `${metrics.draf} Draf`, accent: "navy" },
+          { label: "Terkirim", value: `${metrics.terkirim} Terkirim`, accent: "navy", highlightValue: true },
+          { label: "Disetujui", value: `${metrics.disetujui} Disetujui`, accent: "teal" },
         ]}
         columns={[
           { header: "Nomor" },
-          { header: "Pelanggan" },
+          { header: "Permintaan" },
+          { header: "Customer" },
           { header: "Tanggal" },
+          { header: "Berlaku Sampai" },
           { header: "Total", align: "right" },
           { header: "Status" },
         ]}
         rows={filteredData.map((d) => [
           d.quotation_number,
+          d.permintaan_id ? `${d.permintaan_id} | ${d.permintaan_title || ""}` : "-",
           d.customer_name,
           formatTanggalIndo(d.quotation_date),
+          d.valid_until ? formatTanggalIndo(d.valid_until) : "-",
           formatRupiah(d.total_amount),
-          d.status === "APPROVED" ? "Disetujui" : "Menunggu persetujuan",
+          d.status === "APPROVED" ? "Disetujui" : d.status === "DRAFT" ? "Draf" : "Terkirim",
         ])}
         totalItems={filteredData.length}
         itemLabel="Penawaran"
