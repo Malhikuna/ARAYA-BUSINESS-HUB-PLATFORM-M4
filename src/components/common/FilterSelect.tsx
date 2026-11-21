@@ -15,6 +15,7 @@ export interface FilterSelectProps {
   children?: React.ReactNode;
   className?: string;
   selectClassName?: string;
+  variant?: "bordered" | "soft";
   title?: string;
 }
 
@@ -31,8 +32,14 @@ export function FilterSelect({
   children,
   className = "",
   selectClassName = "",
+  variant = "bordered",
   title,
 }: FilterSelectProps) {
+  const variantClasses =
+    variant === "soft"
+      ? "h-10 bg-[#f0f4fa] hover:bg-slate-200/80 border border-transparent font-semibold"
+      : "h-9.5 bg-white border border-slate-300 hover:bg-slate-50 font-medium";
+
   return (
     <div className={`relative shrink-0 ${className}`}>
       <select
@@ -41,7 +48,8 @@ export function FilterSelect({
         title={title || ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full sm:w-auto h-9.5 pl-3 pr-7.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none ${selectClassName}`}
+        className={`w-full pl-3 pr-7.5 rounded-xl text-xs text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none ${variantClasses} ${selectClassName}`}
+        suppressHydrationWarning
       >
         {options
           ? options.map((opt) => {

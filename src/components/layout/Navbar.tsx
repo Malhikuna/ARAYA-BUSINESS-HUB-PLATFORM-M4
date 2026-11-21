@@ -68,7 +68,7 @@ export function Navbar({
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#102a54] text-white flex items-center justify-center shrink-0">
             <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <span className="text-xs sm:text-sm font-medium text-slate-800 shrink-0">Rani K.</span>
+          <span className="text-xs sm:text-sm font-medium text-slate-800 shrink-0">{profile.name}</span>
         </div>
       ) : (
         <div className="relative shrink-0" ref={dropdownRef}>
@@ -161,8 +161,11 @@ export function Navbar({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold">{item.roleLabel}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-[#19376d]" />}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-semibold">{item.roleLabel}</span>
+                            <span className="text-[10px] text-slate-400 font-medium truncate">({item.name})</span>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#19376d] shrink-0" />}
                         </div>
                         <p className="text-[11px] text-slate-500 font-normal leading-snug mt-0.5">
                           {item.description}
