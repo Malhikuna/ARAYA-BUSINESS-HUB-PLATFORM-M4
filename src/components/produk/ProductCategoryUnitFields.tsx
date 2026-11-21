@@ -7,6 +7,7 @@ export interface ProductCategoryUnitFieldsProps {
   unit?: string;
   isLockedCategory: boolean;
   isService: boolean;
+  hideCategoryField?: boolean;
   errors: ProductFormErrors;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
@@ -19,50 +20,53 @@ export function ProductCategoryUnitFields({
   unit,
   isLockedCategory,
   isService,
+  hideCategoryField = false,
   errors,
   onChange,
 }: ProductCategoryUnitFieldsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label htmlFor="category" className="block text-xs font-bold text-slate-800 mb-2">
-          Kategori <span className="text-red-500">*</span>
-        </label>
-        {isLockedCategory ? (
-          <div className="w-full h-11 px-4 rounded-lg bg-[#f0f4fa] border border-[#c5d5ea] flex items-center text-xs sm:text-sm font-semibold text-[#19376d]">
-            <span>{category === "Produk" ? "Produk (Barang Fisik)" : "Jasa (Layanan)"}</span>
-          </div>
-        ) : (
-          <div className="relative">
-            <select
-              id="category"
-              name="category"
-              value={category}
-              onChange={onChange}
-              className={`w-full h-11 pl-4 pr-10 rounded-lg text-xs sm:text-sm outline-none appearance-none cursor-pointer transition-all ${
-                errors.category
-                  ? "border-red-500 ring-2 ring-red-500/10"
-                  : "border-slate-300 focus:border-[#19376d] focus:ring-1 focus:ring-[#19376d]"
-              } bg-white border text-slate-800`}
-            >
-              <option value="">Pilih kategori</option>
-              <option value="Produk">Produk (Barang Fisik)</option>
-              <option value="Jasa">Jasa (Layanan)</option>
-            </select>
-            <ChevronDown aria-hidden="true" className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500" />
-          </div>
-        )}
-        {errors.category && (
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-red-600 mt-1.5">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>{errors.category}</span>
-          </div>
-        )}
-      </div>
+    <div className={hideCategoryField ? "block" : "grid grid-cols-1 sm:grid-cols-2 gap-4"}>
+      {!hideCategoryField && (
+        <div>
+          <label htmlFor="category" className="block text-xs font-bold text-slate-800 mb-2">
+            Kategori <span className="text-red-500">*</span>
+          </label>
+          {isLockedCategory ? (
+            <div className="w-full h-11 px-4 rounded-lg bg-[#f0f4fa] border border-[#c5d5ea] flex items-center text-xs sm:text-sm font-semibold text-[#19376d]">
+              <span>{category === "Produk" ? "Produk (Barang Fisik)" : "Jasa (Layanan)"}</span>
+            </div>
+          ) : (
+            <div className="relative">
+              <select
+                id="category"
+                name="category"
+                value={category}
+                onChange={onChange}
+                className={`w-full h-11 pl-4 pr-10 rounded-lg text-xs sm:text-sm outline-none appearance-none cursor-pointer transition-all ${
+                  errors.category
+                    ? "border-red-500 ring-2 ring-red-500/10"
+                    : "border-slate-300 focus:border-[#19376d] focus:ring-1 focus:ring-[#19376d]"
+                } bg-white border text-slate-800`}
+              >
+                <option value="">Pilih kategori</option>
+                <option value="Produk">Produk (Barang Fisik)</option>
+                <option value="Jasa">Jasa (Layanan)</option>
+              </select>
+              <ChevronDown aria-hidden="true" className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500" />
+            </div>
+          )}
+          {errors.category && (
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-red-600 mt-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{errors.category}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <label htmlFor="unit" className="block text-xs font-bold text-slate-800 mb-2">
-          {isService ? "Satuan Layanan" : "Satuan Barang"} <span className="text-red-500">*</span>
+          {hideCategoryField || isService ? "Satuan" : "Satuan Barang"} <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <input
@@ -71,7 +75,7 @@ export function ProductCategoryUnitFields({
             type="text"
             value={unit || ""}
             onChange={onChange}
-            placeholder={isService ? "Contoh: Paket, Jam, Sesi, Bulan, Proyek" : "Contoh: Unit, Pcs, Rim, Box"}
+            placeholder={isService ? "Contoh: Paket, Jam, Sesi, Bulan, Proyek" : "Contoh: Unit, Pcs, Rim, Box, Karton"}
             className={`w-full h-11 px-4 rounded-lg text-xs sm:text-sm text-slate-800 outline-none transition-all ${
               errors.unit
                 ? "bg-white border border-red-500 pr-10 ring-2 ring-red-500/10"

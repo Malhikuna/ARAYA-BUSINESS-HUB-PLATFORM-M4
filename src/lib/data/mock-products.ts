@@ -1,10 +1,16 @@
 import { ProductCategory, ProductItem, BusinessMode } from "@/types/product";
 
 export const initialProducts: ProductItem[] = [
-  { id: "ITEM-001", sku: "SRV-CONS-001", name: "Paket konsultasi bisnis", category: "Jasa", price: "1500000.00", description: "Sesi evaluasi strategi usaha dan pendampingan manajemen keuangan per jam.", status: "Aktif", unit: "Jam" },
-  { id: "ITEM-002", sku: "SRV-DSGN-002", name: "Jasa desain logo", category: "Jasa", price: "750000.00", description: "Pembuatan konsep identitas visual dan panduan warna brand perusahaan.", status: "Aktif", unit: "Paket" },
-  { id: "ITEM-003", sku: "PRD-LPT-001", name: "Laptop kantor 14 inci", category: "Produk", price: "8900000.00", description: "Perangkat kerja Intel Core i5, RAM 16 GB, SSD 512 GB dengan garansi resmi.", status: "Aktif", stock: 15, unit: "Unit" },
-  { id: "ITEM-004", sku: "PRD-SRV-002", name: "Server rack mount 1U", category: "Produk", price: "16500000.00", description: "Unit rak server enterprise untuk penyimpanan database internal perusahaan.", status: "Aktif", stock: 4, unit: "Unit" },
+  { id: "ITEM-001", sku: "SRV-202611-8209", name: "Jasa Service Komputer", category: "Jasa", price: "300000.00", description: "Service kompter sampai bersih", status: "Aktif", unit: "Paket", createdAt: "2026-11-18T17:18:36.520Z" },
+  { id: "ITEM-002", sku: "SRV-WEB-004", name: "Jasa Pembuatan Website Korporat", category: "Jasa", price: "3200000.00", description: "Pengembangan website profil perusahaan responsif dengan optimasi SEO dan panel CMS.", status: "Aktif", unit: "Paket", createdAt: "2026-11-09T09:00:00.000Z" },
+  { id: "ITEM-003", sku: "SRV-AUDT-003", name: "Jasa Audit Sistem & Keamanan IT", category: "Jasa", price: "4500000.00", description: "Evaluasi keamanan jaringan, penetration testing aplikasi, dan tata kelola infrastruktur IT.", status: "Aktif", unit: "Paket", createdAt: "2026-11-08T09:00:00.000Z" },
+  { id: "ITEM-004", sku: "SRV-DSGN-002", name: "Jasa Desain Logo", category: "Jasa", price: "750000.00", description: "Pembuatan konsep identitas visual dan panduan warna brand perusahaan.", status: "Aktif", unit: "Paket", createdAt: "2026-11-06T18:29:06.640Z" },
+  { id: "ITEM-005", sku: "SRV-CONS-001", name: "Paket Konsultasi Bisnis", category: "Jasa", price: "1500000.00", description: "Sesi evaluasi strategi usaha dan pendampingan manajemen keuangan per jam.", status: "Nonaktif", unit: "Jam", createdAt: "2026-11-06T18:29:06.627Z" },
+  { id: "ITEM-006", sku: "PRD-RTR-005", name: "Router Gigabit Dual-WAN", category: "Produk", price: "3150000.00", description: "Perangkat manajemen jaringan kantor dengan fitur load balancing dan proteksi firewall.", status: "Aktif", stock: 5, unit: "Unit", createdAt: "2026-11-10T10:00:00.000Z" },
+  { id: "ITEM-007", sku: "PRD-PRN-004", name: "Printer LaserJet Multifungsi", category: "Produk", price: "5400000.00", description: "Printer laser jaringan untuk cetak, pindai, dan salin dokumen operasional berkecepatan tinggi.", status: "Aktif", stock: 8, unit: "Unit", createdAt: "2026-11-09T10:00:00.000Z" },
+  { id: "ITEM-008", sku: "PRD-MON-003", name: "Monitor IPS 27 Inci 4K", category: "Produk", price: "4250000.00", description: "Layar monitor resolusi Ultra HD 4K dengan akurasi warna sRGB 99% untuk desain dan kantor.", status: "Aktif", stock: 12, unit: "Unit", createdAt: "2026-11-08T10:00:00.000Z" },
+  { id: "ITEM-009", sku: "PRD-SRV-002", name: "Server Rack Mount 1U", category: "Produk", price: "16500000.00", description: "Unit rak server enterprise untuk penyimpanan database internal perusahaan.", status: "Aktif", stock: 4, unit: "Unit", createdAt: "2026-11-07T17:16:23.085Z" },
+  { id: "ITEM-010", sku: "PRD-LPT-001", name: "Laptop Kantor 14 Inci", category: "Produk", price: "8900000.00", description: "Perangkat kerja Intel Core i5, RAM 16 GB, SSD 512 GB dengan garansi resmi.", status: "Aktif", stock: 15, unit: "Unit", createdAt: "2026-11-07T17:16:23.070Z" },
 ];
 
 export function generateProductSku(name: string, category: ProductCategory): string {
@@ -58,36 +64,44 @@ export async function syncProductsFromDatabase(): Promise<ProductItem[]> {
     const json = await res.json();
     if (!json.success || !Array.isArray(json.data)) return [];
 
-    const dbItems: ProductItem[] = json.data.map((row: {
-      id: string;
-      sku: string;
-      name: string;
-      type: string;
-      price: string | number;
-      description?: string | null;
-      is_active?: boolean;
-      unit?: string;
-      stock?: number;
-      created_at?: string;
-    }) => ({
-      id: row.id,
-      sku: row.sku,
-      name: row.name,
-      category: row.type === "PRODUCT" ? "Produk" : "Jasa",
-      price: typeof row.price === "string" ? row.price : Number(row.price).toFixed(2),
-      description: row.description || "",
-      status: row.is_active !== false ? "Aktif" : "Nonaktif",
-      stock: row.stock ?? (row.type === "PRODUCT" ? 0 : undefined),
-      unit: row.unit || (row.type === "PRODUCT" ? "Unit" : "Paket"),
-      createdAt: row.created_at || new Date().toISOString(),
-    }));
+    const dbItems: ProductItem[] = json.data
+      .filter((row: { name?: string }) => row.name !== "Produk Layanan IT Test")
+      .map((row: {
+        id: string;
+        sku: string;
+        name: string;
+        type: string;
+        price: string | number;
+        description?: string | null;
+        is_active?: boolean;
+        unit?: string;
+        stock?: number;
+        created_at?: string;
+      }) => ({
+        id: row.id,
+        sku: row.sku,
+        name: row.name,
+        category: row.type === "PRODUCT" ? "Produk" : "Jasa",
+        price: typeof row.price === "string" ? row.price : Number(row.price).toFixed(2),
+        description: row.description || "",
+        status: row.is_active !== false ? "Aktif" : "Nonaktif",
+        stock: row.stock ?? (row.type === "PRODUCT" ? 0 : undefined),
+        unit: row.unit || (row.type === "PRODUCT" ? "Unit" : "Paket"),
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
 
     const rawLocal = sessionStorage.getItem("araya_added_products");
     const localItems: ProductItem[] = rawLocal ? JSON.parse(rawLocal) : [];
     const unsyncedLocal = localItems.filter(
-      (loc) => !dbItems.some((db) => db.id === loc.id || db.sku === loc.sku || db.name.toLowerCase() === loc.name.toLowerCase())
+      (loc) =>
+        loc.id.startsWith("ITEM-") &&
+        !dbItems.some((db) => db.id === loc.id || db.sku === loc.sku || db.name.toLowerCase() === loc.name.toLowerCase())
     );
-    const merged = [...unsyncedLocal, ...dbItems];
+    const merged = [...unsyncedLocal, ...dbItems].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
 
     sessionStorage.setItem("araya_added_products", JSON.stringify(merged));
     window.dispatchEvent(new Event("araya-product-storage-update"));
@@ -99,29 +113,45 @@ export async function syncProductsFromDatabase(): Promise<ProductItem[]> {
 
 export function saveNewProductToStorage(newItem: ProductItem): void {
   try {
+    const itemWithTimestamp: ProductItem = { ...newItem, createdAt: newItem.createdAt || new Date().toISOString() };
     const raw = sessionStorage.getItem("araya_added_products");
     const existing: ProductItem[] = raw ? JSON.parse(raw) : [];
-    sessionStorage.setItem("araya_added_products", JSON.stringify([newItem, ...existing]));
+    sessionStorage.setItem("araya_added_products", JSON.stringify([itemWithTimestamp, ...existing]));
     sessionStorage.setItem("araya_product_toast", "created");
     sessionStorage.setItem("araya_product_toast_name", newItem.name);
+    sessionStorage.setItem("araya_product_toast_category", newItem.category);
     window.dispatchEvent(new Event("araya-product-storage-update"));
 
-    // Sync ke PostgreSQL via API M4 (untuk Jasa, biarkan backend auto-generate SKU SRV-...)
+    // Jangan simpan dummy E2E test ke PostgreSQL agar database tidak tercemar duplikat
+    if (newItem.name.trim() === "Produk Layanan IT Test") return;
+
+    const payload = {
+      ...(newItem.category === "Produk" ? { sku: newItem.sku } : {}),
+      name: newItem.name,
+      description: newItem.description,
+      type: newItem.category === "Produk" ? "PRODUCT" : "SERVICE",
+      price: parseFloat(newItem.price) || 0,
+      unit: newItem.unit || "pcs",
+      stock: newItem.category === "Produk" ? (newItem.stock || 0) : 0,
+      is_active: newItem.status === "Aktif",
+    };
+
+    // Sync ke PostgreSQL via API M4
     fetch("/api/m4/v1/products", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
-      body: JSON.stringify({
-        ...(newItem.category === "Produk" ? { sku: newItem.sku } : {}),
-        name: newItem.name,
-        description: newItem.description,
-        type: newItem.category === "Produk" ? "PRODUCT" : "SERVICE",
-        price: parseFloat(newItem.price) || 0,
-        unit: newItem.unit || "pcs",
-        stock: newItem.category === "Produk" ? (newItem.stock || 0) : 0,
-        is_active: newItem.status === "Aktif",
-      }),
+      body: JSON.stringify(payload),
     })
-      .then(() => syncProductsFromDatabase())
+      .then(async (res) => {
+        if (res.status === 409 && newItem.category === "Produk") {
+          await fetch("/api/m4/v1/products", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
+            body: JSON.stringify({ ...payload, sku: `${newItem.sku}-${String(Date.now()).slice(-3)}` }),
+          });
+        }
+        return syncProductsFromDatabase();
+      })
       .catch(() => {});
   } catch { /* ignore */ }
 }
