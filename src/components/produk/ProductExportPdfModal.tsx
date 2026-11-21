@@ -32,28 +32,51 @@ export function ProductExportPdfModal({
   searchTerm,
   previewDateLabel,
 }: ProductExportPdfModalProps) {
+  const isProductMode = businessMode === "Produk";
+  const isServiceMode = businessMode === "Jasa";
+  const itemUnitLabel = isProductMode ? "Produk" : isServiceMode ? "Jasa" : "Item katalog";
+
+  const filters = [
+    ...(businessMode === "Semua"
+      ? [{ label: "Kategori", value: selectedCategory }]
+      : [{ label: "Tipe Usaha", value: businessMode }]),
+    { label: "Status", value: selectedStatus },
+    { label: "Cari", value: searchTerm.trim() ? `"${searchTerm.trim()}"` : "Semua" },
+  ];
+
   return (
     <ExportPdfPreviewModal
       open={open}
-      title="Pratinjau laporan PDF katalog"
-      documentSubtitle="Laporan Katalog — Modul Penawaran & Tagihan Penjualan"
+      title={
+        isProductMode
+          ? "Pratinjau laporan PDF katalog produk"
+          : isServiceMode
+          ? "Pratinjau laporan PDF katalog jasa"
+          : "Pratinjau laporan PDF katalog"
+      }
+      documentSubtitle={
+        isProductMode
+          ? "Laporan Katalog Produk — Modul Penawaran & Tagihan Penjualan"
+          : isServiceMode
+          ? "Laporan Katalog Jasa — Modul Penawaran & Tagihan Penjualan"
+          : "Laporan Katalog Produk & Jasa — Modul Penawaran & Tagihan Penjualan"
+      }
       printedAtLabel={previewDateLabel}
-      filters={[
-        { label: "Tipe Usaha", value: businessMode },
-        { label: "Kategori", value: businessMode === "Semua" ? selectedCategory : businessMode },
-        { label: "Status", value: selectedStatus },
-        { label: "Cari", value: searchTerm.trim() ? `"${searchTerm.trim()}"` : "Semua" },
-      ]}
+      filters={filters}
       summaryCards={[
-        { label: "Total Item Terdaftar", value: `${metrics.totalCount} Item katalog`, accent: "navy" },
         {
-          label: "Item Katalog Aktif",
-          value: `${metrics.totalCount - metrics.inactiveCount} Siap ditransaksikan`,
+          label: isProductMode ? "Total Produk Terdaftar" : isServiceMode ? "Total Jasa Terdaftar" : "Total Item Terdaftar",
+          value: `${metrics.totalCount} ${itemUnitLabel}`,
+          accent: "navy",
+        },
+        {
+          label: isProductMode ? "Produk Aktif" : isServiceMode ? "Jasa Aktif" : "Item Katalog Aktif",
+          value: `${metrics.totalCount - metrics.inactiveCount} ${isServiceMode ? "Siap ditawarkan" : "Siap ditransaksikan"}`,
           accent: "teal",
         },
         {
           label: "Data Terekspor (Sesuai Filter)",
-          value: `${filteredProducts.length} Item katalog`,
+          value: `${filteredProducts.length} ${itemUnitLabel}`,
           accent: "navy",
           highlightValue: true,
         },

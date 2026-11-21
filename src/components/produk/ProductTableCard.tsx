@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { Search, X, Upload, Download } from "lucide-react";
 import { ProductItem, BusinessMode } from "@/types/product";
 import { Pagination } from "@/components/common/Pagination";
@@ -46,7 +46,6 @@ export function ProductTableCard({
   selectedCategory,
   selectedStatus,
   selectedStock,
-  selectedUnit,
   selectedPrice,
   currentData,
   filteredCount,
@@ -59,7 +58,6 @@ export function ProductTableCard({
   onCategoryChange,
   onStatusChange,
   onStockChange,
-  onUnitChange,
   onPriceChange,
   onPageChange,
   onOpenImportModal,
@@ -70,13 +68,17 @@ export function ProductTableCard({
   const isProductOnly = businessMode === "Produk";
   const isServiceOnly = businessMode === "Jasa";
   const isServiceCategory = isServiceOnly || (businessMode === "Semua" && selectedCategory === "Jasa");
-
-  const serviceUnitOptions = useMemo(() => {
-    const list = metrics.serviceUnits && metrics.serviceUnits.length > 0
-      ? metrics.serviceUnits
-      : ["Jam", "Sesi", "Bulan", "Proyek", "Paket"];
-    return ["Semua satuan", ...list.map((u) => `Per ${u}`)];
-  }, [metrics.serviceUnits]);
+  // Threshold 1-baris penuh (Search + Dropdown + Impor/Ekspor) menyesuaikan jumlah dropdown
+  const singleRowClass = isServiceCategory
+    ? "@3xl:flex-row @3xl:items-center"
+    : businessMode === "Semua"
+    ? "@5xl:flex-row @5xl:items-center"
+    : "@4xl:flex-row @4xl:items-center";
+  const actionsInlineClass = isServiceCategory
+    ? "@3xl:pt-0 @3xl:border-t-0"
+    : businessMode === "Semua"
+    ? "@5xl:pt-0 @5xl:border-t-0"
+    : "@4xl:pt-0 @4xl:border-t-0";
 
   return (
     <>
@@ -116,57 +118,59 @@ export function ProductTableCard({
           </div>
         )}
 
-        {/* Search, Filter, & Actions */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-1 min-w-0">
-            <div className="relative w-full sm:w-44 lg:w-48 xl:w-52 shrink-0">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Search aria-hidden="true" className="w-3.5 h-3.5" />
+        {/* Search, Filter, & Actions — Adaptif terhadap lebar konten (@container), aman saat sidebar dibuka/ditutup di Tablet */}
+        <div className={`bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-xs flex flex-col ${singleRowClass} justify-between gap-2.5`}>
+          <div className={`flex flex-col ${businessMode === "Semua" ? "@4xl:flex-row @4xl:items-center" : "@2xl:flex-row @2xl:items-center"} justify-between gap-2.5 flex-1 min-w-0`}>
+            {/* Kotak Pencarian (Mengisi lebar proporsional hingga max-w-96 tanpa pernah mendorong dropdown keluar card) */}
+            <div className={`relative w-full ${businessMode === "Semua" ? "@4xl:flex-1 @4xl:max-w-96" : "@2xl:flex-1 @2xl:max-w-96"} min-w-0`}>
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Search aria-hidden="true" className="w-4 h-4" />
               </div>
               <input
                 type="text"
                 aria-label="Cari item katalog"
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") onSearchChange("");
+                }}
                 placeholder={isProductOnly ? "Cari produk barang..." : isServiceOnly ? "Cari layanan jasa..." : "Cari item katalog..."}
-                className="w-full h-9.5 pl-8.5 pr-8 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] focus:border-[#19376d] transition-all"
+                className="w-full h-10 pl-9 pr-8 rounded-xl bg-[#f0f4fa] text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-[#19376d] transition-all"
+                suppressHydrationWarning
               />
               {searchTerm && (
                 <button
                   type="button"
                   aria-label="Bersihkan pencarian katalog"
                   onClick={() => onSearchChange("")}
-                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  suppressHydrationWarning
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {/* Dropdown Filter (Grid 2 kolom di area sempit HP/Tablet-sidebar-buka, rata kanan di >= @2xl) */}
+            <div className="grid grid-cols-2 @2xl:flex @2xl:flex-wrap @2xl:items-center @2xl:justify-end gap-2 shrink-0">
               {businessMode === "Semua" && (
                 <FilterSelect
                   ariaLabel="Filter kategori item katalog"
                   value={selectedCategory}
                   onChange={onCategoryChange}
                   options={["Semua kategori", "Produk", "Jasa"]}
+                  variant="soft"
                 />
               )}
 
-              {/* Dropdown Ketersediaan Stok (Produk/Semua) atau Satuan Penagihan (Jasa) */}
-              {isServiceCategory ? (
-                <FilterSelect
-                  ariaLabel="Filter satuan penagihan layanan jasa"
-                  value={selectedUnit}
-                  onChange={onUnitChange}
-                  options={serviceUnitOptions}
-                />
-              ) : (
+              {/* Dropdown Ketersediaan Stok (Produk/Semua) */}
+              {!isServiceCategory && (
                 <FilterSelect
                   ariaLabel="Filter ketersediaan stok produk"
                   value={selectedStock}
                   onChange={onStockChange}
                   options={["Semua stok", "Tersedia (≥ 10)", "Stok menipis (≤ 5)", "Stok habis (0)"]}
+                  variant="soft"
                 />
               )}
 
@@ -183,25 +187,30 @@ export function ProductTableCard({
                   "Harga: Terendah",
                   "Harga: Tertinggi",
                 ]}
+                variant="soft"
               />
 
-              {/* Dropdown Status */}
+              {/* Dropdown Status (span 2 kolom saat grid 2 kolom dengan total 3 dropdown agar rata) */}
               <FilterSelect
                 ariaLabel="Filter status item katalog"
                 value={selectedStatus}
                 onChange={onStatusChange}
                 options={["Semua status", "Aktif", "Nonaktif"]}
+                className={!isServiceCategory && businessMode !== "Semua" ? "col-span-2 @2xl:col-span-1" : ""}
+                variant="soft"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end xl:self-auto shrink-0">
+          {/* Tombol Impor & Ekspor */}
+          <div className={`grid grid-cols-2 @md:flex @md:items-center @md:justify-end gap-2 pt-2.5 border-t border-slate-100 ${actionsInlineClass} shrink-0`}>
             <button
               type="button"
               onClick={onOpenImportModal}
-              className="inline-flex items-center gap-1.5 px-3 h-9.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-semibold text-slate-700 transition-colors cursor-pointer whitespace-nowrap"
+              suppressHydrationWarning
             >
-              <Upload aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
+              <Upload aria-hidden="true" className="w-3.5 h-3.5 text-slate-500" />
               <span>Impor data</span>
             </button>
 
@@ -210,9 +219,10 @@ export function ProductTableCard({
               onClick={onOpenExportModal}
               aria-label="Ekspor data katalog ke PDF"
               title="Pratinjau & ekspor katalog ke PDF"
-              className="inline-flex items-center gap-1.5 px-3 h-9.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 h-10 rounded-xl bg-[#f0f4fa] hover:bg-slate-200/80 text-xs font-semibold text-slate-700 transition-colors cursor-pointer whitespace-nowrap"
+              suppressHydrationWarning
             >
-              <Download aria-hidden="true" className="w-3.5 h-3.5 text-slate-600" />
+              <Download aria-hidden="true" className="w-3.5 h-3.5 text-slate-500" />
               <span>Ekspor</span>
             </button>
           </div>
@@ -221,18 +231,18 @@ export function ProductTableCard({
 
       {/* Catalog Table */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div className="w-full overflow-x-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <table className="w-full table-fixed text-left text-xs border-collapse">
+        <div className="w-full overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-195 lg:min-w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#eef4ff] text-slate-700 font-semibold border-b border-slate-200/70">
-                <th scope="col" className={`${isProductOnly ? "w-[28%]" : isServiceOnly ? "w-[30%]" : "w-[24%]"} px-3 sm:px-4 py-3.5`}>Nama</th>
-                {!isProductOnly && !isServiceOnly && <th scope="col" className="w-[12%] px-3 sm:px-4 py-3.5">Kategori</th>}
-                {!isServiceOnly && <th scope="col" className={`${isProductOnly ? "w-[14%]" : "w-[12%]"} px-3 sm:px-4 py-3.5 text-center`}>Stok</th>}
+                <th scope="col" className={`${isProductOnly ? "w-[28%]" : isServiceOnly ? "w-[28%]" : "w-[24%]"} px-3 sm:px-4 py-3.5`}>Nama</th>
+                {!isProductOnly && !isServiceOnly && <th scope="col" className="w-[13%] px-3 sm:px-4 py-3.5">Kategori</th>}
+                {!isServiceOnly && <th scope="col" className={`${isProductOnly ? "w-[14%]" : "w-[13%]"} px-3 sm:px-4 py-3.5 text-center`}>Stok</th>}
                 {isServiceOnly && <th scope="col" className="w-[14%] px-3 sm:px-4 py-3.5">Satuan</th>}
-                <th scope="col" className={`${isProductOnly ? "w-[18%]" : isServiceOnly ? "w-[18%]" : "w-[16%]"} px-3 sm:px-4 py-3.5 text-right`}>Harga</th>
-                <th scope="col" className={`${isProductOnly ? "w-[22%]" : isServiceOnly ? "w-[20%]" : "w-[18%]"} px-3 sm:px-4 py-3.5`}>Deskripsi</th>
-                <th scope="col" className="w-[10%] px-3 sm:px-4 py-3.5">Status</th>
-                <th scope="col" className="w-[8%] px-3 sm:px-4 py-3.5 text-right">Tindakan</th>
+                <th scope="col" className={`${isProductOnly ? "w-[20%]" : isServiceOnly ? "w-[20%]" : "w-[18%]"} px-3 sm:px-4 py-3.5 text-right`}>Harga</th>
+                <th scope="col" className={`${isProductOnly ? "w-[24%]" : isServiceOnly ? "w-[24%]" : "w-[20%]"} px-3 sm:px-4 py-3.5`}>Deskripsi</th>
+                <th scope="col" className={`${isProductOnly ? "w-[14%]" : isServiceOnly ? "w-[14%]" : "w-[12%]"} px-3 sm:px-4 py-3.5`}>Status</th>
+                <th scope="col" className="w-28 px-2 sm:px-3 py-3.5 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
