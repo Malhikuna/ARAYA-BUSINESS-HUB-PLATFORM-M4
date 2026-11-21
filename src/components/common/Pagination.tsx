@@ -39,6 +39,7 @@ export function Pagination({
           disabled={currentPage === 1}
           aria-label="Halaman Sebelumnya"
           className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+          suppressHydrationWarning
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -55,6 +56,7 @@ export function Pagination({
                 ? "bg-[#19376d] text-white shadow-2xs"
                 : "text-slate-600 hover:bg-slate-100"
             }`}
+            suppressHydrationWarning
           >
             {page}
           </button>
@@ -66,6 +68,7 @@ export function Pagination({
           disabled={currentPage === totalPages}
           aria-label="Halaman Selanjutnya"
           className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+          suppressHydrationWarning
         >
           <ChevronRight className="w-4 h-4" />
         </button>
