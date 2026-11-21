@@ -1,62 +1,201 @@
 "use client";
 
 import React from "react";
-import { FileText, Mail, Download, Printer } from "lucide-react";
+import {
+  FileText,
+  Download,
+  Printer,
+  Check,
+  MessageCircle,
+  Info,
+} from "lucide-react";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
-import { hitungMasaBerlaku, getQuotationActivities } from "@/lib/data/mock-quotations";
+import { useDevRole } from "@/lib/auth/dev-role";
+import { QuotationWhatsAppPreviewCard } from "@/components/penawaran/QuotationWhatsAppPreviewCard";
 
 export interface QuotationDetailSidebarProps {
   quotation: Quotation;
+  onSendToWhatsApp: () => void;
   onDownloadPdf: () => void;
   onPrint: () => void;
 }
 
 /**
- * Sidebar kanan halaman detail penawaran: Ringkasan dokumen & Riwayat aktivitas.
+ * Sidebar kanan halaman detail penawaran.
+ * Menampilkan Pratinjau WhatsApp & Tahapan Penawaran Draf sesuai Figma M4-US2 (Image 1 & 2).
  */
 export function QuotationDetailSidebar({
   quotation,
+  onSendToWhatsApp,
   onDownloadPdf,
   onPrint,
 }: QuotationDetailSidebarProps) {
-  const { sisaHariLabel } = hitungMasaBerlaku(quotation.quotation_date, quotation.valid_until);
-  const activities = getQuotationActivities(quotation);
+  const { profile } = useDevRole();
+  const isDraft = quotation.status === "DRAFT";
+  const isApproved = quotation.status === "APPROVED";
+  const isSent = quotation.status === "PENDING_APPROVAL";
+
+  // Mode Draf Khusus Sesuai Desain Figma Gambar 1 & 2
+  if (isDraft) {
+    return (
+      <div className="space-y-6">
+        {/* 1. Card Pratinjau Pesan WhatsApp Sesuai Figma */}
+        <QuotationWhatsAppPreviewCard
+          quotation={quotation}
+          onSendToWhatsApp={onSendToWhatsApp}
+        />
+
+        {/* 2. Card Tahapan Penawaran (1 Aktivitas Draf Sesuai Figma Gambar 2) */}
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-slate-900">Tahapan penawaran</h2>
+            <span className="text-xs text-slate-400 font-medium">1 aktivitas</span>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#19376d] mt-1 shrink-0" />
+              <div className="space-y-0.5 text-xs min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-slate-900">Draf dibuat dari permintaan</span>
+                  <span className="text-slate-400 text-[11px] font-mono">10:05</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Dibuat dari permintaan {quotation.permintaan_id || "PMT-0007"} - 17 Nov 2026, 10:05 - Oleh {profile.name}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#f0f5fa] border border-[#d8e4f0] rounded-xl p-3 flex items-start gap-2 text-[11px] text-slate-600">
+            <Info className="w-3.5 h-3.5 text-[#19376d] shrink-0 mt-0.5" />
+            <span>Kirim penawaran ke WhatsApp customer untuk mendapatkan persetujuan sebelum menerbitkan invoice.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mode Terkirim / Disetujui
+  const steps = [
+    {
+      num: 1,
+      title: "Draf",
+      badge: "Selesai",
+      badgeClass: "bg-slate-100 text-slate-600",
+      description: "Susun rincian jasa dan harga penawaran",
+      status: "done",
+    },
+    {
+      num: 2,
+      title: "Kirim ke WhatsApp",
+      hasWaIcon: true,
+      description: "Kirim dokumen resmi penawaran langsung ke kontak WhatsApp customer",
+      status: isApproved ? "done" : "active",
+      badge: isApproved ? "Selesai" : "Sedang berjalan",
+      badgeClass: isApproved ? "bg-slate-100 text-slate-600" : "bg-[#eef4ff] text-[#19376d]",
+    },
+    {
+      num: 3,
+      title: "Disetujui customer",
+      description: "Customer meninjau dan memberikan persetujuan",
+      status: isApproved ? "done" : "upcoming",
+      badge: isApproved ? "Disetujui" : isSent ? "Menunggu respon" : undefined,
+      badgeClass: isApproved ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700",
+    },
+    {
+      num: 4,
+      title: "Invoice",
+      description: "Terbitkan tagihan penjualan setelah disepakati",
+      status: isApproved ? "active" : "upcoming",
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* 1. Card Ringkasan Dokumen */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <FileText className="w-4 h-4 text-[#19376d]" />
-          <h2 className="text-base font-bold text-slate-900">Ringkasan dokumen</h2>
+      {/* 1. Card: Tahapan Penawaran */}
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h2 className="text-sm font-bold text-slate-900">Tahapan penawaran</h2>
+          <span className="w-2 h-2 rounded-full bg-[#19376d]" />
         </div>
 
-        <div className="space-y-3">
-          <div>
-            <span className="text-slate-400 block text-[11px] font-medium">Nilai transaksi</span>
-            <span className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+        <div className="relative space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+          {steps.map((s) => {
+            const isDone = s.status === "done";
+            const isActive = s.status === "active";
+
+            return (
+              <div key={s.num} className="relative flex items-start gap-3">
+                <span
+                  className={`relative z-10 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ring-4 ring-white shrink-0 mt-0.5 ${
+                    isDone || isActive ? "bg-[#19376d] text-white" : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {isDone ? <Check className="w-3 h-3" strokeWidth={3} /> : s.num}
+                </span>
+
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs font-bold text-slate-900 truncate">{s.title}</span>
+                      {s.hasWaIcon && <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                    </div>
+                    {s.badge && (
+                      <span className={`shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${s.badgeClass}`}>
+                        {s.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">{s.description}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Card: Rangkuman Dokumen & Aksi Cetak/Unduh */}
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#19376d]" />
+            <h2 className="text-sm font-bold text-slate-900">Rangkuman dokumen</h2>
+          </div>
+          <span className="font-mono text-xs font-bold text-[#19376d]">{quotation.quotation_number}</span>
+        </div>
+
+        <div className="space-y-2.5 text-xs">
+          <div className="flex items-center justify-between text-slate-600">
+            <span>Penerima</span>
+            <span className="font-bold text-slate-900">{quotation.customer_name}</span>
+          </div>
+
+          <div className="flex items-center justify-between text-slate-600">
+            <span>Jumlah jasa</span>
+            <span className="font-semibold text-slate-800">{quotation.items.length} item layanan</span>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
+            <span className="font-bold text-slate-900 text-xs shrink-0">Total penawaran</span>
+            <span
+              className={`font-heading font-bold text-[#19376d] text-right whitespace-nowrap tabular-nums shrink-0 ${
+                quotation.total_amount >= 1_000_000_000_000
+                  ? "text-xs"
+                  : quotation.total_amount >= 1_000_000_000
+                  ? "text-xs sm:text-sm"
+                  : quotation.total_amount >= 100_000_000
+                  ? "text-sm"
+                  : "text-sm sm:text-base"
+              }`}
+              title={formatRupiah(quotation.total_amount)}
+            >
               {formatRupiah(quotation.total_amount)}
             </span>
           </div>
-
-          <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Sisa masa aktif</span>
-              <span className="font-semibold text-slate-800">{sisaHariLabel}</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Status pengiriman</span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-teal-50 text-teal-700">
-                <Mail className="w-3.5 h-3.5 text-teal-600" />
-                <span>Terkirim via email</span>
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="pt-2 space-y-2">
           <button
             type="button"
@@ -77,42 +216,6 @@ export function QuotationDetailSidebar({
           </button>
         </div>
       </div>
-
-      {/* 2. Card Riwayat Aktivitas */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">Riwayat aktivitas</h2>
-          <span className="text-xs text-slate-400 font-medium">
-            {activities.length} aktivitas
-          </span>
-        </div>
-
-        <div className="relative pl-5 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-          {activities.map((act, idx) => {
-            const isFirst = idx === 0;
-            return (
-              <div key={act.id || idx} className="relative">
-                {/* Bullet dot */}
-                <span
-                  className={`absolute -left-5 top-1 w-2.5 h-2.5 rounded-full ring-4 ring-white ${
-                    isFirst ? "bg-[#0e7490]" : "bg-slate-400"
-                  }`}
-                />
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-900">{act.title}</span>
-                  <span className="text-[11px] text-slate-400 shrink-0 font-medium">{act.time}</span>
-                </div>
-                {act.description ? (
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                    {act.description}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
-

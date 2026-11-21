@@ -1,287 +1,301 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { useFreshForm } from "@/lib/use-fresh-form";
+import React, { useState, useEffect, useMemo, Suspense, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { CheckCircle } from "lucide-react";
+import { QuotationFormHeader } from "@/components/penawaran/QuotationFormHeader";
+import { QuotationValidationBanner } from "@/components/penawaran/QuotationValidationBanner";
+import { getFallbackPermintaan } from "@/lib/data/permintaan-fallback";
+import { useFreshForm } from "@/lib/use-fresh-form";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
+import { QuotationFromPermintaanCard } from "@/components/penawaran/QuotationFromPermintaanCard";
+import { QuotationRequiresPermintaanNotice } from "@/components/penawaran/QuotationRequiresPermintaanNotice";
 import { QuotationCustomerFields } from "@/components/penawaran/QuotationCustomerFields";
 import { QuotationItemTable } from "@/components/penawaran/QuotationItemTable";
+import { QuotationNotesAndTotalCard } from "@/components/penawaran/QuotationNotesAndTotalCard";
 import { QuotationSummarySidebar } from "@/components/penawaran/QuotationSummarySidebar";
-import { QuotationFormItem, Quotation } from "@/types/quotation";
+import { Quotation } from "@/types/quotation";
 import { Customer } from "@/types/customer";
 import { ProductItem } from "@/types/product";
+import { PermintaanItem } from "@/types/permintaan";
 import { initialCustomers, getStoredCustomers } from "@/lib/data/mock-customers";
-import { initialProducts } from "@/lib/data/mock-products";
+import { initialProducts, getStoredProducts, syncProductsFromDatabase } from "@/lib/data/mock-products";
+import { findPermintaanById, updatePermintaanStatus } from "@/lib/data/mock-permintaan";
+import { validateQuotationForm } from "@/lib/quotation-form-validation";
+import { useQuotationItems } from "@/lib/use-quotation-items";
 import {
   saveNewQuotationToStorage,
   generateNextQuotationNumber,
+  getTodayDateStr,
+  calculateValidUntil,
 } from "@/lib/data/mock-quotations";
 
-function getTodayDateStr(): string {
-  if (typeof window === "undefined") return "";
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+function TambahPenawaranForm({ onSaved }: { onSaved: (targetUrl: string) => void }) {
+  const searchParams = useSearchParams();
+  const fromPermintaan = searchParams?.get("fromPermintaan") || searchParams?.get("permintaan_id") || "";
 
-/**
- * Halaman Pembuatan Penawaran Baru (Quotation).
- * Sesuai PRD M4-US2 & BRD (UC-03, BRQ-04).
- */
-function TambahPenawaranForm({ onSaved }: { onSaved: () => void }) {
-  // Master Data Pelanggan & Produk (Aktif selalu di atas)
+  // Data rujukan permintaan layanan (jika ada)
+  const permintaanData = useMemo<PermintaanItem | null>(() => {
+    if (!fromPermintaan) return null;
+    return findPermintaanById(fromPermintaan) || getFallbackPermintaan(fromPermintaan);
+  }, [fromPermintaan]);
+
+  // Master Data Pelanggan & Produk
   const [customers] = useState<Customer[]>(() => {
     try {
       const stored = getStoredCustomers();
       const parsed: Customer[] = typeof stored === "string" ? JSON.parse(stored) : stored;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return [...initialCustomers, ...parsed.filter((p) => !initialCustomers.some((i) => i.id === p.id))];
-      }
+      return Array.isArray(parsed) && parsed.length > 0
+        ? [...initialCustomers, ...parsed.filter((p) => !initialCustomers.some((i) => i.id === p.id))]
+        : initialCustomers;
     } catch {
-      // ignore
+      return initialCustomers;
     }
-    return initialCustomers;
   });
-  const [products] = useState<ProductItem[]>(() =>
-    [...initialProducts].sort((a) => (a.status === "Aktif" ? -1 : 1))
-  );
 
-  // Form State: Awal kosong untuk penawaran baru
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [quotationNumber] = useState<string>(() => generateNextQuotationNumber());
-  const [quotationDate, setQuotationDate] = useState<string>(() => getTodayDateStr());
-  const [isDateManuallyChanged, setIsDateManuallyChanged] = useState<boolean>(false);
-  const [notes, setNotes] = useState<string>("");
-
-  // Items State: Dimulai kosong tanpa dummy data
-  const [items, setItems] = useState<QuotationFormItem[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [products, setProducts] = useState<ProductItem[]>(() => {
+    try {
+      const parsed: ProductItem[] = JSON.parse(getStoredProducts());
+      const merged = Array.isArray(parsed) && parsed.length > 0
+        ? [...parsed, ...initialProducts.filter((i) => !parsed.some((p) => p.id === i.id))]
+        : initialProducts;
+      return merged.filter((p) => p.category === "Jasa");
+    } catch {
+      return initialProducts.filter((p) => p.category === "Jasa");
+    }
+  });
 
   useEffect(() => {
-    // Interval rollover tengah malam: jika user buka form 23:59 dan melewati 00:00,
-    // otomatis sinkronkan ke tanggal hari berikutnya jika tanggal belum diubah manual.
-    const midnightTimer = setInterval(() => {
-      const currentToday = getTodayDateStr();
-      setIsDateManuallyChanged((manual) => {
-        if (!manual) {
-          setQuotationDate(currentToday);
-        }
-        return manual;
-      });
-    }, 10000);
-
-    return () => clearInterval(midnightTimer);
+    syncProductsFromDatabase().then((dbItems) => {
+      if (dbItems.length > 0) setProducts(dbItems.filter((p) => p.category === "Jasa"));
+    });
   }, []);
 
-  const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        product_service_id: "",
-        name: "",
-        quantity: 1,
-        unit_price: 0,
-        subtotal: 0,
-        unit: "Unit",
-        category: "Jasa",
-      },
-    ]);
-    setErrorMessage(null);
-  };
+  // Form State
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => permintaanData?.customerId || "");
+  const [quotationNumber] = useState<string>(() =>
+    permintaanData?.id ? permintaanData.id.replace(/^PMT-/, "PNW-") : generateNextQuotationNumber()
+  );
+  const [quotationDate, setQuotationDate] = useState<string>(() => getTodayDateStr());
+  const [validUntil, setValidUntil] = useState<string>(() => calculateValidUntil(getTodayDateStr(), 14));
+  const [notes, setNotes] = useState<string>("");
 
-  const handleRemoveItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
-  };
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [bannerType, setBannerType] = useState<"error" | "warning">("error");
+  const [actionHref, setActionHref] = useState<string | undefined>(undefined);
+  const [actionLabel, setActionLabel] = useState<string | undefined>(undefined);
 
-  const handleProductChange = (index: number, productId: string) => {
-    const selected = products.find((p) => p.id === productId);
-    if (!selected) {
-      setItems((prev) =>
-        prev.map((item, i) =>
-          i === index
-            ? { ...item, product_service_id: "", name: "", unit_price: 0, subtotal: 0, unit: "Unit" }
-            : item
-        )
-      );
-      return;
+  const clearError = useCallback(() => setErrorMessage(null), []);
+
+  // Hook Items Penawaran
+  const {
+    items,
+    handleAddItem,
+    handleRemoveItem,
+    handleProductChange,
+    handleDescriptionChange,
+    handleQuantityChange,
+    subtotal,
+    totalAmount,
+  } = useQuotationItems(permintaanData, products, clearError);
+
+  // Peringatan otomatis jika permintaan sudah pernah dibuatkan penawaran (Case 1c / BR-13)
+  const isAlreadyOffered = permintaanData?.status === "Sudah ditawarkan";
+  const offeredWarning = useMemo(() => {
+    if (isAlreadyOffered && permintaanData) {
+      const existingQuo =
+        permintaanData.quotationNumber ||
+        `PNW-${permintaanData.id.replace(/^PMT-?/i, "")}`;
+      return {
+        message: `Permintaan ${permintaanData.id} sudah memiliki penawaran resmi (${existingQuo}). Sesuai aturan BR-13, satu permintaan hanya boleh memiliki satu penawaran.`,
+        type: "error" as const,
+        actionHref: `/penawaran/lihat/${existingQuo}`,
+        actionLabel: `Lihat penawaran ${existingQuo}`,
+      };
     }
-    const priceNum = Math.round(parseFloat(selected.price) || 0);
+    return null;
+  }, [isAlreadyOffered, permintaanData]);
 
-    setItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-        return {
-          ...item,
-          product_service_id: selected.id,
-          name: selected.name,
-          unit_price: priceNum,
-          subtotal: priceNum * (item.quantity || 1),
-          unit: selected.unit || "Unit",
-          category: selected.category,
-        };
-      })
-    );
-  };
+  const activeBanner = useMemo(() => {
+    if (errorMessage) {
+      return {
+        message: errorMessage,
+        type: bannerType,
+        actionHref,
+        actionLabel,
+      };
+    }
+    return offeredWarning;
+  }, [errorMessage, bannerType, actionHref, actionLabel, offeredWarning]);
 
-  const handleQuantityChange = (index: number, quantity: number) => {
-    const safeQty = Math.max(0, quantity);
-    setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, quantity: safeQty, subtotal: item.unit_price * safeQty } : item))
-    );
-  };
+  // Sinkronisasi tanggal rollover
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const today = getTodayDateStr();
+      setQuotationDate((prev) => (prev ? prev : today));
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.subtotal, 0), [items]);
-  const taxAmount = 0;
-  const totalAmount = subtotal + taxAmount;
+  const currentCustomerName = useMemo(() => {
+    if (permintaanData) return permintaanData.customerName;
+    const cust = customers.find((c) => c.id === selectedCustomerId);
+    return cust?.name || "";
+  }, [permintaanData, customers, selectedCustomerId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomerId) {
-      setErrorMessage("Silakan pilih pelanggan terlebih dahulu.");
+    setHasAttemptedSubmit(true);
+
+    const validation = validateQuotationForm({
+      permintaanData,
+      selectedCustomerId,
+      items,
+      catalogProducts: products,
+    });
+
+    if (!validation.isValid) {
+      setErrorMessage(validation.errorMessage);
+      setBannerType(validation.bannerType);
+      setActionHref(validation.actionHref);
+      setActionLabel(validation.actionLabel);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    if (items.length === 0) {
-      setErrorMessage("Penawaran wajib memiliki minimal 1 item produk atau jasa.");
-      return;
-    }
-
-    const unselectedItem = items.some((it) => !it.product_service_id);
-    if (unselectedItem) {
-      setErrorMessage("Silakan pilih produk atau jasa untuk semua baris item penawaran.");
-      return;
-    }
-
-    // Evaluasi tanggal transaksi saat tombol simpan ditekan:
-    // Jika melewati tengah malam (misal dibuka 23:59, disimpan 00:00/00:01) dan tanggal belum diubah manual,
-    // atau jika tanggal form lebih lampau dari tanggal hari ini, gunakan tanggal aktual saat disimpan!
-    const currentToday = getTodayDateStr();
-    const effectiveDate = (!isDateManuallyChanged || quotationDate < currentToday)
-      ? currentToday
-      : quotationDate;
-
-    // Hitung masa berlaku 14 hari kalender dari tanggal efektif
-    const [y, m, d] = effectiveDate.split("-").map(Number);
-    const validUntilObj = new Date(y, m - 1, d + 14);
-    const validUntilStr = `${validUntilObj.getFullYear()}-${String(validUntilObj.getMonth() + 1).padStart(2, "0")}-${String(validUntilObj.getDate()).padStart(2, "0")}`;
 
     const selectedCust = customers.find((c) => c.id === selectedCustomerId);
     const newQuo: Quotation = {
       id: `QUO-${Date.now()}`,
-      quotation_number: quotationNumber || generateNextQuotationNumber(),
-      customer_id: selectedCustomerId,
-      customer_name: selectedCust?.name || "Pelanggan",
-      customer_phone: selectedCust?.phone,
+      quotation_number: quotationNumber,
+      customer_id: selectedCustomerId || permintaanData?.customerId || "CUST-001",
+      customer_name: currentCustomerName || selectedCust?.name || "Pelanggan",
+      customer_phone: permintaanData?.whatsapp || selectedCust?.phone,
       customer_email: selectedCust?.email,
       customer_address: selectedCust?.address,
-      quotation_date: effectiveDate,
-      valid_until: validUntilStr,
-      status: "PENDING_APPROVAL",
+      quotation_date: quotationDate,
+      valid_until: validUntil,
+      status: "DRAFT", // BR-06: status awal selalu Draf, "Terkirim" hanya setelah Kirim ke WhatsApp
       subtotal,
       discount_amount: 0,
-      tax_amount: taxAmount,
+      tax_amount: 0,
       total_amount: totalAmount,
       notes,
-      items: items.map((it, idx) => ({
-        id: `QI-${Date.now()}-${idx}`,
-        product_service_id: it.product_service_id,
-        name: it.name,
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-        subtotal: it.subtotal,
-        unit: it.unit,
-        category: it.category,
-      })),
+      permintaan_id: permintaanData?.id,
+      permintaan_title: permintaanData?.title,
+      items: items.map((it, idx) => ({ ...it, id: `QI-${Date.now()}-${idx}` })),
       isNew: true,
       createdAt: new Date().toISOString(),
     };
 
     saveNewQuotationToStorage(newQuo);
-    onSaved();
+
+    if (permintaanData?.id) {
+      updatePermintaanStatus(permintaanData.id, "Sudah ditawarkan");
+    }
+
+    try {
+      sessionStorage.setItem("araya_show_quotation_toast", "created");
+      sessionStorage.setItem("araya_show_quotation_toast_number", newQuo.quotation_number);
+    } catch {
+      // ignore
+    }
+
+    onSaved("/penawaran");
   };
+
+  const backUrl = permintaanData ? `/permintaan/lihat/${permintaanData.id}` : "/penawaran";
+  const backLabel = permintaanData ? `Kembali ke permintaan ${permintaanData.id}` : "Kembali ke daftar penawaran";
+  const breadcrumbItems = permintaanData
+    ? [{ label: "Permintaan", href: "/permintaan" }, { label: permintaanData.id, href: `/permintaan/lihat/${permintaanData.id}` }, { label: "Buat penawaran" }]
+    : [{ label: "Penawaran", href: "/penawaran" }, { label: "Tambah Penawaran" }];
 
   return (
     <div className="space-y-6 pb-12">
-      <Breadcrumb items={[{ label: "Penawaran", href: "/penawaran" }, { label: "Tambah" }]} />
-      <BackLink href="/penawaran" label="Kembali ke daftar penawaran" />
+      <Breadcrumb items={breadcrumbItems} />
+      <BackLink href={backUrl} label={backLabel} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tambah penawaran</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Buat dan sesuaikan rincian estimasi penawaran harga untuk pelanggan.
-          </p>
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#eef4ff] text-[#19376d]">
-          <span className="w-2 h-2 rounded-full bg-[#19376d]" />
-          <span>Status draf baru</span>
-        </div>
-      </div>
+      <QuotationFormHeader
+        isError={Boolean(hasAttemptedSubmit && activeBanner?.type === "error")}
+        permintaanId={permintaanData?.id}
+      />
 
-      {errorMessage && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
-          {errorMessage}
-        </div>
-      )}
+      <QuotationValidationBanner
+        message={activeBanner?.message || null}
+        type={activeBanner?.type || "error"}
+        actionHref={activeBanner?.actionHref}
+        actionLabel={activeBanner?.actionLabel}
+        onDismiss={() => setErrorMessage(null)}
+      />
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-8 space-y-6">
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-5">
-              <QuotationCustomerFields
-                customers={customers}
-                selectedCustomerId={selectedCustomerId}
-                quotationNumber={quotationNumber}
-                quotationDate={quotationDate}
-                onCustomerChange={(id) => {
-                  setSelectedCustomerId(id);
-                  setErrorMessage(null);
-                }}
-                onDateChange={(val) => {
-                  setQuotationDate(val);
-                  setIsDateManuallyChanged(true);
-                }}
-              />
+            {permintaanData && <QuotationFromPermintaanCard permintaan={permintaanData} />}
 
-              <QuotationItemTable
-                items={items}
-                availableProducts={products}
-                notes={notes}
-                totalAmount={totalAmount}
-                onAddItem={handleAddItem}
-                onRemoveItem={handleRemoveItem}
-                onProductChange={handleProductChange}
-                onQuantityChange={handleQuantityChange}
-                onNotesChange={setNotes}
-              />
-            </div>
+            <QuotationCustomerFields
+              customers={customers}
+              selectedCustomerId={selectedCustomerId}
+              quotationNumber={quotationNumber}
+              quotationDate={quotationDate}
+              validUntil={validUntil}
+              hasPermintaan={Boolean(permintaanData)}
+              onCustomerChange={(id) => { setSelectedCustomerId(id); setErrorMessage(null); }}
+              onDateChange={(val) => {
+                setQuotationDate(val);
+                if (val && (!validUntil || validUntil < val)) setValidUntil(calculateValidUntil(val, 14));
+              }}
+              onValidUntilChange={setValidUntil}
+            />
+
+            <QuotationItemTable
+              items={items}
+              availableProducts={products}
+              hasAttemptedSubmit={hasAttemptedSubmit}
+              onAddItem={handleAddItem}
+              onRemoveItem={handleRemoveItem}
+              onProductChange={handleProductChange}
+              onDescriptionChange={handleDescriptionChange}
+              onQuantityChange={handleQuantityChange}
+            />
+
+            <QuotationNotesAndTotalCard
+              notes={notes}
+              subtotal={subtotal}
+              totalAmount={totalAmount}
+              onNotesChange={setNotes}
+            />
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <Link
-                href="/penawaran"
+                href={backUrl}
                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-xs"
               >
                 Batal
               </Link>
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#19376d] hover:bg-[#142c57] transition-colors shadow-sm cursor-pointer"
+                disabled={isAlreadyOffered}
+                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white transition-colors shadow-sm ${
+                  isAlreadyOffered
+                    ? "bg-slate-400 cursor-not-allowed opacity-75"
+                    : "bg-[#19376d] hover:bg-[#142c57] cursor-pointer"
+                }`}
               >
-                Simpan
+                <CheckCircle className="w-4 h-4" />
+                <span>Simpan</span>
               </button>
             </div>
           </div>
 
           <div className="lg:col-span-4">
             <QuotationSummarySidebar
+              quotationNumber={quotationNumber}
+              customerName={currentCustomerName}
               itemsCount={items.length}
-              subtotal={subtotal}
-              taxAmount={taxAmount}
               totalAmount={totalAmount}
-              statusLabel="Draf"
-              activeStep={1}
             />
           </div>
         </div>
@@ -290,7 +304,18 @@ function TambahPenawaranForm({ onSaved }: { onSaved: () => void }) {
   );
 }
 
+function TambahPenawaranGate({ onSaved }: { onSaved: (targetUrl: string) => void }) {
+  const searchParams = useSearchParams();
+  const hasPermintaan = Boolean(searchParams?.get("fromPermintaan") || searchParams?.get("permintaan_id"));
+  if (!hasPermintaan) return <QuotationRequiresPermintaanNotice />;
+  return <TambahPenawaranForm onSaved={onSaved} />;
+}
+
 export default function TambahPenawaranPage() {
   const { formKey, leaveForm } = useFreshForm();
-  return <TambahPenawaranForm key={formKey} onSaved={() => leaveForm("/penawaran")} />;
+  return (
+    <Suspense fallback={<div className="p-12 text-xs text-slate-500 text-center">Memuat formulir penawaran...</div>}>
+      <TambahPenawaranGate key={formKey} onSaved={(targetUrl) => leaveForm(targetUrl)} />
+    </Suspense>
+  );
 }
