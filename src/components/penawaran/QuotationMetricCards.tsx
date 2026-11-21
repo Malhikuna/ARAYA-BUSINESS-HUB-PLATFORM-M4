@@ -1,66 +1,65 @@
 "use client";
 
 import React from "react";
-import { FileText, BadgeCheck, Clock } from "lucide-react";
+import { FileText, Send, CheckCircle2 } from "lucide-react";
 
 export interface QuotationMetricCardsProps {
-  totalCount: number;
-  approvedCount: number;
-  pendingCount: number;
+  drafCount: number;
+  terkirimCount: number;
+  disetujuiCount: number;
 }
 
 /**
- * 3 Kartu Metrik Ringkasan Modul Penawaran (Total, Disetujui, Menunggu persetujuan).
+ * 3 Kartu Metrik Ringkasan Modul Penawaran (Draf, Terkirim, Disetujui).
  */
 export function QuotationMetricCards({
-  totalCount,
-  approvedCount,
-  pendingCount,
+  drafCount,
+  terkirimCount,
+  disetujuiCount,
 }: QuotationMetricCardsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-      {/* 1. Total Penawaran */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-center justify-between">
-        <div className="space-y-1">
-          <span className="text-xs font-medium text-slate-500">Total penawaran</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-heading font-bold text-slate-900">{totalCount}</span>
-            <span className="text-xs text-slate-400">penawaran terdaftar</span>
+    <div className="grid grid-cols-1 @md:grid-cols-2 @2xl:grid-cols-3 gap-3 md:gap-4 lg:gap-5 mb-5 sm:mb-6">
+      {/* 1. Draf */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-xs flex items-center justify-between gap-3">
+        <div className="space-y-1 min-w-0">
+          <span className="text-xs font-medium text-slate-500">Draf</span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-2xl sm:text-3xl font-heading font-bold text-slate-900">{drafCount}</span>
+            <span className="text-xs text-slate-400">penawaran draf</span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-[#eef4ff] text-[#19376d] flex items-center justify-center shrink-0">
-          <FileText className="w-5 h-5" />
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+          <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
 
-      {/* 2. Disetujui */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-center justify-between">
-        <div className="space-y-1">
+      {/* 2. Terkirim */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-xs flex items-center justify-between gap-3">
+        <div className="space-y-1 min-w-0">
+          <span className="text-xs font-medium text-slate-500">Terkirim</span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-2xl sm:text-3xl font-heading font-bold text-slate-900">{terkirimCount}</span>
+            <span className="text-xs text-slate-400">penawaran terkirim</span>
+          </div>
+        </div>
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+        </div>
+      </div>
+
+      {/* 3. Disetujui */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-xs flex items-center justify-between gap-3 @md:col-span-2 @2xl:col-span-1">
+        <div className="space-y-1 min-w-0">
           <span className="text-xs font-medium text-slate-500">Disetujui</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-heading font-bold text-slate-900">{approvedCount}</span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-2xl sm:text-3xl font-heading font-bold text-slate-900">{disetujuiCount}</span>
             <span className="text-xs text-slate-400">penawaran disetujui</span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-[#eef4ff] text-[#0284c7] flex items-center justify-center shrink-0">
-          <BadgeCheck className="w-5 h-5" />
-        </div>
-      </div>
-
-      {/* 3. Menunggu Persetujuan */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-center justify-between">
-        <div className="space-y-1">
-          <span className="text-xs font-medium text-slate-500">Menunggu persetujuan</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-heading font-bold text-slate-900">{pendingCount}</span>
-            <span className="text-xs text-slate-400">penawaran menunggu</span>
-          </div>
-        </div>
-        <div className="w-10 h-10 rounded-xl bg-[#fef3eb] text-[#c25e1a] flex items-center justify-center shrink-0">
-          <Clock className="w-5 h-5" />
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
     </div>
   );
 }
-
