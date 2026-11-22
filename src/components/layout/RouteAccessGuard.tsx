@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useSyncExternalStore } from "react";
+import React, { Suspense, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
@@ -17,12 +17,7 @@ function useIsMounted(): boolean {
   );
 }
 
-/**
- * Guard halaman berbasis role & tipe_usaha Partner (M4-US1-AC3 / BR-13).
- * Memblokir akses langsung URL untuk Partner Produk di /permintaan & /penawaran
- * serta membatasi rute Partner/Admin untuk Customer login M1.
- */
-export function RouteAccessGuard({ children }: { children: React.ReactNode }) {
+function RouteAccessGuardInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
   const router = useRouter();
   const isMounted = useIsMounted();
@@ -62,4 +57,22 @@ export function RouteAccessGuard({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+/**
+ * Guard halaman berbasis role & tipe_usaha Partner (M4-US1-AC3 / BR-13).
+ * Dibungkus <Suspense> agar kompatibel dengan prerender Next.js 16 Cache Components pada rute dinamis [id].
+ */
+export function RouteAccessGuard({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-xs text-slate-400 text-center">
+          Memuat halaman...
+        </div>
+      }
+    >
+      <RouteAccessGuardInner>{children}</RouteAccessGuardInner>
+    </Suspense>
+  );
 }
