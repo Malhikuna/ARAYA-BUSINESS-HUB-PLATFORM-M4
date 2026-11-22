@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useSyncExternalStore, Suspense } from "react";
+import React, { useEffect, useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
@@ -12,6 +12,8 @@ import {
 } from "@/lib/data/mock-customers";
 import { Customer, CustomerForm } from "@/types/customer";
 import { CustomerFormView } from "@/components/pelanggan/CustomerFormView";
+import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
+import { useFreshForm } from "@/lib/use-fresh-form";
 
 const emptySubscribe = () => () => {};
 
@@ -25,11 +27,25 @@ function useIsMounted(): boolean {
 
 function UbahPelangganContent() {
   const router = useRouter();
+  const { formKey, leaveForm } = useFreshForm();
   const isMounted = useIsMounted();
   const routeParams = useParams<{ id: string }>();
   const customerId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
+  const { isDev, activeRole } = useDevRole();
+  const customer = isMounted ? findCustomerById(customerId) : undefined;
+  const isMismatchedRole =
+    isDev &&
+    Boolean(customer) &&
+    ((activeRole === "PARTNER_PRODUCT" && getCustomerPartnerInfo(customer!.name).partnerRole !== "PARTNER_PRODUCT") ||
+      (activeRole === "PARTNER_SERVICE" && getCustomerPartnerInfo(customer!.name).partnerRole !== "PARTNER_SERVICE"));
 
-  if (!isMounted) {
+  useEffect(() => {
+    if (isMounted && isMismatchedRole) {
+      router.replace("/pelanggan");
+    }
+  }, [isMounted, isMismatchedRole, router]);
+
+  if (!isMounted || isMismatchedRole) {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
@@ -39,8 +55,6 @@ function UbahPelangganContent() {
       </div>
     );
   }
-
-  const customer = findCustomerById(customerId);
 
   if (!customer) {
     return (
@@ -69,6 +83,7 @@ function UbahPelangganContent() {
   const cleanPhone = customer.phone.trim();
 
   const handleConfirmSave = async (form: CustomerForm) => {
+    const cleanEmail = form.email.trim().toLowerCase();
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customer.id)) {
       try {
         const res = await fetch(`/api/m4/v1/customers/${customer.id}`, {
@@ -76,7 +91,7 @@ function UbahPelangganContent() {
           headers: { "Content-Type": "application/json", Authorization: "Bearer mock-admin-token" },
           body: JSON.stringify({
             name: form.name.trim(),
-            email: form.email.trim(),
+            email: cleanEmail,
             phone: form.phone.trim(),
             address: form.address.trim(),
           }),
@@ -102,26 +117,26 @@ function UbahPelangganContent() {
       initials: getCustomerInitials(form.name, 2),
       avatarBg: customer.avatarBg || "bg-blue-100 text-blue-700",
       phone: form.phone.trim() || "0812 3456 7890",
-      email: form.email.trim() || "-",
+      email: cleanEmail || "-",
       address: form.address.trim(),
       city: detectCityFromAddress(form.address.trim(), customer.city || "Bandung"),
       createdAt: customer.createdAt || new Date().toISOString(),
     };
 
     saveUpdatedCustomerToStorage(updatedCustomer);
-    router.push("/pelanggan");
+    leaveForm("/pelanggan");
   };
 
   return (
     <CustomerFormView
-      key={customer.id}
+      key={`${customer.id}-${formKey}-${activeRole}`}
       mode="edit"
       customerId={customer.id}
       fallbackName={customer.name}
       initialValues={{
         name: customer.name,
         phone: cleanPhone,
-        email: customer.email === "-" ? "" : customer.email,
+        email: customer.email === "-" ? "" : customer.email.toLowerCase(),
         address: customer.address,
       }}
       onConfirmSave={handleConfirmSave}
