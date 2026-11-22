@@ -21,7 +21,14 @@ export const createProductSchema = z.object({
     .string()
     .trim()
     .min(1, 'Nama produk/jasa tidak boleh kosong.')
-    .max(150, 'Nama produk/jasa maksimal 150 karakter.'),
+    .min(3, 'Nama produk/jasa minimal 3 karakter.')
+    .max(150, 'Nama produk/jasa maksimal 150 karakter.')
+    .refine((val) => !/^\d+$/.test(val.replace(/\s/g, '')), {
+      message: 'Nama produk/jasa tidak boleh hanya berupa angka.',
+    })
+    .refine((val) => /[a-zA-Z]/.test(val), {
+      message: 'Nama produk/jasa harus mengandung huruf.',
+    }),
   description: z.string().trim().max(1000, 'Deskripsi maksimal 1000 karakter.').nullable().optional(),
   type: z
     .string()

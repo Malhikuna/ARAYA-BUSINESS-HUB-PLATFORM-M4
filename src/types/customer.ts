@@ -1,3 +1,5 @@
+export type CustomerSource = "Input partner" | "Akun customer" | "Input admin";
+
 export interface Customer {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface Customer {
   email: string;
   address: string;
   city: string;
+  source?: CustomerSource;
   isNew?: boolean;
   createdAt?: string;
 }
