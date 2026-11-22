@@ -1,5 +1,44 @@
 export const QUOTATION_TOAST_TYPE_KEY = "araya_show_quotation_toast";
 export const QUOTATION_TOAST_NUMBER_KEY = "araya_show_quotation_toast_number";
+export const DEFAULT_PPN_RATE = 11;
+
+/**
+ * Hitung PPN per baris dengan pembulatan Round-Half-Up berbasis integer (BigInt),
+ * bebas kesalahan floating-point sesuai aturan finansial Modul 4 (PRO-48 / TC-M4US2-06).
+ */
+export function calculateLineTaxRupiah(
+  lineNetRupiah: number,
+  taxRatePercent = DEFAULT_PPN_RATE
+): number {
+  if (!Number.isFinite(lineNetRupiah) || lineNetRupiah <= 0) return 0;
+  if (!Number.isFinite(taxRatePercent) || taxRatePercent <= 0) return 0;
+  const netInt = BigInt(Math.round(lineNetRupiah));
+  const rateScaled = BigInt(Math.round(taxRatePercent * 100));
+  const denominator = BigInt(10000);
+  const rounded = (netInt * rateScaled + denominator / BigInt(2)) / denominator;
+  return Number(rounded);
+}
+
+/**
+ * Akumulasi subtotal, PPN per baris (Round-Half-Up), dan grand total penawaran.
+ */
+export function calculateQuotationTaxSummary(
+  items: ReadonlyArray<{ subtotal: number }>,
+  taxRatePercent = DEFAULT_PPN_RATE
+): { subtotal: number; taxAmount: number; totalAmount: number } {
+  let subtotal = 0;
+  let taxAmount = 0;
+  for (const item of items) {
+    const lineNet = Number.isFinite(item.subtotal) && item.subtotal > 0 ? Math.round(item.subtotal) : 0;
+    subtotal += lineNet;
+    taxAmount += calculateLineTaxRupiah(lineNet, taxRatePercent);
+  }
+  return {
+    subtotal,
+    taxAmount,
+    totalAmount: subtotal + taxAmount,
+  };
+}
 
 export type CanonicalQuotationStatus = "DRAFT" | "SENT" | "APPROVED" | "REJECTED";
 

@@ -3,9 +3,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Menu, ChevronDown, Check, ShieldCheck, Package, Wrench } from "lucide-react";
+import { User, UserCheck, Menu, ChevronDown, Check, ShieldCheck, Package, Wrench } from "lucide-react";
 import { GlobalSearchBar } from "@/components/layout/GlobalSearchBar";
 import { useDevRole, DevUserRole, DEV_ROLE_PROFILES } from "@/lib/auth/dev-role";
+import { canAccessRoute } from "@/lib/auth/navigation-access";
 
 export interface NavbarProps {
   isSidebarOpen?: boolean;
@@ -52,7 +53,7 @@ export function Navbar({
         )}
 
         <Link
-          href="/pelanggan"
+          href={activeRole === "CUSTOMER" ? "/penawaran" : "/pelanggan"}
           className="font-heading font-bold text-sm md:text-base lg:text-lg text-slate-900 tracking-tight hover:opacity-90 transition-opacity whitespace-nowrap shrink-0"
         >
           Araya Business Hub
@@ -114,6 +115,8 @@ export function Navbar({
                       ? ShieldCheck
                       : roleKey === "PARTNER_PRODUCT"
                       ? Package
+                      : roleKey === "CUSTOMER"
+                      ? UserCheck
                       : Wrench;
 
                   return (
@@ -127,21 +130,14 @@ export function Navbar({
                           typeof window !== "undefined"
                             ? window.location.pathname
                             : "";
-                        if (
-                          roleKey === "ADMIN" &&
-                          (currentPath.startsWith("/penawaran") ||
-                            currentPath.startsWith("/invoice") ||
-                            currentPath.startsWith("/order") ||
-                            currentPath.startsWith("/permintaan"))
-                        ) {
-                          router.push("/produk");
-                        }
-                        if (
-                          roleKey === "PARTNER_PRODUCT" &&
-                          (currentPath.startsWith("/penawaran") ||
-                            currentPath.startsWith("/permintaan"))
-                        ) {
-                          router.push("/produk");
+                        const access = canAccessRoute(
+                          roleKey,
+                          currentPath,
+                          item.tipeUsaha,
+                          true
+                        );
+                        if (!access.allowed) {
+                          router.push(access.redirectTo);
                         }
                       }}
                       className={`w-full text-left flex items-start gap-2.5 p-2 rounded-xl transition-colors cursor-pointer ${

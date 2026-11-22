@@ -16,57 +16,15 @@ import {
 } from "lucide-react";
 import { useDevRole } from "@/lib/auth/dev-role";
 import {
+  getVisibleSidebarMenus,
+  SidebarMenuItemSpec,
+} from "@/lib/auth/navigation-access";
+import {
   subscribePermintaanStorage,
   getNewPermintaanCount,
   getServerNewPermintaanCount,
   formatBadgeCount,
 } from "@/lib/data/mock-permintaan";
-
-interface MenuItem {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-  matchPrefix?: string;
-}
-
-const menuItems: MenuItem[] = [
-  {
-    name: "Katalog",
-    href: "/produk",
-    icon: BookOpen,
-    matchPrefix: "/produk",
-  },
-  {
-    name: "Pelanggan",
-    href: "/pelanggan",
-    icon: Users,
-    matchPrefix: "/pelanggan",
-  },
-  {
-    name: "Permintaan",
-    href: "/permintaan",
-    icon: ClipboardList,
-    matchPrefix: "/permintaan",
-  },
-  {
-    name: "Penawaran",
-    href: "/penawaran",
-    icon: FileText,
-    matchPrefix: "/penawaran",
-  },
-  {
-    name: "Invoice",
-    href: "/invoice",
-    icon: Receipt,
-    matchPrefix: "/invoice",
-  },
-  {
-    name: "Order",
-    href: "/order",
-    icon: Truck,
-    matchPrefix: "/order",
-  },
-];
 
 export interface SidebarProps {
   isOpen?: boolean;
@@ -82,7 +40,7 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { isDev, activeRole, profile } = useDevRole();
+  const { activeRole, tipeUsaha } = useDevRole();
   const newPermintaanCount = useSyncExternalStore(
     subscribePermintaanStorage,
     getNewPermintaanCount,
@@ -110,34 +68,25 @@ export function Sidebar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen, onCloseMobile]);
 
-  // Konsistensi filtering menu:
-  // Baik dalam mode simulasi maupun non-dev (activeRole = "ADMIN"),
-  // hak akses halaman konsisten dengan peran pengguna.
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (activeRole === "ADMIN") {
-      // Super Admin hanya mengelola Master Katalog dan Pelanggan
-      return item.href === "/produk" || item.href === "/pelanggan";
-    }
-    if (activeRole === "PARTNER_PRODUCT") {
-      // Mitra Produk: Produk, Pelanggan, Invoice, dan Order (tanpa Penawaran & Permintaan)
-      return item.href !== "/penawaran" && item.href !== "/permintaan";
-    }
-    if (activeRole === "PARTNER_SERVICE") {
-      // Mitra Jasa: Jasa, Pelanggan, Permintaan, Penawaran, Invoice, dan Order
-      return true;
-    }
-    // Fallback konsisten untuk mode non-dev
-    return item.href === "/produk" || item.href === "/pelanggan";
-  });
+  const filteredMenuItems = getVisibleSidebarMenus(activeRole, tipeUsaha);
 
-  const resolveMenuIcon = (item: MenuItem) => {
-    if (isDev && item.href === "/produk") {
-      if (activeRole === "PARTNER_PRODUCT") return Package;
-      if (activeRole === "PARTNER_SERVICE") return Wrench;
+  const resolveMenuIcon = (item: SidebarMenuItemSpec): React.ElementType => {
+    if (item.iconKey === "catalog") {
+      if (activeRole === "PARTNER_PRODUCT" || tipeUsaha === "produk") return Package;
+      if (activeRole === "PARTNER_SERVICE" || tipeUsaha === "jasa") return Wrench;
       return BookOpen;
     }
-    return item.icon;
+    if (item.iconKey === "users") return Users;
+    if (item.iconKey === "clipboard") return ClipboardList;
+    if (item.iconKey === "file") return FileText;
+    if (item.iconKey === "receipt") return Receipt;
+    return Truck;
   };
+
+  const sectionLabel =
+    activeRole === "CUSTOMER"
+      ? "Portal transaksi customer"
+      : "Penawaran & tagihan penjualan";
 
   const renderMenuContent = (isMobileDrawer = false) => (
     <>
@@ -155,19 +104,18 @@ export function Sidebar({
         </div>
       )}
       <div className="text-xs font-semibold text-slate-600 px-3 py-2 whitespace-nowrap">
-        Penawaran &amp; tagihan penjualan
+        {sectionLabel}
       </div>
       <nav aria-label="Menu modul penjualan" className="space-y-1 mt-1 text-sm">
         {filteredMenuItems.map((item) => {
           const Icon = resolveMenuIcon(item);
-          const displayName = isDev && item.href === "/produk" ? profile.catalogMenuName : item.name;
           const isActive = item.matchPrefix
             ? pathname.startsWith(item.matchPrefix)
             : pathname === item.href;
 
           return (
             <Link
-              key={item.name}
+              key={item.href}
               href={item.href}
               onClick={isMobileDrawer ? onCloseMobile : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl whitespace-nowrap transition-colors ${
@@ -181,7 +129,7 @@ export function Sidebar({
                   isActive ? "text-[#19376d]" : "text-slate-500"
                 }`}
               />
-              <span>{displayName}</span>
+              <span>{item.name}</span>
               {item.href === "/permintaan" && badgeLabel && (
                 <span
                   className={`ml-auto px-2 py-0.5 rounded-full text-[11px] font-bold ${

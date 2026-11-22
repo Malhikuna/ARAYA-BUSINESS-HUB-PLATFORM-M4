@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { QuotationFormHeader } from "@/components/penawaran/QuotationFormHeader";
 import { QuotationValidationBanner } from "@/components/penawaran/QuotationValidationBanner";
 import { useFreshForm } from "@/lib/use-fresh-form";
@@ -31,6 +31,7 @@ import {
   generateQuotationNumberForPermintaan,
   getTodayDateStr,
   calculateValidUntil,
+  DEFAULT_PPN_RATE,
 } from "@/lib/data/mock-quotations";
 
 function TambahPenawaranForm({
@@ -80,6 +81,7 @@ function TambahPenawaranForm({
   const [quotationDate, setQuotationDate] = useState<string>(() => getTodayDateStr());
   const [validUntil, setValidUntil] = useState<string>(() => calculateValidUntil(getTodayDateStr(), 14));
   const [notes, setNotes] = useState<string>("");
+  const [taxRate, setTaxRate] = useState<number>(DEFAULT_PPN_RATE);
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
@@ -98,8 +100,9 @@ function TambahPenawaranForm({
     handleDescriptionChange,
     handleQuantityChange,
     subtotal,
+    taxAmount,
     totalAmount,
-  } = useQuotationItems(permintaanData, products, clearError);
+  } = useQuotationItems(permintaanData, products, clearError, taxRate);
 
   // Peringatan otomatis jika permintaan sudah pernah dibuatkan penawaran (BR-13)
   const isAlreadyOffered = permintaanData.status === "Sudah ditawarkan";
@@ -193,7 +196,8 @@ function TambahPenawaranForm({
       status: "DRAFT", // BR-06: status awal selalu Draf, "Terkirim" hanya setelah Kirim ke WhatsApp
       subtotal,
       discount_amount: 0,
-      tax_amount: 0,
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
       total_amount: totalAmount,
       notes,
       permintaan_id: permintaanData.id,
@@ -270,8 +274,11 @@ function TambahPenawaranForm({
             <QuotationNotesAndTotalCard
               notes={notes}
               subtotal={subtotal}
+              taxRate={taxRate}
+              taxAmount={taxAmount}
               totalAmount={totalAmount}
               onNotesChange={setNotes}
+              onTaxRateChange={setTaxRate}
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -301,6 +308,9 @@ function TambahPenawaranForm({
               quotationNumber={quotationNumber}
               customerName={currentCustomerName}
               itemsCount={items.length}
+              subtotal={subtotal}
+              taxRate={taxRate}
+              taxAmount={taxAmount}
               totalAmount={totalAmount}
             />
           </div>
@@ -334,6 +344,10 @@ function TambahPenawaranForm({
             <span className="text-slate-500">Jumlah item jasa</span>
             <span className="font-semibold text-slate-800">{items.length} layanan</span>
           </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-slate-500">PPN ({taxRate}%)</span>
+            <span className="font-semibold text-slate-800">{formatRupiah(taxAmount)}</span>
+          </div>
           <div className="flex items-center justify-between gap-3 pt-1.5 border-t border-slate-200/80">
             <span className="font-semibold text-slate-700">Total penawaran</span>
             <span className="font-heading font-bold text-[#19376d]">{formatRupiah(totalAmount)}</span>
@@ -359,30 +373,7 @@ function TambahPenawaranGate({ onSaved }: { onSaved: (targetUrl: string) => void
   }, [fromPermintaan]);
 
   if (!fromPermintaan) return <QuotationRequiresPermintaanNotice />;
-
-  if (!permintaanData) {
-    return (
-      <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-4">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 className="text-base font-heading font-bold text-slate-900">
-            Permintaan tidak ditemukan
-          </h2>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Permintaan dengan kode <span className="font-mono font-semibold text-slate-700">{fromPermintaan}</span> tidak ditemukan. Silakan pilih permintaan valid dari daftar permintaan.
-          </p>
-        </div>
-        <Link
-          href="/permintaan"
-          className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
-        >
-          Kembali ke daftar permintaan
-        </Link>
-      </div>
-    );
-  }
+  if (!permintaanData) return <QuotationRequiresPermintaanNotice missingId={fromPermintaan} />;
 
   return <TambahPenawaranForm permintaanData={permintaanData} onSaved={onSaved} />;
 }

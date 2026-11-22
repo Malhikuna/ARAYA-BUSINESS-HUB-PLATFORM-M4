@@ -4,15 +4,21 @@ import { useState, useMemo } from "react";
 import { QuotationFormItem } from "@/types/quotation";
 import { ProductItem } from "@/types/product";
 import { PermintaanItem } from "@/types/permintaan";
-import { parsePriceRupiah } from "@/lib/quotation-helpers";
+import {
+  parsePriceRupiah,
+  DEFAULT_PPN_RATE,
+  calculateQuotationTaxSummary,
+} from "@/lib/quotation-helpers";
 
 /**
  * Hook untuk mengelola state daftar item jasa pada formulir penawaran.
+ * Mendukung kalkulasi PPN per baris (Round-Half-Up) dengan default PPN 11% (TC-M4US2-06).
  */
 export function useQuotationItems(
   permintaanData: PermintaanItem | null,
   products: ProductItem[],
-  onItemChange?: () => void
+  onItemChange?: () => void,
+  taxRate = DEFAULT_PPN_RATE
 ) {
   const [items, setItems] = useState<QuotationFormItem[]>(() => {
     if (permintaanData) {
@@ -111,8 +117,10 @@ export function useQuotationItems(
     onItemChange?.();
   };
 
-  const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.subtotal, 0), [items]);
-  const totalAmount = subtotal;
+  const { subtotal, taxAmount, totalAmount } = useMemo(
+    () => calculateQuotationTaxSummary(items, taxRate),
+    [items, taxRate]
+  );
 
   return {
     items,
@@ -123,6 +131,7 @@ export function useQuotationItems(
     handleDescriptionChange,
     handleQuantityChange,
     subtotal,
+    taxAmount,
     totalAmount,
   };
 }
