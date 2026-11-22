@@ -20,6 +20,24 @@ describe('Product & Service CRUD API Test Suite (M4-US1 / PRO-12)', () => {
       }
     });
 
+    it('harus menolak jika nama produk/jasa hanya berupa angka atau kurang dari 3 karakter', () => {
+      const onlyNumbers = createProductSchema.safeParse({
+        sku: 'SRV-NUM-001',
+        name: '123456',
+        type: 'SERVICE',
+        price: 100000,
+      });
+      assert.equal(onlyNumbers.success, false);
+
+      const tooShort = createProductSchema.safeParse({
+        sku: 'PRD-SHT-001',
+        name: 'AB',
+        type: 'PRODUCT',
+        price: 100000,
+      });
+      assert.equal(tooShort.success, false);
+    });
+
     it('harus menolak harga negatif (nonnegative constraint)', () => {
       const parsed = createProductSchema.safeParse({
         sku: 'TEST-SKU-001',
