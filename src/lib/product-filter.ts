@@ -79,12 +79,21 @@ export function filterAndSortProducts(
     if (aIsActive && !bIsActive) return -1;
     if (!aIsActive && bIsActive) return 1;
 
-    // Jika status sama, terapkan urutan harga jika dipilih
+    // Jika urutan harga dipilih secara eksplisit
     if (selectedPrice === "Harga: Terendah") {
       return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
     }
     if (selectedPrice === "Harga: Tertinggi") {
       return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+    }
+
+    // Pastikan item yang baru ditambahkan (createdAt terbaru) selalu berada di paling atas dengan guard NaN
+    const rawTimeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const rawTimeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    const timeA = Number.isFinite(rawTimeA) ? rawTimeA : 0;
+    const timeB = Number.isFinite(rawTimeB) ? rawTimeB : 0;
+    if (timeA !== timeB) {
+      return timeB - timeA;
     }
 
     return 0;

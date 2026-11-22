@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useSyncExternalStore, Suspense } from "react";
+import React, { useEffect, useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { findProductById, saveUpdatedProductToStorage, getStoredBusinessMode } from "@/lib/data/mock-products";
 import { ProductCategory, ProductItem, BusinessMode } from "@/types/product";
 import { ProductFormView, ProductFormValues } from "@/components/produk/ProductFormView";
+import { useDevRole } from "@/lib/auth/dev-role";
+import { useFreshForm } from "@/lib/use-fresh-form";
 
 const MAX_PRICE_DIGITS = 15;
 const emptySubscribe = () => () => {};
@@ -21,15 +23,36 @@ function useIsMounted(): boolean {
 
 function UbahProdukContent() {
   const router = useRouter();
+  const { formKey, leaveForm } = useFreshForm();
   const searchParams = useSearchParams();
   const isMounted = useIsMounted();
   const routeParams = useParams<{ id: string }>();
+  const { isDev, activeRole } = useDevRole();
   const productId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
   const queryMode = searchParams.get("mode") as BusinessMode | null;
-  const businessMode: BusinessMode =
-    queryMode === "Produk" || queryMode === "Jasa" ? queryMode : getStoredBusinessMode();
+  const businessMode: BusinessMode = isDev
+    ? activeRole === "ADMIN"
+      ? "Semua"
+      : activeRole === "PARTNER_PRODUCT"
+      ? "Produk"
+      : "Jasa"
+    : (queryMode === "Produk" || queryMode === "Jasa" ? queryMode : getStoredBusinessMode());
 
-  if (!isMounted) {
+  const product = isMounted ? findProductById(productId) : null;
+  const isMismatchedRole = Boolean(
+    isDev &&
+      product &&
+      ((activeRole === "PARTNER_PRODUCT" && product.category !== "Produk") ||
+        (activeRole === "PARTNER_SERVICE" && product.category !== "Jasa"))
+  );
+
+  useEffect(() => {
+    if (isMismatchedRole) {
+      router.replace("/produk");
+    }
+  }, [isMismatchedRole, router]);
+
+  if (!isMounted || isMismatchedRole) {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
@@ -37,8 +60,6 @@ function UbahProdukContent() {
       </div>
     );
   }
-
-  const product = findProductById(productId);
 
   if (!product) {
     return (
@@ -80,12 +101,12 @@ function UbahProdukContent() {
         `Item ${validCategory.toLowerCase()} terdaftar untuk transaksi penawaran dan faktur.`,
     };
     saveUpdatedProductToStorage(updatedItem);
-    router.push("/produk");
+    leaveForm("/produk");
   };
 
   return (
     <ProductFormView
-      key={product.id}
+      key={`${product.id}-${formKey}-${activeRole}-${businessMode}`}
       mode="edit"
       businessMode={businessMode}
       sku={product.sku}
@@ -98,7 +119,7 @@ function UbahProdukContent() {
         stock: product.stock !== undefined ? String(product.stock) : "0",
         unit: product.unit || (product.category === "Produk" ? "Unit" : "Paket"),
       }}
-      onCancel={() => router.push("/produk")}
+      onCancel={() => leaveForm("/produk")}
       onConfirmSave={handleConfirmSave}
     />
   );

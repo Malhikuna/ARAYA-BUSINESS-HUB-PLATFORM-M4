@@ -29,9 +29,9 @@ export function ProductStockField({ stock, onChange }: ProductStockFieldProps) {
   };
 
   return (
-    <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-      <label htmlFor="stock" className="block text-xs font-bold text-slate-800 mb-1.5">
-        Kuantitas Stok Gudang
+    <div>
+      <label htmlFor="stock" className="block text-xs font-bold text-slate-800 mb-2">
+        Stok <span className="text-red-500">*</span>
       </label>
       <input
         id="stock"
@@ -45,7 +45,7 @@ export function ProductStockField({ stock, onChange }: ProductStockFieldProps) {
         onBlur={handleBlur}
         className="w-full h-11 px-4 rounded-lg text-xs sm:text-sm text-slate-800 bg-white border border-slate-300 focus:border-[#19376d] focus:ring-1 focus:ring-[#19376d] outline-none transition-all"
       />
-      <p className="text-[11px] text-slate-500 mt-1">
+      <p className="text-[11px] text-slate-500 mt-1.5">
         Jumlah unit fisik yang tersedia di inventaris gudang Anda saat ini.
       </p>
     </div>
