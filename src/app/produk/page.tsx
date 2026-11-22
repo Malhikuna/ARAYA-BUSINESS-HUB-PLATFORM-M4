@@ -41,10 +41,24 @@ export default function ProdukPage() {
   const rawSavedProducts = useSyncExternalStore(subscribeProductStorage, getStoredProducts, getServerStoredProducts);
   const rawUpdatedProducts = useSyncExternalStore(subscribeProductStorage, getStoredUpdatedProducts, getServerStoredUpdatedProducts);
   const rawDeletedProducts = useSyncExternalStore(subscribeProductStorage, getStoredDeletedProducts, getServerStoredDeletedProducts);
-  const businessMode = useSyncExternalStore(subscribeProductStorage, getStoredBusinessMode, getServerStoredBusinessMode);
-  const { isDev, activeRole, profile } = useDevRole();
+  const storedBusinessMode = useSyncExternalStore(subscribeProductStorage, getStoredBusinessMode, getServerStoredBusinessMode);
+  const { isDev, activeRole } = useDevRole();
+  const businessMode: BusinessMode = isDev
+    ? activeRole === "PARTNER_PRODUCT"
+      ? "Produk"
+      : activeRole === "PARTNER_SERVICE"
+      ? "Jasa"
+      : "Semua"
+    : storedBusinessMode;
 
-  const savedProducts = useMemo<ProductItem[]>(() => { try { return JSON.parse(rawSavedProducts); } catch { return []; } }, [rawSavedProducts]);
+  const savedProducts = useMemo<ProductItem[]>(() => {
+    try {
+      const parsed: unknown = JSON.parse(rawSavedProducts);
+      return Array.isArray(parsed) ? (parsed as ProductItem[]) : [];
+    } catch {
+      return [];
+    }
+  }, [rawSavedProducts]);
   const updatedProducts = useMemo<Record<string, ProductItem>>(() => { try { return JSON.parse(rawUpdatedProducts); } catch { return {}; } }, [rawUpdatedProducts]);
   const deletedProductIds = useMemo<string[]>(() => { try { return JSON.parse(rawDeletedProducts); } catch { return []; } }, [rawDeletedProducts]);
 
@@ -52,7 +66,6 @@ export default function ProdukPage() {
   const [selectedCategory, setSelectedCategory] = useState("Semua kategori");
   const [selectedStatus, setSelectedStatus] = useState("Semua status");
   const [selectedStock, setSelectedStock] = useState("Semua stok");
-  const [selectedUnit, setSelectedUnit] = useState("Semua satuan");
   const [selectedPrice, setSelectedPrice] = useState("Semua harga");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -61,29 +74,33 @@ export default function ProdukPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [toastConfig, setToastConfig] = useState({
-    title: "Produk/jasa tersimpan",
-    description: "Item baru telah ditambahkan ke katalog penawaran dan tagihan.",
+    title: "Jasa tersimpan",
+    description: "Data sudah tersedia untuk penawaran.",
   });
   const [toastStatus, setToastStatus] = useState<ToastStatus>("hidden");
 
   const handleBusinessModeChange = useCallback((mode: BusinessMode) => {
     saveBusinessModeToStorage(mode);
     setCurrentPage(1);
+    setSelectedCategory("Semua kategori");
+    setSelectedStatus("Semua status");
     setSelectedStock("Semua stok");
-    setSelectedUnit("Semua satuan");
     setSelectedPrice("Semua harga");
+    setProductToDelete(null);
+    setIsExportPreviewOpen(false);
+    setIsImportModalOpen(false);
   }, []);
 
   useEffect(() => {
     if (!isDev) return;
-    if (activeRole === "PARTNER_PRODUCT" && businessMode !== "Produk") {
-      const timeoutId = window.setTimeout(() => handleBusinessModeChange("Produk"), 0);
-      return () => window.clearTimeout(timeoutId);
-    } else if (activeRole === "PARTNER_SERVICE" && businessMode !== "Jasa") {
-      const timeoutId = window.setTimeout(() => handleBusinessModeChange("Jasa"), 0);
-      return () => window.clearTimeout(timeoutId);
-    }
-  }, [isDev, activeRole, businessMode, handleBusinessModeChange]);
+    const onRoleChange = () => {
+      setCurrentPage(1); setSelectedCategory("Semua kategori"); setSelectedStatus("Semua status");
+      setSelectedStock("Semua stok"); setSelectedPrice("Semua harga");
+      setProductToDelete(null); setIsExportPreviewOpen(false); setIsImportModalOpen(false);
+    };
+    window.addEventListener("araya-dev-role-change", onRoleChange);
+    return () => window.removeEventListener("araya-dev-role-change", onRoleChange);
+  }, [isDev]);
 
   const showToast = useCallback((title: string, description: string) => {
     setToastConfig({ title, description });
@@ -101,19 +118,20 @@ export default function ProdukPage() {
         const flag = sessionStorage.getItem("araya_product_toast");
         if (!flag) return;
         const toastName = sessionStorage.getItem("araya_product_toast_name") || "Item katalog";
+        const toastCategory = sessionStorage.getItem("araya_product_toast_category");
         sessionStorage.removeItem("araya_product_toast");
         sessionStorage.removeItem("araya_product_toast_name");
-        if (flag === "updated") {
-          showToast("Perubahan katalog tersimpan", `Data "${toastName}" berhasil diperbarui.`);
-        } else {
-          showToast("Produk/jasa tersimpan", `Data "${toastName}" telah ditambahkan ke katalog penawaran dan tagihan.`);
-        }
+        sessionStorage.removeItem("araya_product_toast_category");
+        if (flag === "updated") showToast("Perubahan katalog tersimpan", `Data "${toastName}" berhasil diperbarui.`);
+        else if (toastCategory === "Jasa" || businessMode === "Jasa") showToast("Jasa tersimpan", "Data sudah tersedia untuk penawaran.");
+        else if (toastCategory === "Produk" || businessMode === "Produk") showToast("Produk tersimpan", "Data sudah tersedia untuk invoice dan order.");
+        else showToast("Produk/jasa tersimpan", `Data "${toastName}" telah ditambahkan ke katalog penawaran dan tagihan.`);
       } catch { /* ignore */ }
     };
     queueMicrotask(consumeFlashToast);
     window.addEventListener("araya-product-storage-update", consumeFlashToast);
     return () => window.removeEventListener("araya-product-storage-update", consumeFlashToast);
-  }, [showToast]);
+  }, [showToast, businessMode]);
 
   const handleDismissToast = useCallback(() => {
     setToastStatus("exiting");
@@ -121,7 +139,10 @@ export default function ProdukPage() {
   }, []);
 
   const products = useMemo(() => {
-    const combined = savedProducts.length > 0
+    const hasDbSynced = savedProducts.some((p) => !p.id.startsWith("ITEM-"));
+    const combined = hasDbSynced
+      ? savedProducts
+      : savedProducts.length > 0
       ? [
           ...savedProducts,
           ...initialProducts.filter(
@@ -151,7 +172,12 @@ export default function ProdukPage() {
     });
   }, [savedProducts, deletedProductIds, currentTime]);
 
-  const metrics = useMemo(() => computeProductMetrics(products, recentSavedProducts), [products, recentSavedProducts]);
+  const roleScopedProducts = useMemo(
+    () => (businessMode === "Produk" ? products.filter((p) => p.category === "Produk") : businessMode === "Jasa" ? products.filter((p) => p.category === "Jasa") : products),
+    [products, businessMode]
+  );
+
+  const metrics = useMemo(() => computeProductMetrics(roleScopedProducts, recentSavedProducts), [roleScopedProducts, recentSavedProducts]);
 
   const filteredProducts = useMemo(() => {
     return filterAndSortProducts(products, {
@@ -160,10 +186,10 @@ export default function ProdukPage() {
       selectedCategory,
       selectedStatus,
       selectedStock,
-      selectedUnit,
+      selectedUnit: "Semua satuan",
       selectedPrice,
     });
-  }, [products, businessMode, searchTerm, selectedCategory, selectedStatus, selectedStock, selectedUnit, selectedPrice]);
+  }, [products, businessMode, searchTerm, selectedCategory, selectedStatus, selectedStock, selectedPrice]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -212,7 +238,7 @@ export default function ProdukPage() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: isDev ? profile.catalogMenuName : "Katalog" }]} />
+      <Breadcrumb items={[{ label: businessMode === "Produk" ? "Katalog Produk" : businessMode === "Jasa" ? "Katalog Jasa" : "Katalog" }]} />
       <ToastNotification status={toastStatus} title={toastConfig.title} description={toastConfig.description} onDismiss={handleDismissToast} />
 
       <ProductPageHeader businessMode={businessMode} />
@@ -224,7 +250,6 @@ export default function ProdukPage() {
         selectedCategory={selectedCategory}
         selectedStatus={selectedStatus}
         selectedStock={selectedStock}
-        selectedUnit={selectedUnit}
         selectedPrice={selectedPrice}
         currentData={currentData}
         filteredCount={filteredProducts.length}
@@ -234,10 +259,9 @@ export default function ProdukPage() {
         endIndex={endIndex}
         onBusinessModeChange={handleBusinessModeChange}
         onSearchChange={(val) => { setSearchTerm(val); setCurrentPage(1); }}
-        onCategoryChange={(val) => { setSelectedCategory(val); setCurrentPage(1); setSelectedStock("Semua stok"); setSelectedUnit("Semua satuan"); }}
+        onCategoryChange={(val) => { setSelectedCategory(val); setCurrentPage(1); setSelectedStock("Semua stok"); }}
         onStatusChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}
         onStockChange={(val) => { setSelectedStock(val); setCurrentPage(1); }}
-        onUnitChange={(val) => { setSelectedUnit(val); setCurrentPage(1); }}
         onPriceChange={(val) => { setSelectedPrice(val); setCurrentPage(1); }}
         onPageChange={(page) => page >= 1 && page <= totalPages && setCurrentPage(page)}
         onOpenImportModal={() => setIsImportModalOpen(true)}
