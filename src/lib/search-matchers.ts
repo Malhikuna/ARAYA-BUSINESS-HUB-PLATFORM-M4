@@ -64,11 +64,20 @@ export function matchesQuotationQuery(item: Quotation, query: string): boolean {
   if (tokens.length === 0) return true;
 
   const numMatch =
-    item.quotation_number.match(/PNW-(\d+)/) ||
-    item.quotation_number.match(/PNW-\d{6}-(\d+)/);
+    item.quotation_number.match(/PNW-\d{6}-(\d+)/i) ||
+    item.quotation_number.match(/PNW-(\d+)/i);
   const derivedPmtId = item.permintaan_id || (numMatch ? `PMT-${numMatch[1].padStart(4, "0")}` : "");
+  const normalizedStatus = String(item.status || "").trim().toLowerCase();
   const statusLabel =
-    item.status === "APPROVED" ? "disetujui" : item.status === "DRAFT" ? "draf draft" : "terkirim";
+    normalizedStatus === "approved" || normalizedStatus === "disetujui"
+      ? "disetujui"
+      : normalizedStatus === "draft" || normalizedStatus === "draf"
+      ? "draf draft"
+      : normalizedStatus === "rejected" || normalizedStatus === "ditolak"
+      ? "ditolak"
+      : normalizedStatus === "sent" || normalizedStatus === "pending_approval" || normalizedStatus === "terkirim"
+      ? "terkirim"
+      : normalizedStatus;
   const itemsText = (item.items || []).map((it) => `${it.name} ${it.description || ""}`).join(" ");
 
   const textParts = [

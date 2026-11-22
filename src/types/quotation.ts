@@ -1,4 +1,13 @@
-export type QuotationStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'DRAFT';
+export type QuotationStatus =
+  | 'DRAFT'
+  | 'SENT'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'draf'
+  | 'terkirim'
+  | 'disetujui'
+  | 'ditolak';
 
 export type QuotationFilterStatus = 'ALL' | 'DRAFT' | 'SENT' | 'APPROVED' | 'PENDING_APPROVAL';
 

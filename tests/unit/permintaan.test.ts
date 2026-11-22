@@ -40,25 +40,51 @@ describe('Permintaan Unit Test Suite', () => {
     assert.equal(formatBadgeCount(120), '99+');
   });
 
-  it('harus dapat memperbarui status permintaan (updatePermintaanStatus)', () => {
-    const original = findPermintaanById('PMT-0005');
-    const originalStatus = original?.status || 'Sudah ditawarkan';
+  it('tidak memutasi konstanta initialPermintaan dan tetap menyimpan pembaruan status ke sessionStorage', () => {
+    const initialPmt0005 = initialPermintaan.find((i) => i.id === 'PMT-0005');
+    assert.equal(initialPmt0005?.status, 'Sudah ditawarkan');
+
+    // Mode SSR (tanpa window): updatePermintaanStatus tidak boleh memutasi initialPermintaan
+    const ssrSuccess = updatePermintaanStatus('PMT-0005', 'Baru');
+    assert.equal(ssrSuccess, true);
+    assert.equal(initialPermintaan.find((i) => i.id === 'PMT-0005')?.status, 'Sudah ditawarkan');
+
+    // Simulasi browser dengan sessionStorage + guard JSON korup/non-array
+    const storageMap = new Map<string, string>();
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    const prevSessionStorage = (globalThis as { sessionStorage?: unknown }).sessionStorage;
+
+    const mockStorage = {
+      getItem: (key: string) => storageMap.get(key) ?? null,
+      setItem: (key: string, val: string) => { storageMap.set(key, val); },
+    };
+    const mockWindow = { dispatchEvent: () => true };
 
     try {
-      const success = updatePermintaanStatus('PMT-0005', 'Baru');
-      assert.equal(success, true);
+      (globalThis as { window?: unknown }).window = mockWindow;
+      (globalThis as { sessionStorage?: unknown }).sessionStorage = mockStorage;
 
-      const updated = findPermintaanById('PMT-0005');
-      assert.equal(updated?.status, 'Baru');
+      // Guard isi sessionStorage bukan array -> fallback aman ke salinan initialPermintaan
+      storageMap.set('araya_permintaan_list_v7', JSON.stringify({ corrupt: true }));
+      assert.equal(getStoredPermintaan().length, 10);
+
+      // Pembaruan status tersimpan di sessionStorage tanpa memutasi initialPermintaan
+      const browserSuccess = updatePermintaanStatus('PMT-0005', 'Baru');
+      assert.equal(browserSuccess, true);
+      assert.equal(findPermintaanById('PMT-0005')?.status, 'Baru');
+      assert.equal(initialPermintaan.find((i) => i.id === 'PMT-0005')?.status, 'Sudah ditawarkan');
     } finally {
-      // Kembalikan ke state awal agar test lain tidak terpengaruh
-      updatePermintaanStatus('PMT-0005', originalStatus);
+      if (prevWindow === undefined) delete (globalThis as { window?: unknown }).window;
+      else (globalThis as { window?: unknown }).window = prevWindow;
+      if (prevSessionStorage === undefined) delete (globalThis as { sessionStorage?: unknown }).sessionStorage;
+      else (globalThis as { sessionStorage?: unknown }).sessionStorage = prevSessionStorage;
     }
   });
 
-  it('harus aman saat getStoredPermintaan dijalankan di environment non-browser (SSR)', () => {
+  it('harus aman saat getStoredPermintaan dijalankan di environment non-browser (SSR) dan mengembalikan salinan baru', () => {
     const items = getStoredPermintaan();
     assert.ok(Array.isArray(items));
     assert.equal(items.length, 10);
+    assert.notEqual(items, initialPermintaan);
   });
 });

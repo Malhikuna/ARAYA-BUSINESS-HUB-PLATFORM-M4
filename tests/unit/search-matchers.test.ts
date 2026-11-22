@@ -77,4 +77,30 @@ describe("matchesQuotationQuery", () => {
     assert.equal(sampleQuotations.filter((q) => matchesQuotationQuery(q, "Rp 3.750.000")).length, 1);
     assert.equal(sampleQuotations.filter((q) => matchesQuotationQuery(q, "tidak-ada-xyz")).length, 0);
   });
+
+  it("menurunkan kode PMT-0001 dengan benar dari format backend PNW-202611-0001 serta melabeli REJECTED dan status lowercase SRS", () => {
+    const backendPeriodQuotation: Quotation = {
+      ...sampleQuotations[0],
+      id: "q-backend-001",
+      quotation_number: "PNW-202611-0001",
+      permintaan_id: undefined,
+      status: "REJECTED",
+    };
+
+    assert.equal(matchesQuotationQuery(backendPeriodQuotation, "PMT-0001"), true);
+    assert.equal(matchesQuotationQuery(backendPeriodQuotation, "PMT-202611"), false);
+    assert.equal(matchesQuotationQuery(backendPeriodQuotation, "ditolak"), true);
+    assert.equal(matchesQuotationQuery(backendPeriodQuotation, "terkirim"), false);
+
+    const srsLowercaseStatuses: Array<{ status: Quotation["status"]; query: string }> = [
+      { status: "draf", query: "draf" },
+      { status: "terkirim", query: "terkirim" },
+      { status: "disetujui", query: "disetujui" },
+      { status: "ditolak", query: "ditolak" },
+    ];
+    for (const { status, query } of srsLowercaseStatuses) {
+      const q: Quotation = { ...sampleQuotations[0], status };
+      assert.equal(matchesQuotationQuery(q, query), true);
+    }
+  });
 });

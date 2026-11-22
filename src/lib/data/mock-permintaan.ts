@@ -6,15 +6,24 @@ export { initialPermintaan };
 
 const STORAGE_KEY = "araya_permintaan_list_v7";
 
+function cloneInitialPermintaan(): PermintaanItem[] {
+  return initialPermintaan.map((item) => ({ ...item }));
+}
+
 export function getStoredPermintaan(): PermintaanItem[] {
-  if (typeof window === "undefined") return initialPermintaan;
+  if (typeof window === "undefined") return cloneInitialPermintaan();
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return (parsed as PermintaanItem[]).map((item) => ({ ...item }));
+      }
+    }
   } catch {
     // ignore storage error
   }
-  return initialPermintaan;
+  return cloneInitialPermintaan();
 }
 
 export function getNewPermintaanCount(): number {
@@ -66,7 +75,7 @@ export function subscribePermintaanStorage(callback: () => void): () => void {
 }
 
 export function updatePermintaanStatus(id: string, newStatus: PermintaanItem["status"]): boolean {
-  const list = getStoredPermintaan();
+  const list = [...getStoredPermintaan()];
   const index = list.findIndex((item) => item.id.toLowerCase() === id.toLowerCase());
   if (index === -1) return false;
   list[index] = { ...list[index], status: newStatus };
