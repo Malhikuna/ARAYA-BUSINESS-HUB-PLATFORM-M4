@@ -114,10 +114,11 @@ function UbahPelangganContent() {
       name: form.name.trim(),
       initials: getCustomerInitials(form.name, 2),
       avatarBg: customer.avatarBg || "bg-blue-100 text-blue-700",
-      phone: form.phone.trim() || "0812 3456 7890",
+      phone: form.phone.trim(),
       email: cleanEmail || "-",
       address: form.address.trim(),
       city: detectCityFromAddress(form.address.trim(), customer.city || "Bandung"),
+      source: customer.source,
       createdAt: customer.createdAt || new Date().toISOString(),
     };
 
