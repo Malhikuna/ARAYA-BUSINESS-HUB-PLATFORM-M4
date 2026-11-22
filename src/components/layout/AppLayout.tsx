@@ -1,51 +1,62 @@
 "use client";
 
-import React, { useState, useCallback, Suspense } from "react";
+import React, { useState, useCallback, useSyncExternalStore, Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
+
+const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+
+const subscribeDesktopViewport = (callback: () => void) => {
+  const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+  mediaQuery.addEventListener("change", callback);
+  return () => mediaQuery.removeEventListener("change", callback);
+};
+const getIsDesktopViewport = () =>
+  typeof window !== "undefined" ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : true;
+const getServerIsDesktopViewport = () => true;
 
 export function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // manualDesktopOpen: null = ikuti default responsive CSS
-  // (terbuka di desktop >= 1024px via 'lg:w-60', tertutup di tablet 768px - 1023px via 'w-0')
-  // true/false = dipaksa buka/tutup oleh interaksi tombol hamburger pengguna
+  // HP (< 768px) & Tablet (768px-1023px) memakai Overlay Drawer (tertutup default, tidak menggeser konten).
+  // Laptop/Desktop (>= 1024px / lg:) memakai Push Sticky Sidebar (terbuka default).
+  const isDesktopViewport = useSyncExternalStore(
+    subscribeDesktopViewport,
+    getIsDesktopViewport,
+    getServerIsDesktopViewport
+  );
+  const isDrawerViewport = !isDesktopViewport;
+
   const [manualDesktopOpen, setManualDesktopOpen] = useState<boolean | null>(null);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const isDesktopSidebarOpen = manualDesktopOpen !== null ? manualDesktopOpen : isDesktopViewport;
 
   const toggleSidebar = useCallback(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setIsMobileSidebarOpen((prev: boolean) => !prev);
+    const isDesktop =
+      typeof window !== "undefined" ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : true;
+    if (!isDesktop) {
+      setIsDrawerOpen((prev) => !prev);
     } else {
-      setManualDesktopOpen((prev: boolean | null) => {
-        const isCurrentOpen =
-          prev !== null
-            ? prev
-            : typeof window !== "undefined" && window.innerWidth >= 1024;
-        return !isCurrentOpen;
+      setManualDesktopOpen((prev) => {
+        const current = prev !== null ? prev : isDesktop;
+        return !current;
       });
     }
   }, []);
 
-  const closeMobileSidebar = useCallback(() => {
-    setIsMobileSidebarOpen(false);
+  const closeDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
   }, []);
 
-  // Pendekatan CSS responsif untuk menghindari layout flash pada viewport tablet (768px - 1023px):
-  // Saat SSR/loading awal, desktop aside tertutup di tablet (<1024px) dan terbuka di desktop (>=1024px)
-  const fallbackAsideClass =
-    manualDesktopOpen === true
-      ? "w-60 border-r border-slate-200/90"
-      : manualDesktopOpen === false
-      ? "w-0 border-r-0"
-      : "w-0 border-r-0 lg:w-60 lg:border-r lg:border-slate-200/90";
+  const currentSidebarOpen = isDrawerViewport ? isDrawerOpen : isDesktopSidebarOpen;
 
   return (
     <div className="min-h-screen bg-[#f3f6fa] text-slate-800 flex flex-col font-sans antialiased print:bg-white print:min-h-0">
       <Navbar
-        isSidebarOpen={manualDesktopOpen ?? true}
+        isSidebarOpen={currentSidebarOpen}
         onToggleSidebar={toggleSidebar}
       />
       <div className="flex-1 flex relative overflow-x-clip w-full print:block print:w-full print:overflow-visible">
@@ -53,17 +64,22 @@ export function AppLayout({
           fallback={
             <aside
               style={{ height: "calc(100vh - 4rem)" }}
-              className={`bg-white shrink-0 hidden md:block print:hidden sticky top-16 self-start transition-[width] duration-300 ease-in-out ${fallbackAsideClass}`}
+              className={`bg-white shrink-0 hidden lg:block print:hidden sticky top-16 self-start transition-[width] duration-300 ease-in-out ${
+                isDesktopSidebarOpen
+                  ? "w-60 border-r border-slate-200/90"
+                  : "w-0 border-r-0"
+              }`}
             />
           }
         >
           <Sidebar
-            manualDesktopOpen={manualDesktopOpen}
-            isMobileOpen={isMobileSidebarOpen}
-            onCloseMobile={closeMobileSidebar}
+            isOpen={isDesktopSidebarOpen}
+            isDesktopOpen={isDesktopSidebarOpen}
+            isMobileOpen={isDrawerOpen}
+            onCloseMobile={closeDrawer}
           />
         </Suspense>
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full transition-all duration-300 ease-in-out print:p-0 print:m-0 print:max-w-none print:w-full print:block">
+        <main className="@container flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full transition-all duration-300 ease-in-out print:p-0 print:m-0 print:max-w-none print:w-full print:block">
           {children}
         </main>
       </div>
