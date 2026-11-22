@@ -1,74 +1,38 @@
 import { Quotation, QuotationStatus, DbQuotationRow, DbQuotationItemRow } from "@/types/quotation";
 import { initialQuotations } from "./mock-quotations-data";
+import { initialPermintaan } from "./mock-permintaan-data";
+import {
+  QUOTATION_TOAST_TYPE_KEY,
+  QUOTATION_TOAST_NUMBER_KEY,
+  derivePermintaanIdFromQuotationNumber,
+  normalizeQuotationStatus,
+  getQuotationStatusLabel,
+  parsePriceRupiah,
+  formatTanggalIndo,
+  getTodayDateStr,
+  calculateValidUntil,
+  formatWaktuPembaruan,
+  formatJamSingkat,
+  hitungMasaBerlaku,
+} from "@/lib/quotation-helpers";
 
-export { initialQuotations };
+export {
+  initialQuotations,
+  QUOTATION_TOAST_TYPE_KEY,
+  QUOTATION_TOAST_NUMBER_KEY,
+  derivePermintaanIdFromQuotationNumber,
+  normalizeQuotationStatus,
+  getQuotationStatusLabel,
+  parsePriceRupiah,
+  formatTanggalIndo,
+  getTodayDateStr,
+  calculateValidUntil,
+  formatWaktuPembaruan,
+  formatJamSingkat,
+  hitungMasaBerlaku,
+};
 
 const DEV_AUTH_HEADER = "Bearer mock-admin-token";
-
-export function formatTanggalIndo(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  } catch {
-    return dateStr;
-  }
-}
-
-/**
- * Format timestamp database (updated_at) ke format teks waktu Indonesia (WIB).
- */
-export function formatWaktuPembaruan(dateInput?: string | Date): string {
-  if (!dateInput) return "Baru saja";
-  try {
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return String(dateInput);
-    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-    const day = d.getDate();
-    const month = months[d.getMonth()];
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
-  } catch {
-    return "Baru saja";
-  }
-}
-
-/**
- * Menghitung masa berlaku dan sisa hari aktif dari tanggal penawaran dan valid_until database.
- */
-export function hitungMasaBerlaku(quotationDateStr: string, validUntilStr?: string): {
-  durasiHari: number;
-  labelMasaBerlaku: string;
-  sisaHariLabel: string;
-} {
-  const qDate = new Date(quotationDateStr);
-  const vDate = validUntilStr
-    ? new Date(validUntilStr)
-    : new Date(qDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-
-  const diffMs = vDate.getTime() - qDate.getTime();
-  const durasiHari = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
-  const validUntilFormatted = formatTanggalIndo(vDate.toISOString().split("T")[0]);
-  const labelMasaBerlaku = `${durasiHari} hari (hingga ${validUntilFormatted})`;
-
-  const todayMs = typeof window === "undefined" ? vDate.getTime() : Date.now();
-  const sisaMs = vDate.getTime() - todayMs;
-  const sisaHari = Math.ceil(sisaMs / (1000 * 60 * 60 * 24));
-
-  let sisaHariLabel = `${durasiHari} hari`;
-  if (sisaHari > 0) {
-    sisaHariLabel = `${sisaHari} hari`;
-  } else if (sisaHari === 0) {
-    sisaHariLabel = "Hari terakhir";
-  } else {
-    sisaHariLabel = "Kedaluwarsa";
-  }
-
-  return { durasiHari, labelMasaBerlaku, sisaHariLabel };
-}
 
 /**
  * Menghasilkan riwayat aktivitas dinamis berdasarkan status, timestamp, dan detail email pelanggan.
@@ -79,35 +43,46 @@ export function getQuotationActivities(quotation: Quotation) {
   }
 
   const list = [];
-  const fallbackDate = quotation.quotation_date || "2026-03-01";
+  const fallbackDate = quotation.quotation_date || "";
   const updatedDate = quotation.updated_at ? new Date(quotation.updated_at) : new Date(fallbackDate);
-  const createdDate = quotation.created_at || quotation.createdAt
-    ? new Date(quotation.created_at || quotation.createdAt!)
-    : new Date(fallbackDate);
+  const createdDate =
+    quotation.created_at || quotation.createdAt
+      ? new Date(quotation.created_at || quotation.createdAt!)
+      : new Date(fallbackDate);
 
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const updatedTime = `${pad(updatedDate.getHours())}:${pad(updatedDate.getMinutes())}`;
-  const createdTime = `${pad(createdDate.getHours())}:${pad(createdDate.getMinutes())}`;
+  const updatedTime = formatJamSingkat(updatedDate) || "-";
+  const createdTime = formatJamSingkat(createdDate) || "-";
+  const canonical = normalizeQuotationStatus(quotation.status);
 
-  if (quotation.status === "APPROVED") {
+  if (canonical === "APPROVED") {
     list.push({
       id: "ACT-APPROVE",
       title: "Penawaran disetujui",
-      time: "Baru saja",
+      time: updatedTime,
+      description: "",
+      status: "completed" as const,
+    });
+  } else if (canonical === "REJECTED") {
+    list.push({
+      id: "ACT-REJECT",
+      title: "Penawaran ditolak",
+      time: updatedTime,
       description: "",
       status: "completed" as const,
     });
   }
 
-  list.push({
-    id: "ACT-SEND",
-    title: "Terkirim ke pelanggan",
-    time: updatedTime,
-    description: quotation.customer_email
-      ? `Surel penawaran dikirim otomatis ke ${quotation.customer_email}`
-      : `Dokumen penawaran dikirim ke ${quotation.customer_name}`,
-    status: "completed" as const,
-  });
+  if (canonical !== "DRAFT") {
+    list.push({
+      id: "ACT-SEND",
+      title: "Terkirim ke pelanggan",
+      time: updatedTime,
+      description: quotation.customer_email
+        ? `Penawaran dikirim ke ${quotation.customer_email}`
+        : `Dokumen penawaran dikirim ke ${quotation.customer_name}`,
+      status: "completed" as const,
+    });
+  }
 
   list.push({
     id: "ACT-CREATE",
@@ -129,23 +104,33 @@ export function subscribeQuotationStorage(callback: () => void) {
   };
 }
 
-export function getStoredQuotations(): Quotation[] {
-  if (typeof window === "undefined") return initialQuotations;
+const STORAGE_KEY_DELETED = "araya_deleted_quotations_v5";
+const STORAGE_KEY_ADDED = "araya_added_quotations_v5";
+const STORAGE_KEY_UPDATED = "araya_updated_quotations_v5";
+
+export function applyQuotationStorageOverlay(baseList: Quotation[]): Quotation[] {
+  if (typeof window === "undefined") return baseList;
   try {
-    const raw = sessionStorage.getItem("araya_added_quotations");
-    const addedList: Quotation[] = raw ? JSON.parse(raw) : [];
-
-    const updatedRaw = sessionStorage.getItem("araya_updated_quotations");
-    const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
-
-    const base = [
+    const deletedIds: string[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY_DELETED) || "[]");
+    const addedList: Quotation[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY_ADDED) || "[]");
+    const updatedMap: Record<string, Partial<Quotation>> = JSON.parse(sessionStorage.getItem(STORAGE_KEY_UPDATED) || "{}");
+    const merged = [
       ...addedList,
-      ...initialQuotations.filter((q) => !addedList.some((a) => a.id === q.id || a.quotation_number === q.quotation_number)),
+      ...baseList.filter((q) => !addedList.some((a) => a.id === q.id || a.quotation_number === q.quotation_number)),
     ];
-    return base.map((q) => (updatedMap[q.id] ? { ...q, ...updatedMap[q.id] } : q));
+    return merged
+      .filter((q) => !deletedIds.includes(q.id) && !deletedIds.includes(q.quotation_number))
+      .map((q) => {
+        const patch = updatedMap[q.id] || updatedMap[q.quotation_number];
+        return patch ? { ...q, ...patch } : q;
+      });
   } catch {
-    return initialQuotations;
+    return baseList;
   }
+}
+
+export function getStoredQuotations(): Quotation[] {
+  return applyQuotationStorageOverlay(initialQuotations);
 }
 
 export function getServerStoredQuotations(): Quotation[] {
@@ -158,6 +143,9 @@ export function findQuotationById(id: string): Quotation | null {
 }
 
 function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
+  const derivedPmtId = derivePermintaanIdFromQuotationNumber(row.quotation_number);
+  const matchedPmt = derivedPmtId ? initialPermintaan.find((p) => p.id === derivedPmtId) : undefined;
+
   return {
     id: row.id,
     quotation_number: row.quotation_number,
@@ -174,49 +162,48 @@ function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
     tax_amount: Number(row.tax_amount) || 0,
     total_amount: Number(row.total_amount) || 0,
     notes: row.notes || "",
+    permintaan_id: derivedPmtId,
+    permintaan_title: matchedPmt?.title || row.notes || "Layanan konsultasi & jasa",
     created_at: row.created_at,
     updated_at: row.updated_at,
     items: Array.isArray(row.quotation_items)
       ? row.quotation_items.map((it: DbQuotationItemRow) => ({
           id: it.id,
           product_service_id: it.product_service_id,
-          name: it.products_services?.name || it.description || "Item",
-          description: it.description || undefined,
+          name: it.description?.split(" — ")[0] || it.products_services?.name || "Item",
+          description: it.description?.includes(" — ") ? it.description.split(" — ").slice(1).join(" — ") : undefined,
           quantity: Number(it.quantity) || 1,
           unit_price: Number(it.unit_price) || 0,
           subtotal: Number(it.subtotal) || 0,
-          unit: it.products_services?.unit || "Unit",
+          unit: it.products_services?.unit || "Paket",
           category: it.products_services?.type === "SERVICE" ? "Jasa" : "Produk",
         }))
       : [],
   };
 }
 
-/**
- * Mengambil data detail penawaran langsung dari PostgreSQL via API M4.
- */
 export async function fetchQuotationDetailFromDatabase(id: string): Promise<Quotation | null> {
   if (typeof window === "undefined") return null;
   try {
     const res = await fetch(`/api/m4/v1/quotations/${id}`, { headers: { Authorization: DEV_AUTH_HEADER } });
     if (!res.ok) return null;
     const json = await res.json();
-    return json.success && json.data ? mapDatabaseRowToQuotation(json.data) : null;
+    if (!json.success || !json.data) return null;
+    return applyQuotationStorageOverlay([mapDatabaseRowToQuotation(json.data)])[0] || null;
   } catch {
     return null;
   }
 }
 
-/**
- * Mengambil daftar penawaran langsung dari PostgreSQL via API M4.
- */
 export async function fetchQuotationsListFromDatabase(): Promise<Quotation[]> {
   if (typeof window === "undefined") return [];
   try {
     const res = await fetch("/api/m4/v1/quotations?limit=100", { headers: { Authorization: DEV_AUTH_HEADER } });
     if (!res.ok) return [];
     const json = await res.json();
-    return json.success && Array.isArray(json.data) ? json.data.map(mapDatabaseRowToQuotation) : [];
+    return json.success && Array.isArray(json.data)
+      ? applyQuotationStorageOverlay(json.data.map(mapDatabaseRowToQuotation))
+      : [];
   } catch {
     return [];
   }
@@ -225,12 +212,12 @@ export async function fetchQuotationsListFromDatabase(): Promise<Quotation[]> {
 export function saveNewQuotationToStorage(newQuo: Quotation) {
   if (typeof window === "undefined") return;
   try {
-    const raw = sessionStorage.getItem("araya_added_quotations");
+    const raw = sessionStorage.getItem(STORAGE_KEY_ADDED);
     const list: Quotation[] = raw ? JSON.parse(raw) : [];
     const updated = [newQuo, ...list.filter((x) => x.id !== newQuo.id && x.quotation_number !== newQuo.quotation_number)];
-    sessionStorage.setItem("araya_added_quotations", JSON.stringify(updated));
-    sessionStorage.setItem("araya_show_quotation_toast", "created");
-    sessionStorage.setItem("araya_quotation_toast_number", newQuo.quotation_number);
+    sessionStorage.setItem(STORAGE_KEY_ADDED, JSON.stringify(updated));
+    sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "created");
+    sessionStorage.setItem(QUOTATION_TOAST_NUMBER_KEY, newQuo.quotation_number);
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
 
     fetch("/api/m4/v1/quotations", {
@@ -256,32 +243,87 @@ export function saveNewQuotationToStorage(newQuo: Quotation) {
   }
 }
 
+// TODO: Integrasikan dengan endpoint POST /api/m4/v1/quotations/:id/send-whatsapp setelah sinkronisasi penuh dengan PR #81 (saat ini lokal sessionStorage).
+export function markQuotationAsSentInStorage(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const updatedRaw = sessionStorage.getItem(STORAGE_KEY_UPDATED);
+    const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
+    updatedMap[id] = {
+      ...(updatedMap[id] || {}),
+      status: "PENDING_APPROVAL" as QuotationStatus,
+      sent_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    sessionStorage.setItem(STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
+    sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "sent");
+    window.dispatchEvent(new Event("araya-quotation-storage-update"));
+  } catch {
+    // ignore
+  }
+}
+
+// TODO: Integrasikan dengan endpoint persetujuan Customer backend setelah sinkronisasi penuh dengan PR #81 (saat ini simulasi lokal sessionStorage).
 export function approveQuotationInStorage(id: string) {
   if (typeof window === "undefined") return;
   try {
-    const updatedRaw = sessionStorage.getItem("araya_updated_quotations");
+    const updatedRaw = sessionStorage.getItem(STORAGE_KEY_UPDATED);
     const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
     updatedMap[id] = {
       ...(updatedMap[id] || {}),
       status: "APPROVED" as QuotationStatus,
       updated_at: new Date().toISOString(),
     };
-    sessionStorage.setItem("araya_updated_quotations", JSON.stringify(updatedMap));
-    sessionStorage.setItem("araya_show_quotation_toast", "approved");
+    sessionStorage.setItem(STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
+    sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "approved");
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
+  } catch {
+    // ignore
+  }
+}
 
-    fetch(`/api/m4/v1/quotations/${encodeURIComponent(id)}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
-      body: JSON.stringify({ status: "APPROVED" }),
-    }).catch(() => {});
+// TODO: Masih lokal sessionStorage; sambungkan ke endpoint DELETE backend saat integrasi API penuh siap.
+export function deleteQuotationFromStorage(id: string, quotationNumber?: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const deletedList: string[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY_DELETED) || "[]");
+    for (const key of [id, quotationNumber].filter((k): k is string => Boolean(k))) {
+      if (!deletedList.includes(key)) deletedList.push(key);
+    }
+    sessionStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(deletedList));
+    const rawAdded = sessionStorage.getItem(STORAGE_KEY_ADDED);
+    if (rawAdded) {
+      const addedList: Quotation[] = JSON.parse(rawAdded);
+      sessionStorage.setItem(
+        STORAGE_KEY_ADDED,
+        JSON.stringify(addedList.filter((q) => q.id !== id && q.quotation_number !== id && q.quotation_number !== quotationNumber))
+      );
+    }
+    sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "deleted");
+    window.dispatchEvent(new Event("araya-quotation-storage-update"));
+  } catch {
+    // ignore
+  }
+}
+
+// TODO: Masih lokal sessionStorage; sambungkan ke endpoint PATCH/PUT backend saat integrasi API penuh siap.
+export function saveUpdatedQuotationToStorage(updatedQuo: Quotation) {
+  if (typeof window === "undefined") return;
+  try {
+    const updatedMap: Record<string, Partial<Quotation>> = JSON.parse(sessionStorage.getItem(STORAGE_KEY_UPDATED) || "{}");
+    const entry = { ...updatedQuo, updated_at: new Date().toISOString() };
+    updatedMap[updatedQuo.id] = entry;
+    updatedMap[updatedQuo.quotation_number] = entry;
+    sessionStorage.setItem(STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
+    sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "updated");
+    window.dispatchEvent(new Event("araya-quotation-storage-update"));
   } catch {
     // ignore
   }
 }
 
 export function generateNextQuotationNumber(): string {
-  if (typeof window === "undefined") return "PNW-0011";
+  if (typeof window === "undefined") return "PNW-0006";
   const all = getStoredQuotations();
   const maxNum = all.reduce((max, q) => {
     const match = q.quotation_number.match(/(\d+)$/);
@@ -290,6 +332,17 @@ export function generateNextQuotationNumber(): string {
       return n > max ? n : max;
     }
     return max;
-  }, 10);
+  }, 5);
   return `PNW-${String(maxNum + 1).padStart(4, "0")}`;
+}
+
+/**
+ * Menghasilkan nomor penawaran PNW-XXXX dari ID permintaan.
+ * Bila ID berasal dari backend (UUID / bukan format PMT-XXXX), fallback aman ke generator PNW-.
+ */
+export function generateQuotationNumberForPermintaan(permintaanId?: string | null): string {
+  if (permintaanId && /^PMT-\d+$/i.test(permintaanId.trim())) {
+    return permintaanId.trim().replace(/^PMT-/i, "PNW-");
+  }
+  return generateNextQuotationNumber();
 }

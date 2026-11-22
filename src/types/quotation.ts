@@ -9,7 +9,7 @@ export type QuotationStatus =
   | 'disetujui'
   | 'ditolak';
 
-export type QuotationFilterStatus = 'ALL' | 'DRAFT' | 'SENT' | 'APPROVED' | 'PENDING_APPROVAL';
+export type QuotationFilterStatus = 'ALL' | 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED' | 'PENDING_APPROVAL';
 
 export interface QuotationLineItem {
   id: string;
