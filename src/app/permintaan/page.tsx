@@ -1,15 +1,20 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Send, RefreshCw } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
 import {
   getStoredPermintaan,
+  savePermintaanToStorage,
   subscribePermintaanStorage,
 } from "@/lib/data/mock-permintaan";
+import {
+  fetchServiceRequestsFromApi,
+  mergeServiceRequestsWithLocal,
+} from "@/lib/data/service-requests-api";
 import { PermintaanItem } from "@/types/permintaan";
 import { PermintaanMetricCards } from "@/components/permintaan/PermintaanMetricCards";
 import {
@@ -17,6 +22,7 @@ import {
   PermintaanTabFilter,
 } from "@/components/permintaan/PermintaanFilterBar";
 import { PermintaanTable } from "@/components/permintaan/PermintaanTable";
+import { M5ServiceRequestSimulatorModal } from "@/components/permintaan/M5ServiceRequestSimulatorModal";
 import { matchesPermintaanQuery } from "@/lib/search-matchers";
 import { useDevRole } from "@/lib/auth/dev-role";
 
@@ -25,8 +31,12 @@ const ITEMS_PER_PAGE = 10;
 export default function PermintaanPage() {
   const router = useRouter();
   const { isDev, activeRole } = useDevRole();
+  const showSimulator = isDev || process.env.NODE_ENV !== "production";
   const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
+
   const [items, setItems] = useState<PermintaanItem[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PermintaanTabFilter>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,19 +57,47 @@ export default function PermintaanPage() {
     }
   }, [isUnauthorizedRole, router]);
 
+  const loadFromApi = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const dbItems = await fetchServiceRequestsFromApi();
+      const localItems = getStoredPermintaan();
+      const merged = mergeServiceRequestsWithLocal(dbItems, localItems);
+      setItems(merged);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isUnauthorizedRole) return;
     const timer = window.setTimeout(() => {
       setItems(getStoredPermintaan());
+      void loadFromApi();
     }, 0);
     const unsubscribe = subscribePermintaanStorage(() => {
-      setItems(getStoredPermintaan());
+      setItems((prev) => mergeServiceRequestsWithLocal(
+        prev.filter((p) => !p.id.startsWith("PMT-")),
+        getStoredPermintaan()
+      ));
     });
     return () => {
       window.clearTimeout(timer);
       unsubscribe();
     };
-  }, [isUnauthorizedRole]);
+  }, [isUnauthorizedRole, loadFromApi]);
+
+  const handleSimulatedCreated = (createdItem: PermintaanItem) => {
+    setItems((prev) => mergeServiceRequestsWithLocal([createdItem], prev));
+    const currentLocal = getStoredPermintaan();
+    savePermintaanToStorage(mergeServiceRequestsWithLocal([createdItem], currentLocal));
+    setCurrentPage(1);
+    setToastState({
+      status: "visible",
+      title: `Permintaan ${createdItem.displayCode || createdItem.id} diterima`,
+      description: `Permintaan dari ${createdItem.customerName} berhasil disimpan melalui POST /api/m4/v1/service-requests.`,
+    });
+  };
 
   const newCount = useMemo(
     () => items.filter((i) => i.status === "Baru").length,
@@ -78,7 +116,7 @@ export default function PermintaanPage() {
     if (searchTerm.trim()) {
       list = list.filter((i) => matchesPermintaanQuery(i, searchTerm));
     }
-    // Prioritaskan status "Baru" selalu di paling atas, kemudian urutkan tanggal terbaru dengan guard NaN
+    // Prioritaskan status "Baru" di atas, kemudian urutkan waktu masuk terbaru dengan guard NaN
     return [...list].sort((a, b) => {
       if (a.status === "Baru" && b.status !== "Baru") return -1;
       if (a.status !== "Baru" && b.status === "Baru") return 1;
@@ -149,11 +187,28 @@ export default function PermintaanPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#eef4ff] text-[#19376d] border border-blue-100/60 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#0e7490] animate-pulse" />
-            <span>Sinkron otomatis</span>
-          </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => void loadFromApi()}
+            disabled={isSyncing}
+            title="Muat ulang permintaan dari API M4"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs cursor-pointer disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-[#0e7490] ${isSyncing ? "animate-spin" : ""}`} />
+            <span>{isSyncing ? "Menyinkronkan..." : "Sinkron API"}</span>
+          </button>
+
+          {showSimulator && (
+            <button
+              type="button"
+              onClick={() => setIsSimulatorOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#19376d] hover:bg-[#122852] text-white shadow-xs transition-colors cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Simulasi Form M5</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -183,6 +238,14 @@ export default function PermintaanPage() {
         itemsPerPage={ITEMS_PER_PAGE}
         onPageChange={(page) => setCurrentPage(page)}
       />
+
+      {showSimulator && (
+        <M5ServiceRequestSimulatorModal
+          open={isSimulatorOpen}
+          onClose={() => setIsSimulatorOpen(false)}
+          onCreated={handleSimulatedCreated}
+        />
+      )}
     </>
   );
 }

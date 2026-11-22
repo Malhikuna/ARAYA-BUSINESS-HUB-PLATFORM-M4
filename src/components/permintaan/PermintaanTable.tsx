@@ -76,26 +76,28 @@ export function PermintaanTable({
               items.map((item) => {
                 const isNew = item.status === "Baru";
                 const waUrl = buildWhatsAppUrl(item.whatsapp);
+                const displayCode = item.displayCode || item.id;
+                const detailHref = `/permintaan/${encodeURIComponent(item.id)}`;
 
                 return (
                   <tr
                     key={item.id}
                     tabIndex={0}
                     role="button"
-                    aria-label={`Lihat detail permintaan ${item.id}`}
+                    aria-label={`Lihat detail permintaan ${displayCode}`}
                     title="Klik baris untuk melihat detail permintaan"
-                    onClick={() => router.push(`/permintaan/lihat/${item.id}`)}
+                    onClick={() => router.push(detailHref)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        router.push(`/permintaan/lihat/${item.id}`);
+                        router.push(detailHref);
                       }
                     }}
                     className="hover:bg-slate-50/70 transition-colors cursor-pointer group"
                   >
                     {/* 1. Nomor */}
                     <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap font-mono font-bold text-slate-900 text-xs">
-                      {item.id}
+                      {displayCode}
                     </td>
 
                     {/* 2. Nama Permintaan */}
@@ -187,9 +189,9 @@ export function PermintaanTable({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/permintaan/lihat/${item.id}`);
+                          router.push(detailHref);
                         }}
-                        aria-label={`Lihat detail permintaan ${item.id}`}
+                        aria-label={`Lihat detail permintaan ${displayCode}`}
                         title="Lihat detail rincian permintaan"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#19376d] hover:bg-[#eef4ff] transition-colors inline-flex items-center justify-center cursor-pointer"
                       >

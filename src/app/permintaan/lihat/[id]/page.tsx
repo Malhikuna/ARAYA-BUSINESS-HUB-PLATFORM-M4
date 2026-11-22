@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useEffect, useSyncExternalStore, Suspense } from "react";
+import React, { useEffect, useState, useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, ShieldAlert } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
-import { findPermintaanById } from "@/lib/data/mock-permintaan";
+import { getStoredPermintaan, savePermintaanToStorage } from "@/lib/data/mock-permintaan";
+import {
+  fetchServiceRequestByIdFromApi,
+  mergeServiceRequestsWithLocal,
+  isUuid,
+} from "@/lib/data/service-requests-api";
+import { PermintaanItem } from "@/types/permintaan";
 import { PermintaanDetailHero } from "@/components/permintaan/PermintaanDetailHero";
 import { PermintaanDetailContent } from "@/components/permintaan/PermintaanDetailContent";
 import { PermintaanDetailSidebar } from "@/components/permintaan/PermintaanDetailSidebar";
@@ -29,7 +35,13 @@ function DetailPermintaanContent() {
   const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
   const routeParams = useParams<{ id: string }>();
   const itemId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
-  const item = isMounted && !isUnauthorizedRole ? findPermintaanById(itemId) : null;
+
+  const localItem = isMounted && !isUnauthorizedRole
+    ? getStoredPermintaan().find((p) => p.id.toLowerCase() === itemId.toLowerCase()) || null
+    : null;
+
+  const [apiItem, setApiItem] = useState<PermintaanItem | null>(null);
+  const [isLoadingApi, setIsLoadingApi] = useState<boolean>(() => isUuid(itemId));
 
   useEffect(() => {
     if (isMounted && isUnauthorizedRole) {
@@ -37,7 +49,28 @@ function DetailPermintaanContent() {
     }
   }, [isMounted, isUnauthorizedRole, router]);
 
-  if (!isMounted) {
+  useEffect(() => {
+    if (!isMounted || isUnauthorizedRole || !isUuid(itemId)) return;
+    let active = true;
+    fetchServiceRequestByIdFromApi(itemId)
+      .then((found) => {
+        if (!active) return;
+        setApiItem(found);
+        if (found) {
+          savePermintaanToStorage(mergeServiceRequestsWithLocal([found], getStoredPermintaan()));
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoadingApi(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isMounted, isUnauthorizedRole, itemId]);
+
+  const item = apiItem || localItem;
+
+  if (!isMounted || (isLoadingApi && !item)) {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
@@ -92,22 +125,22 @@ function DetailPermintaanContent() {
     );
   }
 
+  const displayCode = item.displayCode || item.id;
+
   return (
     <>
       <Breadcrumb
         separator="/"
         items={[
           { label: "Permintaan", href: "/permintaan" },
-          { label: item.id },
+          { label: displayCode },
         ]}
         className="mb-3"
       />
       <BackLink href="/permintaan" label="Kembali ke daftar permintaan" />
 
-      {/* Hero Header */}
       <PermintaanDetailHero item={item} />
 
-      {/* Main Grid: Content (8 cols) & Sidebar (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-8">
           <PermintaanDetailContent item={item} />

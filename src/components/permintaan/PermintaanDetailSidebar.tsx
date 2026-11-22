@@ -3,6 +3,10 @@ import Link from "next/link";
 import { ArrowRight, History, Check } from "lucide-react";
 import { PermintaanItem } from "@/types/permintaan";
 import { useDevRole } from "@/lib/auth/dev-role";
+import {
+  buildCreateQuotationHref,
+  resolveLinkedQuotationLink,
+} from "@/lib/data/service-requests-api";
 
 export interface PermintaanDetailSidebarProps {
   item: PermintaanItem;
@@ -11,14 +15,15 @@ export interface PermintaanDetailSidebarProps {
 export function PermintaanDetailSidebar({ item }: PermintaanDetailSidebarProps) {
   const { profile } = useDevRole();
   const isOffered = item.status === "Sudah ditawarkan";
-  const quoNum = item.quotationNumber || `PNW-${item.id.replace(/^PMT-?/i, "")}`;
+  const linkedQuotation = resolveLinkedQuotationLink(item);
+  const quoLabel = linkedQuotation?.label || "Penawaran terkait";
 
   const steps = [
     {
       num: 1,
       title: "Buat penawaran",
       description: isOffered
-        ? `Draft ${quoNum} telah dibuat dan diterbitkan.`
+        ? `Draft ${quoLabel} telah dibuat dan diterbitkan.`
         : "Buat draft penawaran harga sesuai kebutuhan customer.",
       status: isOffered ? "done" : "active",
       statusLabel: isOffered ? "Selesai" : "Sedang berjalan",
@@ -104,17 +109,17 @@ export function PermintaanDetailSidebar({ item }: PermintaanDetailSidebarProps) 
 
         {isOffered ? (
           <Link
-            href={`/penawaran/lihat/${quoNum}`}
+            href={linkedQuotation?.href || "/penawaran"}
             className="w-full h-11 rounded-xl bg-[#eef4ff] hover:bg-[#dbeafe] text-[#19376d] border border-blue-200/80 text-xs font-semibold inline-flex items-center justify-center gap-2 transition-all shadow-2xs cursor-pointer"
           >
-            <span>Lihat detail penawaran {quoNum}</span>
+            <span>
+              {linkedQuotation ? `Lihat detail penawaran ${linkedQuotation.label}` : "Lihat daftar penawaran"}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         ) : (
           <Link
-            href={`/penawaran/tambah?fromPermintaan=${item.id}&customer=${encodeURIComponent(
-              item.customerName
-            )}&service=${encodeURIComponent(item.serviceName)}`}
+            href={buildCreateQuotationHref(item)}
             className="w-full h-11 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-semibold inline-flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
           >
             <span>Mulai buat penawaran sekarang</span>
@@ -145,7 +150,7 @@ export function PermintaanDetailSidebar({ item }: PermintaanDetailSidebarProps) 
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-slate-800 font-semibold">
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
-                <span>Penawaran {quoNum} telah diterbitkan</span>
+                <span>Penawaran {quoLabel} telah diterbitkan</span>
               </div>
               <div className="pl-4 text-[11px] text-slate-500">
                 {item.date}, {item.time}
