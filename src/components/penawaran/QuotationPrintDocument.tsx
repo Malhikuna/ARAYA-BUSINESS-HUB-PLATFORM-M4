@@ -1,7 +1,11 @@
 import React from "react";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
-import { formatTanggalIndo } from "@/lib/data/mock-quotations";
+import {
+  formatTanggalIndo,
+  normalizeQuotationStatus,
+  getQuotationStatusLabel,
+} from "@/lib/data/mock-quotations";
 
 export interface QuotationPrintDocumentProps {
   quotation: Quotation;
@@ -12,7 +16,15 @@ export interface QuotationPrintDocumentProps {
  * Diformat khusus untuk lembar kertas standar A4 dengan kop surat, rincian item, dan lembar otorisasi.
  */
 export function QuotationPrintDocument({ quotation }: QuotationPrintDocumentProps) {
-  const isApproved = quotation.status === "APPROVED";
+  const canonicalStatus = normalizeQuotationStatus(quotation.status);
+  const statusClass =
+    canonicalStatus === "APPROVED"
+      ? "text-emerald-700 font-bold"
+      : canonicalStatus === "DRAFT"
+      ? "text-slate-700 font-bold"
+      : canonicalStatus === "REJECTED"
+      ? "text-rose-700 font-bold"
+      : "text-amber-700 font-bold";
   const validUntilLabel = quotation.valid_until
     ? formatTanggalIndo(quotation.valid_until)
     : "14 hari sejak diterbitkan";
@@ -47,8 +59,8 @@ export function QuotationPrintDocument({ quotation }: QuotationPrintDocumentProp
           </p>
           <p className="text-[10px] font-medium text-slate-700">
             Status:{" "}
-            <span className={isApproved ? "text-emerald-700 font-bold" : "text-amber-700 font-bold"}>
-              {isApproved ? "Disetujui" : "Menunggu Persetujuan"}
+            <span className={statusClass}>
+              {getQuotationStatusLabel(quotation.status)}
             </span>
           </p>
         </div>
