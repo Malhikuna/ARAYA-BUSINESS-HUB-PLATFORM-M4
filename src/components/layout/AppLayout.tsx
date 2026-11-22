@@ -4,23 +4,30 @@ import React, { useState, useCallback, useSyncExternalStore, Suspense } from "re
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 
-const subscribeWindow = (callback: () => void) => {
-  window.addEventListener("resize", callback);
-  return () => window.removeEventListener("resize", callback);
+const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+
+const subscribeDesktopViewport = (callback: () => void) => {
+  const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+  mediaQuery.addEventListener("change", callback);
+  return () => mediaQuery.removeEventListener("change", callback);
 };
-const getWindowWidth = () => (typeof window !== "undefined" ? window.innerWidth : 1280);
-const getServerWidth = () => 1280;
+const getIsDesktopViewport = () =>
+  typeof window !== "undefined" ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : true;
+const getServerIsDesktopViewport = () => true;
 
 export function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const windowWidth = useSyncExternalStore(subscribeWindow, getWindowWidth, getServerWidth);
   // HP (< 768px) & Tablet (768px-1023px) memakai Overlay Drawer (tertutup default, tidak menggeser konten).
   // Laptop/Desktop (>= 1024px / lg:) memakai Push Sticky Sidebar (terbuka default).
-  const isDrawerViewport = windowWidth < 1024;
-  const isDesktopViewport = windowWidth >= 1024;
+  const isDesktopViewport = useSyncExternalStore(
+    subscribeDesktopViewport,
+    getIsDesktopViewport,
+    getServerIsDesktopViewport
+  );
+  const isDrawerViewport = !isDesktopViewport;
 
   const [manualDesktopOpen, setManualDesktopOpen] = useState<boolean | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -28,11 +35,13 @@ export function AppLayout({
   const isDesktopSidebarOpen = manualDesktopOpen !== null ? manualDesktopOpen : isDesktopViewport;
 
   const toggleSidebar = useCallback(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+    const isDesktop =
+      typeof window !== "undefined" ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches : true;
+    if (!isDesktop) {
       setIsDrawerOpen((prev) => !prev);
     } else {
       setManualDesktopOpen((prev) => {
-        const current = prev !== null ? prev : (typeof window !== "undefined" && window.innerWidth >= 1024);
+        const current = prev !== null ? prev : isDesktop;
         return !current;
       });
     }

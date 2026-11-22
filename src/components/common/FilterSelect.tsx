@@ -37,8 +37,8 @@ export function FilterSelect({
 }: FilterSelectProps) {
   const variantClasses =
     variant === "soft"
-      ? "h-10 bg-[#f0f4fa] hover:bg-slate-200/80 border border-transparent font-semibold"
-      : "h-9.5 bg-white border border-slate-300 hover:bg-slate-50 font-medium";
+      ? "w-full h-10 bg-[#f0f4fa] hover:bg-slate-200/80 border border-transparent font-semibold"
+      : "w-full sm:w-auto h-9.5 bg-white border border-slate-300 hover:bg-slate-50 font-medium";
 
   return (
     <div className={`relative shrink-0 ${className}`}>
@@ -48,7 +48,7 @@ export function FilterSelect({
         title={title || ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full pl-3 pr-7.5 rounded-xl text-xs text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none ${variantClasses} ${selectClassName}`}
+        className={`pl-3 pr-7.5 rounded-xl text-xs text-slate-700 outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer transition-colors appearance-none ${variantClasses} ${selectClassName}`}
         suppressHydrationWarning
       >
         {options

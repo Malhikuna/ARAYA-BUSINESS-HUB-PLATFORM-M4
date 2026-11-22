@@ -110,23 +110,24 @@ export function Sidebar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen, onCloseMobile]);
 
+  // Konsistensi filtering menu:
+  // Baik dalam mode simulasi maupun non-dev (activeRole = "ADMIN"),
+  // hak akses halaman konsisten dengan peran pengguna.
   const filteredMenuItems = menuItems.filter((item) => {
-    if (isDev) {
-      if (activeRole === "ADMIN") {
-        // Admin hanya melihat halaman Katalog dan Pelanggan
-        return item.href === "/produk" || item.href === "/pelanggan";
-      }
-      if (activeRole === "PARTNER_PRODUCT") {
-        // Role Fokus Produk: Produk, Pelanggan, Invoice, dan Order (TIDAK ADA Penawaran & Permintaan)
-        return item.href !== "/penawaran" && item.href !== "/permintaan";
-      }
-      if (activeRole === "PARTNER_SERVICE") {
-        // Role Jasa: Jasa, Pelanggan, Permintaan, Penawaran, Invoice, dan Order
-        return true;
-      }
+    if (activeRole === "ADMIN") {
+      // Super Admin hanya mengelola Master Katalog dan Pelanggan
+      return item.href === "/produk" || item.href === "/pelanggan";
     }
-    // Default fallback bila mode simulasi non-aktif
-    return item.href !== "/permintaan";
+    if (activeRole === "PARTNER_PRODUCT") {
+      // Mitra Produk: Produk, Pelanggan, Invoice, dan Order (tanpa Penawaran & Permintaan)
+      return item.href !== "/penawaran" && item.href !== "/permintaan";
+    }
+    if (activeRole === "PARTNER_SERVICE") {
+      // Mitra Jasa: Jasa, Pelanggan, Permintaan, Penawaran, Invoice, dan Order
+      return true;
+    }
+    // Fallback konsisten untuk mode non-dev
+    return item.href === "/produk" || item.href === "/pelanggan";
   });
 
   const resolveMenuIcon = (item: MenuItem) => {
