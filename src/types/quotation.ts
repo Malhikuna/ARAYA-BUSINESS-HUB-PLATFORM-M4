@@ -1,6 +1,15 @@
-export type QuotationStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'DRAFT';
+export type QuotationStatus =
+  | 'DRAFT'
+  | 'SENT'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'draf'
+  | 'terkirim'
+  | 'disetujui'
+  | 'ditolak';
 
-export type QuotationFilterStatus = 'ALL' | 'PENDING_APPROVAL' | 'APPROVED';
+export type QuotationFilterStatus = 'ALL' | 'DRAFT' | 'SENT' | 'APPROVED' | 'PENDING_APPROVAL';
 
 export interface QuotationLineItem {
   id: string;
@@ -39,10 +48,13 @@ export interface Quotation {
   tax_amount: number;
   total_amount: number;
   notes?: string;
+  permintaan_id?: string;
+  permintaan_title?: string;
   items: QuotationLineItem[];
   activities?: QuotationActivity[];
   updated_at?: string;
   created_at?: string;
+  sent_at?: string;
   updated_at_label?: string;
   isNew?: boolean;
   createdAt?: string;
@@ -51,6 +63,7 @@ export interface Quotation {
 export interface QuotationFormItem {
   product_service_id: string;
   name: string;
+  description?: string;
   quantity: number;
   unit_price: number;
   subtotal: number;
