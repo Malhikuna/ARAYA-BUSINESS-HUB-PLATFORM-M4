@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   const traceId = request.headers.get('x-request-id') || generateTraceId();
 
   try {
-    const auth = await requireServicePartner(request, { traceId, allowCustomer: true });
+    const auth = await requireServicePartner(request, { traceId, allowCustomer: true, requireAuth: true });
     if (!auth.ok) {
       return auth.response;
     }
@@ -35,10 +35,10 @@ export async function GET(request: Request, { params }: RouteParams) {
         : null;
       if (!ownerUuid || ownerUuid !== actorUuid) {
         return createAuthErrorResponse(
-          'FORBIDDEN',
-          'Anda tidak memiliki akses ke penawaran pelanggan lain.',
+          'QUOTATION_NOT_FOUND',
+          `Penawaran dengan ID '${id}' tidak ditemukan.`,
           traceId,
-          403
+          404
         );
       }
     }

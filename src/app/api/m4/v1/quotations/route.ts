@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const traceId = request.headers.get('x-request-id') || generateTraceId();
 
   try {
-    const auth = await requireServicePartner(request, { traceId, allowCustomer: true });
+    const auth = await requireServicePartner(request, { traceId, allowCustomer: true, requireAuth: true });
     if (!auth.ok) {
       return auth.response;
     }
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       return createAuthErrorResponse('INVALID_BODY', 'Payload request body wajib berupa JSON yang valid.', traceId, 400);
     }
 
-    const auth = await requireServicePartner(request, { traceId });
+    const auth = await requireServicePartner(request, { traceId, requireAuth: true });
     if (!auth.ok) {
       return auth.response;
     }

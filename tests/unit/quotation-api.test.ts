@@ -55,7 +55,7 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
     it('POST /api/m4/v1/quotations harus menolak request tanpa item (422)', async () => {
       const req = new Request('http://localhost:3000/api/m4/v1/quotations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
         body: JSON.stringify({
           customer_id: '00000000-0000-0000-0000-000000000001',
           items: [],
@@ -72,7 +72,7 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
 
       const req = new Request('http://localhost:3000/api/m4/v1/quotations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
         body: JSON.stringify({
           customer_id: customer.id,
           items: [
@@ -106,7 +106,7 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
 
       const req = new Request('http://localhost:3000/api/m4/v1/quotations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
         body: JSON.stringify({
           customer_id: customer.id,
           notes: 'Penawaran uji coba otomatis',
@@ -133,11 +133,34 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
       assert.equal(json.data.status, 'draf');
       assert.equal(json.data.quotation_items.length, 1);
 
-      // Uji alur status ketat SRS: Ubah status menjadi disetujui
+      // Partner tidak boleh mengubah status langsung menjadi disetujui via PATCH /status (BR-06)
+      const forbiddenApproveRes = await updateQuotationStatusHandler(
+        new Request(`http://localhost:3000/api/m4/v1/quotations/${json.data.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
+          body: JSON.stringify({ status: 'disetujui' }),
+        }),
+        { params: Promise.resolve({ id: json.data.id }) }
+      );
+      assert.equal(forbiddenApproveRes.status, 403);
+
+      // Uji alur status ketat SRS: draf -> terkirim -> ditolak
+      const patchSentRes = await updateQuotationStatusHandler(
+        new Request(`http://localhost:3000/api/m4/v1/quotations/${json.data.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
+          body: JSON.stringify({ status: 'terkirim' }),
+        }),
+        { params: Promise.resolve({ id: json.data.id }) }
+      );
+      assert.equal(patchSentRes.status, 200);
+      const sentJson = await patchSentRes.json();
+      assert.equal(sentJson.data.status, 'terkirim');
+
       const patchReq = new Request(`http://localhost:3000/api/m4/v1/quotations/${json.data.id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'disetujui' }),
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
+        body: JSON.stringify({ status: 'ditolak' }),
       });
 
       const patchRes = await updateQuotationStatusHandler(patchReq, {
@@ -147,10 +170,12 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
       assert.equal(patchRes.status, 200);
       const patchJson = await patchRes.json();
       assert.equal(patchJson.success, true);
-      assert.equal(patchJson.data.status, 'disetujui');
+      assert.equal(patchJson.data.status, 'ditolak');
 
       // Uji ambil detail quotation
-      const getDetailReq = new Request(`http://localhost:3000/api/m4/v1/quotations/${json.data.id}`);
+      const getDetailReq = new Request(`http://localhost:3000/api/m4/v1/quotations/${json.data.id}`, {
+        headers: { authorization: 'Bearer mock-partner-token' },
+      });
       const getDetailRes = await getQuotationByIdHandler(getDetailReq, {
         params: Promise.resolve({ id: json.data.id }),
       });
@@ -158,11 +183,13 @@ describe('Quotation API & Status Workflow Test Suite (M4-US1 / PRO-49)', () => {
       assert.equal(getDetailRes.status, 200);
       const detailJson = await getDetailRes.json();
       assert.equal(detailJson.data.id, json.data.id);
-      assert.equal(detailJson.data.status, 'disetujui');
+      assert.equal(detailJson.data.status, 'ditolak');
     });
 
     it('GET /api/m4/v1/quotations harus mengembalikan daftar penawaran terpaginasi (200)', async () => {
-      const req = new Request('http://localhost:3000/api/m4/v1/quotations?page=1&limit=5');
+      const req = new Request('http://localhost:3000/api/m4/v1/quotations?page=1&limit=5', {
+        headers: { authorization: 'Bearer mock-partner-token' },
+      });
       const res = await getQuotationsHandler(req);
 
       assert.equal(res.status, 200);

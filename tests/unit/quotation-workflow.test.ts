@@ -8,18 +8,55 @@ import { GET as getQuotationByIdHandler } from '../../src/app/api/m4/v1/quotatio
 import { PATCH as updateQuotationStatusHandler } from '../../src/app/api/m4/v1/quotations/[id]/status/route';
 import { POST as sendWhatsAppHandler } from '../../src/app/api/m4/v1/quotations/[id]/send-whatsapp/route';
 import { POST as approveQuotationHandler } from '../../src/app/api/m4/v1/quotations/[id]/approve/route';
+import { POST as convertQuotationHandler } from '../../src/app/api/v1/quotations/[id]/convert/route';
+import { getAllowedRolesForPath, isPermissionAuthorized, isRoleAuthorized } from '../../src/lib/auth/rbac';
 import { normalizeWhatsAppNumberTo62 } from '../../src/lib/services/quotation-workflow';
 
 describe('Quotation SRS Lifecycle, Prefill, WhatsApp & Customer Approve Suite (PRO-307)', () => {
-  it('harus menormalkan format nomor WhatsApp ke awalan 62 dan menolak status uppercase legacy', async () => {
+  it('harus menormalkan format nomor WhatsApp (08, +62, 8...) ke awalan 62, menolak tanggal invalid, dan menolak status uppercase legacy', async () => {
     assert.equal(normalizeWhatsAppNumberTo62('0812-3456-7890'), '6281234567890');
     assert.equal(normalizeWhatsAppNumberTo62('+62 813-0000-1111'), '6281300001111');
+    assert.equal(normalizeWhatsAppNumberTo62('81234567890'), '6281234567890');
 
     const serviceItem = await prisma.products_services.findFirst({
       where: { type: 'SERVICE', is_active: true, partner_id: SEEDED_PARTNER_JASA_ID },
     });
     const customer = await prisma.customers.findFirst();
     assert.ok(serviceItem && customer);
+
+    const invalidDateRes = await createQuotationHandler(
+      new Request('http://localhost:3000/api/m4/v1/quotations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer mock-partner-token' },
+        body: JSON.stringify({
+          customer_id: customer.id,
+          quotation_date: 'bukan-tanggal',
+          items: [{ product_service_id: serviceItem.id, quantity: 1, unit_price: 50000 }],
+        }),
+      })
+    );
+    assert.equal(invalidDateRes.status, 400);
+
+    // RBAC & permission check: Customer ditolak pada /convert (baik di rbac.ts maupun route handler)
+    const convertAllowedRoles = getAllowedRolesForPath('/api/v1/quotations/Q-1/convert');
+    assert.equal(isRoleAuthorized('Customer', convertAllowedRoles), false);
+    assert.equal(
+      isPermissionAuthorized(
+        { is_super_admin: false, permissions: ['m4.quotations.read'], role: 'Customer' },
+        '/api/v1/quotations/Q-1/convert',
+        'POST'
+      ),
+      false
+    );
+    const custTokenForConvert = await createJwtToken({ user_id: crypto.randomUUID(), role: 'Customer' });
+    const convertDeniedRes = await convertQuotationHandler(
+      new Request('http://localhost:3000/api/v1/quotations/Q-1/convert', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${custTokenForConvert}` },
+      }),
+      { params: Promise.resolve({ id: 'Q-1' }) }
+    );
+    assert.equal(convertDeniedRes.status, 403);
 
     const legacyRes = await createQuotationHandler(
       new Request('http://localhost:3000/api/m4/v1/quotations', {
@@ -180,7 +217,7 @@ describe('Quotation SRS Lifecycle, Prefill, WhatsApp & Customer Approve Suite (P
       assert.ok(waJson.data.quotation.sent_at);
       assert.match(waJson.data.whatsapp_url, /^https:\/\/wa\.me\/62\d+\?text=/);
 
-      // Kirim WA ulang saat sudah terkirim -> 422
+      // Kirim WA ulang saat sudah terkirim -> tetap 200 tanpa menimpa sent_at awal
       const reWaRes = await sendWhatsAppHandler(
         new Request(`http://localhost:3000/api/m4/v1/quotations/${quotationId}/send-whatsapp`, {
           method: 'POST',
@@ -188,9 +225,11 @@ describe('Quotation SRS Lifecycle, Prefill, WhatsApp & Customer Approve Suite (P
         }),
         { params: Promise.resolve({ id: quotationId! }) }
       );
-      assert.equal(reWaRes.status, 422);
+      assert.equal(reWaRes.status, 200);
+      const reWaJson = await reWaRes.json();
+      assert.equal(reWaJson.data.quotation.sent_at, waJson.data.quotation.sent_at);
 
-      // 5. Customer GET list & detail + isolasi lintas Customer (403)
+      // 5. Customer GET list & detail + isolasi lintas Customer (404 sesuai NFR-02)
       const listRes = await getQuotationsHandler(
         new Request('http://localhost:3000/api/m4/v1/quotations', {
           headers: { authorization: `Bearer ${custToken}` },
@@ -207,7 +246,7 @@ describe('Quotation SRS Lifecycle, Prefill, WhatsApp & Customer Approve Suite (P
         }),
         { params: Promise.resolve({ id: quotationId! }) }
       );
-      assert.equal(crossDetail.status, 403);
+      assert.equal(crossDetail.status, 404);
 
       const crossApprove = await approveQuotationHandler(
         new Request(`http://localhost:3000/api/m4/v1/quotations/${quotationId}/approve`, {
@@ -216,7 +255,7 @@ describe('Quotation SRS Lifecycle, Prefill, WhatsApp & Customer Approve Suite (P
         }),
         { params: Promise.resolve({ id: quotationId! }) }
       );
-      assert.equal(crossApprove.status, 403);
+      assert.equal(crossApprove.status, 404);
 
       // Partner tidak boleh memanggil endpoint approve Customer (403)
       const partnerApprove = await approveQuotationHandler(

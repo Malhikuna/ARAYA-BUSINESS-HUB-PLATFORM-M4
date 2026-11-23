@@ -5,6 +5,7 @@ import {
   InvalidQuotationStatusError,
   QuotationForbiddenError,
   QuotationNotFoundError,
+  UUID_REGEX,
   serializeQuotationFinancials,
 } from './quotation.schema';
 
@@ -26,6 +27,7 @@ export function normalizeWhatsAppNumberTo62(phone: string): string {
   if (!digits) return '';
   if (digits.startsWith('0')) return `62${digits.slice(1)}`;
   if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('8')) return `62${digits}`;
   return digits;
 }
 
@@ -56,8 +58,6 @@ export function buildWhatsAppQuotationUrl(params: {
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(lines.join('\n'))}`;
 }
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 async function findQuotationForWorkflow(id: string) {
   const isUuid = UUID_REGEX.test(id);
   const quotation = await prisma.quotations.findFirst({
@@ -80,9 +80,9 @@ export async function sendQuotationViaWhatsApp(id: string, partnerId?: string) {
     throw new QuotationForbiddenError('Anda tidak memiliki akses mengirim penawaran partner lain.');
   }
 
-  if (quotation.status !== 'draf') {
+  if (quotation.status !== 'draf' && quotation.status !== 'terkirim') {
     throw new InvalidQuotationStatusError(
-      `Hanya penawaran berstatus 'draf' yang dapat dikirim via WhatsApp. Status saat ini: '${quotation.status}'.`
+      `Hanya penawaran berstatus 'draf' atau 'terkirim' yang dapat dikirim via WhatsApp. Status saat ini: '${quotation.status}'.`
     );
   }
 
@@ -92,6 +92,13 @@ export async function sendQuotationViaWhatsApp(id: string, partnerId?: string) {
     quotationNumber: quotation.quotation_number,
     totalAmount: Number(quotation.total_amount),
   });
+
+  if (quotation.status === 'terkirim') {
+    return {
+      quotation: serializeQuotationFinancials(quotation),
+      whatsapp_url: whatsappUrl,
+    };
+  }
 
   const now = new Date();
   const updated = await prisma.quotations.update({
@@ -126,9 +133,7 @@ export async function approveQuotationByCustomer(
       : null;
 
     if (!ownerUserUuid || ownerUserUuid !== actorUserUuid) {
-      throw new QuotationForbiddenError(
-        'Anda tidak memiliki akses menyetujui penawaran milik pelanggan lain.'
-      );
+      throw new QuotationNotFoundError(id);
     }
   }
 

@@ -3,6 +3,7 @@ import { calculateQuotationTotals, roundHalfUp } from './calculation.service';
 import { partnerExistsInDb, SEEDED_PARTNER_JASA_ID } from './partner-profile.service';
 import {
   createQuotationSchema,
+  UUID_REGEX,
   QuotationConflictError,
   QuotationForbiddenError,
   QuotationNotFoundError,
@@ -99,7 +100,7 @@ export async function getQuotations(query: {
 }
 
 export async function getQuotationById(id: string) {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const isUuid = UUID_REGEX.test(id);
   const quotation = await prisma.quotations.findFirst({
     where: isUuid ? { OR: [{ id }, { quotation_number: id }] } : { quotation_number: id },
     include: QUOTATION_INCLUDE,
@@ -147,15 +148,21 @@ async function resolveServiceRequestForQuotation(
 
   if (req.customer_id) return req.customer_id;
 
+  const normalizedReqEmail = req.customer_email.trim().toLowerCase();
   const existing = await tx.customers.findFirst({
     where: {
       OR: [
-        { email: req.customer_email.toLowerCase() },
+        { email: { equals: normalizedReqEmail, mode: 'insensitive' } },
         { phone: req.customer_phone },
       ],
     },
   });
   if (existing) {
+    if (existing.user_id && req.customer_user_id && existing.user_id !== req.customer_user_id) {
+      throw new QuotationConflictError(
+        'Data pelanggan dengan email/nomor ini sudah tertaut ke akun Customer lain.'
+      );
+    }
     if (!existing.user_id && req.customer_user_id) {
       await tx.customers.update({
         where: { id: existing.id },
@@ -256,7 +263,7 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
         partner_id: partnerId,
         quotation_date: data.quotation_date ? new Date(data.quotation_date) : new Date(),
         valid_until: data.valid_until ? new Date(data.valid_until) : null,
-        status: data.service_request_id ? 'draf' : data.status || 'draf',
+        status: 'draf',
         subtotal: totals.formatted.subtotal,
         discount_amount: totals.formatted.total_discount,
         tax_amount: totals.formatted.tax_total,
@@ -295,12 +302,38 @@ export async function createQuotation(rawInput: unknown, authPartnerId?: string)
   return serializeQuotationFinancials(created);
 }
 
-export async function updateQuotationStatus(id: string, newStatus: QuotationStatus) {
+export async function updateQuotationStatus(
+  id: string,
+  newStatus: QuotationStatus,
+  actor: { isAdmin?: boolean } = {}
+) {
   const quotation = await getQuotationById(id);
 
-  if (quotation.status === 'disetujui' && newStatus !== 'disetujui') {
+  if (quotation.status === 'disetujui' || quotation.status === 'ditolak') {
+    if (quotation.status !== newStatus) {
+      throw new InvalidQuotationStatusError(
+        `Penawaran yang sudah berstatus '${quotation.status}' bersifat final dan tidak dapat diubah lagi.`
+      );
+    }
+  }
+
+  if (newStatus === 'disetujui' && !actor.isAdmin) {
+    throw new QuotationForbiddenError(
+      'Partner tidak dapat menyetujui penawaran sendiri. Persetujuan hanya dapat dilakukan oleh Customer (BR-06).'
+    );
+  }
+
+  const allowedTransitions: Record<string, QuotationStatus[]> = {
+    draf: ['draf', 'terkirim', 'ditolak'],
+    terkirim: ['terkirim', 'disetujui', 'ditolak'],
+    disetujui: ['disetujui'],
+    ditolak: ['ditolak'],
+  };
+
+  const allowedNext = allowedTransitions[quotation.status] || [];
+  if (!allowedNext.includes(newStatus)) {
     throw new InvalidQuotationStatusError(
-      'Penawaran yang sudah berstatus disetujui tidak dapat diubah lagi.'
+      `Transisi status tidak valid dari '${quotation.status}' ke '${newStatus}'.`
     );
   }
 

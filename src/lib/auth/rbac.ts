@@ -67,8 +67,8 @@ const ROUTE_RBAC_RULES: RouteRule[] = [
   // Persetujuan quotation oleh Customer login M1 atau Admin
   { pattern: /^\/api\/(?:m4\/)?v1\/quotations\/[^/]+\/approve$/, allowedRoles: ['Admin', 'admin', 'Customer', 'customer'] },
 
-  // Kirim WhatsApp & ubah status manual quotation khusus Admin dan Partner
-  { pattern: /^\/api\/(?:m4\/)?v1\/quotations\/[^/]+\/(?:status|send-whatsapp)$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner'] },
+  // Kirim WhatsApp, ubah status manual, & konversi quotation ke invoice khusus Admin dan Partner
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations\/[^/]+\/(?:status|send-whatsapp|convert)$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner'] },
 
   // Daftar/detail/pembuatan quotation (Customer hanya GET miliknya sendiri; POST dibatasi di handler)
   { pattern: /^\/api\/(?:m4\/)?v1\/quotations(?:\/.*)?$/, allowedRoles: ['Admin', 'admin', 'Partner', 'partner', 'Customer', 'customer'] },
@@ -154,6 +154,16 @@ export function getRequiredPermissionsForPath(pathname: string, method: string):
   return null;
 }
 
+// Rute dan method yang boleh diakses Customer tanpa klaim permission m4.* admin/partner
+const CUSTOMER_PERMISSION_ALLOWLIST: Array<{ pattern: RegExp; methods: string[] }> = [
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations\/[^/]+\/approve$/, methods: ['POST'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/quotations(?:\/[^/]+)?$/, methods: ['GET'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/service-requests(?:\?.*)?$/, methods: ['POST'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/invoices\/[^/]+\/payments(?:\/.*)?$/, methods: ['POST', 'PATCH'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/invoices(?:\/.*)?$/, methods: ['GET'] },
+  { pattern: /^\/api\/(?:m4\/)?v1\/orders(?:\/.*)?$/, methods: ['GET', 'POST'] },
+];
+
 /**
  * Validasi permission m4.* dari JWT Modul 1 (bypass untuk super admin; fallback ke role jika token tanpa klaim permissions).
  */
@@ -163,7 +173,16 @@ export function isPermissionAuthorized(
   method: string
 ): boolean {
   if (payload.is_super_admin === true) return true;
-  if (payload.role && normalizeRoleCode(String(payload.role)) === 'customer') return true;
+  if (payload.role && normalizeRoleCode(String(payload.role)) === 'customer') {
+    const upperMethod = method.toUpperCase();
+    if (
+      CUSTOMER_PERMISSION_ALLOWLIST.some(
+        (rule) => rule.pattern.test(pathname) && rule.methods.includes(upperMethod)
+      )
+    ) {
+      return true;
+    }
+  }
   if (!Array.isArray(payload.permissions)) return true;
 
   const required = getRequiredPermissionsForPath(pathname, method);

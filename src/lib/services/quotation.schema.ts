@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { formatFinancialDecimal } from './calculation.service';
 
 export type QuotationStatus = 'draf' | 'terkirim' | 'disetujui' | 'ditolak';
 
@@ -10,7 +9,51 @@ export const VALID_QUOTATION_STATUSES: QuotationStatus[] = [
   'ditolak',
 ];
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidDateInput(value?: string): boolean {
+  if (!value) return true;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime());
+}
+
+/**
+ * Konversi nilai Prisma Decimal / string numerik / number ke string 2 desimal (Round-Half-Up)
+ * tanpa aritmetika floating-point JS (NFR-04).
+ */
+export function formatDecimalValue(value: unknown): string {
+  if (value === null || value === undefined) return '0.00';
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toFixed' in value &&
+    typeof (value as { toFixed: unknown }).toFixed === 'function'
+  ) {
+    return (value as { toFixed: (digits: number) => string }).toFixed(2);
+  }
+
+  const raw = String(value).trim();
+  const match = raw.match(/^([+-])?(\d+)(?:\.(\d+))?$/);
+  if (!match) return '0.00';
+
+  const sign = match[1] === '-' ? '-' : '';
+  const intPart = match[2];
+  const fracPart = match[3] || '';
+  const padded = fracPart.padEnd(3, '0');
+  const twoDigits = padded.slice(0, 2);
+  const thirdDigit = Number.parseInt(padded[2], 10);
+
+  let scaled = BigInt(`${intPart}${twoDigits}`);
+  if (thirdDigit >= 5) {
+    scaled += BigInt(1);
+  }
+
+  const scaledStr = scaled.toString().padStart(3, '0');
+  const outInt = scaledStr.slice(0, -2);
+  const outFrac = scaledStr.slice(-2);
+  return `${scaled === BigInt(0) ? '' : sign}${outInt}.${outFrac}`;
+}
 
 export const quotationItemSchema = z.object({
   product_service_id: z.string().uuid('ID produk/jasa wajib berupa UUID yang valid.'),
@@ -26,8 +69,14 @@ export const createQuotationSchema = z
     service_request_id: z.string().uuid('ID permintaan jasa wajib berupa UUID yang valid.').optional(),
     customer_id: z.string().uuid('ID pelanggan wajib berupa UUID yang valid.').optional(),
     partner_id: z.string().regex(UUID_REGEX, 'ID partner harus berupa UUID yang valid.').optional(),
-    quotation_date: z.string().optional(),
-    valid_until: z.string().optional(),
+    quotation_date: z
+      .string()
+      .refine(isValidDateInput, 'Format quotation_date tidak valid.')
+      .optional(),
+    valid_until: z
+      .string()
+      .refine(isValidDateInput, 'Format valid_until tidak valid.')
+      .optional(),
     status: z.enum(['draf', 'terkirim', 'disetujui', 'ditolak'] as const).optional().default('draf'),
     notes: z.string().trim().max(2000).nullable().optional(),
     items: z
@@ -122,19 +171,19 @@ export interface QuotationDecimalFields {
 export function serializeQuotationFinancials<T extends QuotationDecimalFields>(quotation: T) {
   return {
     ...quotation,
-    subtotal: formatFinancialDecimal(Number(quotation.subtotal)),
-    discount_amount: formatFinancialDecimal(Number(quotation.discount_amount)),
-    tax_amount: formatFinancialDecimal(Number(quotation.tax_amount)),
-    total_amount: formatFinancialDecimal(Number(quotation.total_amount)),
+    subtotal: formatDecimalValue(quotation.subtotal),
+    discount_amount: formatDecimalValue(quotation.discount_amount),
+    tax_amount: formatDecimalValue(quotation.tax_amount),
+    total_amount: formatDecimalValue(quotation.total_amount),
     quotation_items: quotation.quotation_items?.map((item) => ({
       ...item,
-      quantity: formatFinancialDecimal(Number(item.quantity)),
-      unit_price: formatFinancialDecimal(Number(item.unit_price)),
-      discount_amount: formatFinancialDecimal(Number(item.discount_amount)),
-      tax_rate: formatFinancialDecimal(Number(item.tax_rate)),
-      tax_amount: formatFinancialDecimal(Number(item.tax_amount)),
-      subtotal: formatFinancialDecimal(Number(item.subtotal)),
-      total_amount: formatFinancialDecimal(Number(item.total_amount)),
+      quantity: formatDecimalValue(item.quantity),
+      unit_price: formatDecimalValue(item.unit_price),
+      discount_amount: formatDecimalValue(item.discount_amount),
+      tax_rate: formatDecimalValue(item.tax_rate),
+      tax_amount: formatDecimalValue(item.tax_amount),
+      subtotal: formatDecimalValue(item.subtotal),
+      total_amount: formatDecimalValue(item.total_amount),
     })),
   };
 }
