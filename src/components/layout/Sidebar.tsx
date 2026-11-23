@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { useDevRole } from "@/lib/auth/dev-role";
+import { useCustomerPortalMode } from "@/lib/auth/customer-portal";
+import { CUSTOMER_PORTAL_MENUS } from "@/lib/invoice-order-helpers";
 import {
   subscribePermintaanStorage,
   getNewPermintaanCount,
@@ -83,6 +85,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { isDev, activeRole, profile } = useDevRole();
+  const { isCustomer } = useCustomerPortalMode();
   const newPermintaanCount = useSyncExternalStore(
     subscribePermintaanStorage,
     getNewPermintaanCount,
@@ -111,24 +114,32 @@ export function Sidebar({
   }, [mobileOpen, onCloseMobile]);
 
   // Konsistensi filtering menu:
-  // Baik dalam mode simulasi maupun non-dev (activeRole = "ADMIN"),
-  // hak akses halaman konsisten dengan peran pengguna.
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (activeRole === "ADMIN") {
-      // Super Admin hanya mengelola Master Katalog dan Pelanggan
-      return item.href === "/produk" || item.href === "/pelanggan";
-    }
-    if (activeRole === "PARTNER_PRODUCT") {
-      // Mitra Produk: Produk, Pelanggan, Invoice, dan Order (tanpa Penawaran & Permintaan)
-      return item.href !== "/penawaran" && item.href !== "/permintaan";
-    }
-    if (activeRole === "PARTNER_SERVICE") {
-      // Mitra Jasa: Jasa, Pelanggan, Permintaan, Penawaran, Invoice, dan Order
-      return true;
-    }
-    // Fallback konsisten untuk mode non-dev
-    return item.href === "/produk" || item.href === "/pelanggan";
-  });
+  // Customer login M1 hanya memiliki 3 halaman: Penawaran saya, Pesanan saya, dan Invoice saya (tanpa Katalog).
+  const customerMenuItems: MenuItem[] = CUSTOMER_PORTAL_MENUS.map((spec) => ({
+    name: spec.name,
+    href: spec.href,
+    matchPrefix: spec.matchPrefix,
+    icon: spec.href === "/penawaran" ? FileText : spec.href === "/order" ? Truck : Receipt,
+  }));
+
+  const filteredMenuItems = isCustomer
+    ? customerMenuItems
+    : menuItems.filter((item) => {
+        if (activeRole === "ADMIN") {
+          // Super Admin hanya mengelola Master Katalog dan Pelanggan
+          return item.href === "/produk" || item.href === "/pelanggan";
+        }
+        if (activeRole === "PARTNER_PRODUCT") {
+          // Mitra Produk: Produk, Pelanggan, Invoice, dan Order (tanpa Penawaran & Permintaan)
+          return item.href !== "/penawaran" && item.href !== "/permintaan";
+        }
+        if (activeRole === "PARTNER_SERVICE") {
+          // Mitra Jasa: Jasa, Pelanggan, Permintaan, Penawaran, Invoice, dan Order
+          return true;
+        }
+        // Fallback konsisten untuk mode non-dev
+        return item.href === "/produk" || item.href === "/pelanggan";
+      });
 
   const resolveMenuIcon = (item: MenuItem) => {
     if (isDev && item.href === "/produk") {
@@ -155,7 +166,7 @@ export function Sidebar({
         </div>
       )}
       <div className="text-xs font-semibold text-slate-600 px-3 py-2 whitespace-nowrap">
-        Penawaran &amp; tagihan penjualan
+        {isCustomer ? "Portal Customer" : "Penawaran & tagihan penjualan"}
       </div>
       <nav aria-label="Menu modul penjualan" className="space-y-1 mt-1 text-sm">
         {filteredMenuItems.map((item) => {
