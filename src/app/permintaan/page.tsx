@@ -12,8 +12,9 @@ import {
   subscribePermintaanStorage,
 } from "@/lib/data/mock-permintaan";
 import {
-  applyLocalPermintaanStatusOverlay,
+  applyLocalQuotationOverlayToRequests,
   fetchServiceRequestsFromApi,
+  getLocalActiveAddedQuotations,
   mergeServiceRequestsWithLocal,
 } from "@/lib/data/service-requests-api";
 import { PermintaanItem } from "@/types/permintaan";
@@ -63,15 +64,17 @@ export default function PermintaanPage() {
     setIsSyncing(true);
     try {
       const dbItems = await fetchServiceRequestsFromApi();
-      const localItems = getStoredPermintaan();
       if (dbItems.length > 0) {
         dbItemsRef.current = dbItems;
-        const resolved = applyLocalPermintaanStatusOverlay(dbItems, localItems);
+        const resolved = applyLocalQuotationOverlayToRequests(
+          dbItems,
+          getLocalActiveAddedQuotations()
+        );
         setItems(resolved);
         savePermintaanToStorage(resolved);
       } else {
         dbItemsRef.current = null;
-        setItems(localItems);
+        setItems(getStoredPermintaan());
       }
     } finally {
       setIsSyncing(false);
@@ -90,11 +93,15 @@ export default function PermintaanPage() {
       void loadFromApi();
     }, 0);
     const unsubscribe = subscribePermintaanStorage(() => {
-      const latestLocal = getStoredPermintaan();
       if (dbItemsRef.current && dbItemsRef.current.length > 0) {
-        setItems(applyLocalPermintaanStatusOverlay(dbItemsRef.current, latestLocal));
+        setItems(
+          applyLocalQuotationOverlayToRequests(
+            dbItemsRef.current,
+            getLocalActiveAddedQuotations()
+          )
+        );
       } else {
-        setItems(latestLocal);
+        setItems(getStoredPermintaan());
       }
     });
     return () => {
@@ -109,7 +116,10 @@ export default function PermintaanPage() {
         ? mergeServiceRequestsWithLocal([createdItem], dbItemsRef.current)
         : [createdItem];
     dbItemsRef.current = nextDbItems;
-    const resolved = applyLocalPermintaanStatusOverlay(nextDbItems, getStoredPermintaan());
+    const resolved = applyLocalQuotationOverlayToRequests(
+      nextDbItems,
+      getLocalActiveAddedQuotations()
+    );
     setItems(resolved);
     savePermintaanToStorage(resolved);
     setCurrentPage(1);

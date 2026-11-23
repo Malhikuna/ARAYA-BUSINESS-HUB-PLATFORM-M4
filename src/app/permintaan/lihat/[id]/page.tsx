@@ -8,8 +8,9 @@ import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { getStoredPermintaan, savePermintaanToStorage } from "@/lib/data/mock-permintaan";
 import {
-  applyLocalPermintaanStatusOverlay,
+  applyLocalQuotationOverlayToRequests,
   fetchServiceRequestByIdFromApi,
+  getLocalActiveAddedQuotations,
   mergeServiceRequestsWithLocal,
   isUuid,
 } from "@/lib/data/service-requests-api";
@@ -61,7 +62,10 @@ function DetailPermintaanContent() {
           return;
         }
         const stored = getStoredPermintaan();
-        const resolved = applyLocalPermintaanStatusOverlay([found], stored)[0];
+        const resolved = applyLocalQuotationOverlayToRequests(
+          [found],
+          getLocalActiveAddedQuotations()
+        )[0];
         setApiItem(resolved);
         const existingNonMock = stored.filter((p) => !p.id.startsWith("PMT-"));
         savePermintaanToStorage(mergeServiceRequestsWithLocal([resolved], existingNonMock));

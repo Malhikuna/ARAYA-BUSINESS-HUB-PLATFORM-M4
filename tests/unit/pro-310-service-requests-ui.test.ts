@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  applyLocalPermintaanStatusOverlay,
+  applyLocalQuotationOverlayToRequests,
   mapDbServiceRequestToPermintaan,
   mergeServiceRequestsWithLocal,
   buildCreateQuotationHref,
@@ -88,7 +88,7 @@ describe("PRO-310: Mapper & helper Permintaan Jasa (M4-US3-AC1 & AC2)", () => {
     assert.equal(merged.length, 1);
   });
 
-  it("hanya menampilkan data DB pada overlay lokal tanpa mencampur mock PMT-*", () => {
+  it("hanya menerapkan status Sudah ditawarkan bila ada penawaran lokal aktif yang cocok (tidak tertimpa cache lama)", () => {
     const dbItem = mapDbServiceRequestToPermintaan({
       id: "11111111-2222-4333-8444-555555555555",
       partner_id: SEEDED_PARTNER_JASA_ID,
@@ -99,22 +99,24 @@ describe("PRO-310: Mapper & helper Permintaan Jasa (M4-US3-AC1 & AC2)", () => {
       status: "baru",
       created_at: "2026-11-22T08:00:00.000Z",
     });
-    const localMock = {
-      ...dbItem,
-      id: "PMT-0005",
-      status: "Sudah ditawarkan" as const,
-    };
-    const localOverlay = {
-      ...dbItem,
-      status: "Sudah ditawarkan" as const,
-      quotationNumber: "PNW-0006",
-    };
 
-    const resolved = applyLocalPermintaanStatusOverlay([dbItem], [localMock, localOverlay]);
-    assert.equal(resolved.length, 1);
-    assert.equal(resolved[0].id, dbItem.id);
-    assert.equal(resolved[0].status, "Sudah ditawarkan");
-    assert.equal(resolved[0].quotationNumber, "PNW-0006");
+    // Tanpa penawaran lokal aktif, status tetap mengikuti DB ("Baru")
+    const withoutQuo = applyLocalQuotationOverlayToRequests([dbItem], []);
+    assert.equal(withoutQuo.length, 1);
+    assert.equal(withoutQuo[0].status, "Baru");
+
+    // Dengan penawaran lokal aktif untuk permintaan ini, status & tautan penawaran terpasang 1:1
+    const withQuo = applyLocalQuotationOverlayToRequests([dbItem], [
+      {
+        id: "QUO-123",
+        quotation_number: "PNW-0006",
+        permintaan_id: dbItem.id,
+      },
+    ]);
+    assert.equal(withQuo.length, 1);
+    assert.equal(withQuo[0].status, "Sudah ditawarkan");
+    assert.equal(withQuo[0].quotationId, "QUO-123");
+    assert.equal(withQuo[0].quotationNumber, "PNW-0006");
   });
 });
 

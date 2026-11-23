@@ -131,23 +131,66 @@ export function mergeServiceRequestsWithLocal(
   return [...dbItems, ...localItems.filter((i) => !dbIds.has(i.id.toLowerCase()))];
 }
 
+export interface LocalQuotationLink {
+  id: string;
+  quotation_number: string;
+  permintaan_id?: string;
+}
+
+const QUOTATION_ADDED_STORAGE_KEY = "araya_added_quotations_v5";
+const QUOTATION_DELETED_STORAGE_KEY = "araya_deleted_quotations_v5";
+
 /**
- * Menerapkan overlay status lokal ("Sudah ditawarkan") ke data permintaan dari database
- * tanpa mencampurkan baris mock PMT-* agar jumlah permintaan dan penawaran tetap sinkron 1:1.
+ * Membaca penawaran baru yang aktif (belum dihapus) dari sessionStorage lokal.
  */
-export function applyLocalPermintaanStatusOverlay(
+export function getLocalActiveAddedQuotations(): LocalQuotationLink[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const addedRaw = sessionStorage.getItem(QUOTATION_ADDED_STORAGE_KEY);
+    const deletedRaw = sessionStorage.getItem(QUOTATION_DELETED_STORAGE_KEY);
+    const added: unknown = addedRaw ? JSON.parse(addedRaw) : [];
+    const deleted: unknown = deletedRaw ? JSON.parse(deletedRaw) : [];
+    if (!Array.isArray(added)) return [];
+    const deletedSet = new Set(Array.isArray(deleted) ? deleted.map((d) => String(d)) : []);
+    return added.filter(
+      (entry): entry is LocalQuotationLink =>
+        Boolean(
+          entry &&
+            typeof entry === "object" &&
+            typeof (entry as LocalQuotationLink).id === "string" &&
+            typeof (entry as LocalQuotationLink).quotation_number === "string" &&
+            !deletedSet.has((entry as LocalQuotationLink).id) &&
+            !deletedSet.has((entry as LocalQuotationLink).quotation_number)
+        )
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Menerapkan overlay status "Sudah ditawarkan" ke data DB HANYA bila terdapat
+ * penawaran lokal aktif yang benar-benar dibuat untuk permintaan tersebut,
+ * sehingga cache daftar permintaan lama tidak dapat menimpa status terbaru dari DB.
+ */
+export function applyLocalQuotationOverlayToRequests(
   dbItems: PermintaanItem[],
-  localItems: PermintaanItem[]
+  localQuotations: LocalQuotationLink[]
 ): PermintaanItem[] {
-  const localById = new Map(localItems.map((item) => [item.id.toLowerCase(), item]));
+  const byPermintaanId = new Map<string, LocalQuotationLink>();
+  for (const quo of localQuotations) {
+    if (quo.permintaan_id) {
+      byPermintaanId.set(quo.permintaan_id.toLowerCase(), quo);
+    }
+  }
   return dbItems.map((dbItem) => {
-    const localMatch = localById.get(dbItem.id.toLowerCase());
-    if (localMatch && dbItem.status === "Baru" && localMatch.status === "Sudah ditawarkan") {
+    const matchedQuo = byPermintaanId.get(dbItem.id.toLowerCase());
+    if (matchedQuo && dbItem.status === "Baru") {
       return {
         ...dbItem,
         status: "Sudah ditawarkan",
-        quotationId: dbItem.quotationId || localMatch.quotationId,
-        quotationNumber: dbItem.quotationNumber || localMatch.quotationNumber,
+        quotationId: dbItem.quotationId || matchedQuo.id,
+        quotationNumber: dbItem.quotationNumber || matchedQuo.quotation_number,
       };
     }
     return dbItem;
