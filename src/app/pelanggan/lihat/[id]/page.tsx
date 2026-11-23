@@ -90,7 +90,7 @@ function LihatPelangganDetailView({ customer }: { customer: Customer }) {
           <div>
             <span className="block text-xs font-semibold text-slate-800 mb-1.5">Alamat lengkap</span>
             <div className="w-full min-h-24 p-4 rounded-xl bg-[#f8fafc] border border-slate-200/80 text-xs text-slate-700 leading-relaxed">
-              {customer.address}
+              {customer.address?.trim() ? customer.address : <span className="text-slate-400 italic">Belum diisi</span>}
             </div>
           </div>
 

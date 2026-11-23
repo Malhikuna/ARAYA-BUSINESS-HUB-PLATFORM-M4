@@ -284,7 +284,9 @@ export function CustomerTableCard({
                           </span>
                         </td>
                       )}
-                      <td className="px-3 sm:px-4 py-3.5 text-slate-600 truncate" title={cust.address || ""}>{cust.address}</td>
+                      <td className="px-3 sm:px-4 py-3.5 text-slate-600 truncate" title={cust.address?.trim() || "Belum diisi"}>
+                        {cust.address?.trim() ? cust.address : <span className="text-slate-400 italic">Belum diisi</span>}
+                      </td>
                       <td className="w-28 px-2 sm:px-3 py-3.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="inline-flex items-center justify-end gap-1.5 shrink-0">
                           <Link
