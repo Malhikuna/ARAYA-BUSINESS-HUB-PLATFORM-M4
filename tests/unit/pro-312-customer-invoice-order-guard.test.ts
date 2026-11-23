@@ -56,10 +56,10 @@ describe("PRO-312: Guard U-01, BR-09, BR-10 & Menu Sidebar Customer M1", () => {
     assert.equal(getOrderStatusLabel(normalizeOrderStatus("diproses")), "Diproses");
   });
 
-  it("Sidebar Customer M1 hanya menampilkan 3 menu berakhiran 'saya' tanpa halaman Katalog", () => {
+  it("Sidebar Customer M1 menampilkan urutan PRD: Penawaran saya, Invoice saya, Pesanan saya (tanpa Katalog)", () => {
     assert.deepEqual(
       CUSTOMER_PORTAL_MENUS.map((m) => m.name),
-      ["Penawaran saya", "Pesanan saya", "Invoice saya"]
+      ["Penawaran saya", "Invoice saya", "Pesanan saya"]
     );
     assert.equal(
       CUSTOMER_PORTAL_MENUS.some((m) => String(m.href) === "/produk"),

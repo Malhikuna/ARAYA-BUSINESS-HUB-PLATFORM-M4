@@ -10,8 +10,8 @@ const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep"
 
 export const CUSTOMER_PORTAL_MENUS = [
   { name: "Penawaran saya", href: "/penawaran", matchPrefix: "/penawaran" },
-  { name: "Pesanan saya", href: "/order", matchPrefix: "/order" },
   { name: "Invoice saya", href: "/invoice", matchPrefix: "/invoice" },
+  { name: "Pesanan saya", href: "/order", matchPrefix: "/order" },
 ] as const;
 
 export function normalizeInvoiceStatus(status?: string | null): CanonicalInvoiceStatus {

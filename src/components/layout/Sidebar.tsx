@@ -114,7 +114,7 @@ export function Sidebar({
   }, [mobileOpen, onCloseMobile]);
 
   // Konsistensi filtering menu:
-  // Customer login M1 hanya memiliki 3 halaman: Penawaran saya, Pesanan saya, dan Invoice saya (tanpa Katalog).
+  // Customer login M1 hanya memiliki 3 halaman sesuai PRD: Penawaran saya, Invoice saya, dan Pesanan saya (tanpa Katalog).
   const customerMenuItems: MenuItem[] = CUSTOMER_PORTAL_MENUS.map((spec) => ({
     name: spec.name,
     href: spec.href,
