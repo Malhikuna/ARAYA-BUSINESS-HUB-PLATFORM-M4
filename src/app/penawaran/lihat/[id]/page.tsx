@@ -2,36 +2,46 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, CheckCircle2, ReceiptText, Pencil, MessageCircle } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
 import { FormAlertBanner } from "@/components/common/FormAlertBanner";
 import { ExportPdfPreviewModal } from "@/components/common/ExportPdfPreviewModal";
+import { QuotationDetailHeader } from "@/components/penawaran/QuotationDetailHeader";
 import { QuotationDetailInfoCard } from "@/components/penawaran/QuotationDetailInfoCard";
 import { QuotationDetailSidebar } from "@/components/penawaran/QuotationDetailSidebar";
 import { QuotationPrintDocument } from "@/components/penawaran/QuotationPrintDocument";
 import { QuotationEditModal } from "@/components/penawaran/QuotationEditModal";
-import { buildWhatsAppUrl } from "@/components/permintaan/whatsapp-url";
+import {
+  QuotationCustomerApproveModal,
+  QuotationCustomerStatusBanner,
+  QuotationViewerDevToggle,
+} from "@/components/penawaran/QuotationCustomerActions";
 import { useDevRole } from "@/lib/auth/dev-role";
+import { useQuotationViewerMode } from "@/lib/auth/customer-session";
 import { downloadQuotationDetailPdf } from "@/lib/export-quotation-pdf";
-import { Quotation, QuotationStatus } from "@/types/quotation";
+import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
 import {
   findQuotationById,
-  fetchQuotationDetailFromDatabase,
-  approveQuotationInStorage,
-  markQuotationAsSentInStorage,
   saveUpdatedQuotationToStorage,
   formatWaktuPembaruan,
   formatTanggalIndo,
   normalizeQuotationStatus,
 } from "@/lib/data/mock-quotations";
+import {
+  approveQuotationByCustomerApi,
+  buildCustomerApprovalWhatsAppUrl,
+  fetchQuotationDetailForViewerApi,
+  sendQuotationViaWhatsAppApi,
+} from "@/lib/data/quotation-workflow-api";
 
 function LihatPenawaranContent() {
   const router = useRouter();
   const params = useParams();
-  const { isDev, profile } = useDevRole();
+  const { profile } = useDevRole();
+  const { isCustomer, isDevPreviewAvailable, toggleCustomerPreview } = useQuotationViewerMode();
   const quotationId = typeof params?.id === "string" ? params.id : "";
 
   const [quotation, setQuotation] = useState<Quotation | null>(() =>
@@ -39,6 +49,9 @@ function LihatPenawaranContent() {
   );
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [isSendingWa, setIsSendingWa] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
   const [previewDateLabel] = useState<string>(() =>
     typeof window === "undefined"
       ? ""
@@ -58,11 +71,13 @@ function LihatPenawaranContent() {
 
   useEffect(() => {
     if (quotationId) {
-      fetchQuotationDetailFromDatabase(quotationId).then((dbItem) => {
-        if (dbItem) setQuotation(dbItem);
-      });
+      fetchQuotationDetailForViewerApi(quotationId, isCustomer ? "customer" : "partner").then(
+        (dbItem) => {
+          if (dbItem) setQuotation(dbItem);
+        }
+      );
     }
-  }, [quotationId]);
+  }, [quotationId, isCustomer]);
 
   if (!quotation) {
     return (
@@ -81,61 +96,85 @@ function LihatPenawaranContent() {
   const isDraft = canonicalStatus === "DRAFT";
   const isApproved = canonicalStatus === "APPROVED";
   const isSent = canonicalStatus === "SENT";
-  const isRejected = canonicalStatus === "REJECTED";
 
-  // Aksi Kirim ke WhatsApp (UC-04: Transisi Draf -> Terkirim)
-  const handleSendToWhatsApp = () => {
-    const waBaseUrl = buildWhatsAppUrl(quotation.customer_phone);
-    if (!waBaseUrl) {
-      setToastState({
-        status: "visible",
-        title: "Nomor WhatsApp belum tersedia",
-        description: "Lengkapi nomor telepon/WhatsApp pelanggan terlebih dahulu sebelum mengirim penawaran.",
+  // Aksi Kirim ke WhatsApp (UC-04 / M4-US2-AC5: panggil endpoint backend Draf -> Terkirim lalu buka wa.me/62...)
+  const handleSendToWhatsApp = async () => {
+    if (isSendingWa) return;
+    if (!isDraft) {
+      const resendUrl = buildCustomerApprovalWhatsAppUrl({
+        phone: quotation.customer_phone,
+        customerName: quotation.customer_name,
+        senderName: profile.name,
+        quotationId: quotation.id,
+        quotationNumber: quotation.quotation_number,
+        title: quotation.permintaan_title || quotation.items[0]?.name || "layanan jasa",
+        totalAmount: quotation.total_amount,
+        validUntil: quotation.valid_until,
       });
+      if (!resendUrl) {
+        setToastState({
+          status: "visible",
+          title: "Nomor WhatsApp belum tersedia",
+          description: "Lengkapi nomor telepon/WhatsApp pelanggan terlebih dahulu sebelum mengirim penawaran.",
+        });
+        return;
+      }
+      window.open(resendUrl, "_blank", "noopener,noreferrer");
       return;
     }
 
-    const contactName =
-      quotation.customer_name.replace(/^(PT|CV|UD)\s+/i, "").split(" ")[0] ||
-      quotation.customer_name ||
-      "Pelanggan";
-    const pmtTitle = quotation.permintaan_title || quotation.items[0]?.name || "layanan jasa";
-    const validUntilStr = quotation.valid_until ? formatTanggalIndo(quotation.valid_until) : "-";
-    const formattedTotal = formatRupiah(quotation.total_amount);
-    const origin =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "");
-    const detailUrl = `${origin}/penawaran/lihat/${encodeURIComponent(quotation.id)}`;
+    setIsSendingWa(true);
+    try {
+      const result = await sendQuotationViaWhatsAppApi(quotation, profile.name);
+      if (!result.ok) {
+        setToastState({
+          status: "visible",
+          title: "Gagal mengirim ke WhatsApp",
+          description: result.message,
+        });
+        return;
+      }
 
-    const waMessage = `Halo ${contactName}, berikut penawaran ${quotation.quotation_number} dari ${profile.name} untuk ${pmtTitle}. Total ${formattedTotal}, berlaku sampai ${validUntilStr}. Lihat dan setujui di: ${detailUrl}`;
-
-    window.open(`${waBaseUrl}?text=${encodeURIComponent(waMessage)}`, "_blank", "noopener,noreferrer");
-    markQuotationAsSentInStorage(quotation.id);
-    setQuotation((prev) =>
-      prev
-        ? { ...prev, status: "PENDING_APPROVAL" as QuotationStatus, updated_at: new Date().toISOString() }
-        : null
-    );
-    setToastState({
-      status: "visible",
-      title: "Penawaran Terkirim",
-      description: `Dokumen ${quotation.quotation_number} berhasil dikirim ke WhatsApp customer.`,
-    });
+      setQuotation(result.data);
+      if (result.whatsappUrl) {
+        window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+      }
+      setToastState({
+        status: "visible",
+        title: "Penawaran Terkirim",
+        description: `Status ${quotation.quotation_number} diperbarui ke Terkirim dan tautan WhatsApp dibuka.`,
+      });
+    } finally {
+      setIsSendingWa(false);
+    }
   };
 
-  // Simulasi persetujuan Customer (UC-05 — khusus mode dev agar tidak melanggar BR-06 di production)
-  const handleApprove = () => {
-    if (!isDev) return;
-    approveQuotationInStorage(quotation.id);
-    setQuotation((prev) =>
-      prev ? { ...prev, status: "APPROVED", updated_at: new Date().toISOString() } : null
-    );
-    setShowInvoiceAlert(false);
-    setToastState({
-      status: "visible",
-      title: "Penawaran disetujui",
-      description: "Invoice sekarang dapat dibuat.",
-    });
+  // Aksi Customer login M1 menyetujui penawaran berstatus Terkirim (UC-05 / M4-US2-AC3)
+  const handleConfirmCustomerApprove = async () => {
+    if (!isCustomer || !isSent || isApproving) return;
+    setIsApproving(true);
+    try {
+      const result = await approveQuotationByCustomerApi(quotation);
+      setIsApproveModalOpen(false);
+      if (!result.ok) {
+        setToastState({
+          status: "visible",
+          title: "Persetujuan gagal diproses",
+          description: result.message,
+        });
+        return;
+      }
+
+      setQuotation(result.data);
+      setShowInvoiceAlert(false);
+      setToastState({
+        status: "visible",
+        title: "Penawaran disetujui",
+        description: "Status penawaran berubah menjadi Disetujui. Partner jasa kini dapat menerbitkan invoice.",
+      });
+    } finally {
+      setIsApproving(false);
+    }
   };
 
   // Aksi Buat Invoice (UC-06: Hanya aktif jika status DISESETUJUI)
@@ -193,101 +232,39 @@ function LihatPenawaranContent() {
           </div>
         </div>
 
-        <BackLink href="/penawaran" label="Kembali ke daftar penawaran" />
-
-        {/* Header Halaman */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1.5 min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight">
-                Penawaran {quotation.quotation_number}
-              </h1>
-              {isDraft ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                  <span>Draf</span>
-                </span>
-              ) : isSent ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span>Terkirim</span>
-                </span>
-              ) : isApproved ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>Disetujui</span>
-                </span>
-              ) : isRejected ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  <span>Ditolak</span>
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Action Buttons Header */}
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
-            {isDraft && (
-              <button
-                type="button"
-                onClick={() => setIsEditOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
-              >
-                <Pencil className="w-4 h-4 text-slate-500" />
-                <span>Ubah</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={handleCreateInvoice}
-              disabled={!isApproved}
-              title={isApproved ? "Buat tagihan invoice" : "Invoice hanya dapat dibuat setelah penawaran disetujui customer (BR-07)"}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors ${
-                isApproved
-                  ? "border-slate-200 text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
-                  : "border-slate-100 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60"
-              }`}
-            >
-              <ReceiptText className="w-4 h-4 text-slate-400" />
-              <span>Buat invoice</span>
-            </button>
-
-            {isDraft ? (
-              <button
-                type="button"
-                onClick={handleSendToWhatsApp}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#22c55e] hover:bg-[#16a34a] shadow-xs transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Kirim ke WhatsApp</span>
-              </button>
-            ) : isSent ? (
-              <>
-                <button
-                  type="button"
-                  onClick={handleSendToWhatsApp}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
-                  <span>Kirim ulang</span>
-                </button>
-                {isDev && (
-                  <button
-                    type="button"
-                    onClick={handleApprove}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#19376d] hover:bg-[#122852] shadow-sm transition-colors cursor-pointer"
-                    title="Simulasi persetujuan oleh customer (mode dev UC-05)"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Setujui (Simulasi Dev)</span>
-                  </button>
-                )}
-              </>
-            ) : null}
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <BackLink
+            href="/penawaran"
+            label={isCustomer ? "Kembali ke penawaran saya" : "Kembali ke daftar penawaran"}
+          />
+          {isDevPreviewAvailable && (
+            <QuotationViewerDevToggle
+              isCustomer={isCustomer}
+              onToggle={toggleCustomerPreview}
+            />
+          )}
         </div>
+
+        {/* Header Halaman & Tombol Aksi (Partner Jasa vs Customer M1) */}
+        <QuotationDetailHeader
+          quotationNumber={quotation.quotation_number}
+          canonicalStatus={canonicalStatus}
+          isCustomer={isCustomer}
+          isSendingWa={isSendingWa}
+          isApproving={isApproving}
+          onEdit={() => setIsEditOpen(true)}
+          onCreateInvoice={handleCreateInvoice}
+          onSendWhatsApp={() => void handleSendToWhatsApp()}
+          onRequestCustomerApprove={() => setIsApproveModalOpen(true)}
+        />
+
+        {/* Banner Informasi Khusus Customer M1 (UC-05) */}
+        {isCustomer && (
+          <QuotationCustomerStatusBanner
+            status={canonicalStatus}
+            quotationNumber={quotation.quotation_number}
+          />
+        )}
 
         {/* Banner Peringatan: Invoice Belum Dapat Dibuat */}
         <FormAlertBanner
@@ -308,12 +285,23 @@ function LihatPenawaranContent() {
           <div className="lg:col-span-4">
             <QuotationDetailSidebar
               quotation={quotation}
-              onSendToWhatsApp={handleSendToWhatsApp}
+              isCustomer={isCustomer}
+              isSendingWa={isSendingWa}
+              onSendToWhatsApp={() => void handleSendToWhatsApp()}
               onDownloadPdf={() => setIsExportOpen(true)}
               onPrint={() => window.print()}
             />
           </div>
         </div>
+
+        {/* Modal Konfirmasi Persetujuan Customer (UC-05) */}
+        <QuotationCustomerApproveModal
+          open={isApproveModalOpen}
+          quotation={quotation}
+          isSubmitting={isApproving}
+          onConfirm={() => void handleConfirmCustomerApprove()}
+          onCancel={() => !isApproving && setIsApproveModalOpen(false)}
+        />
 
         {/* Modal Ubah Penawaran */}
         <QuotationEditModal

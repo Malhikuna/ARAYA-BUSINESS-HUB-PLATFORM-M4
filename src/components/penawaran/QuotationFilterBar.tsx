@@ -7,6 +7,7 @@ import { QuotationFilterStatus } from "@/types/quotation";
 export interface QuotationFilterBarProps {
   searchTerm: string;
   selectedStatus: QuotationFilterStatus;
+  isCustomer?: boolean;
   onSearchChange: (val: string) => void;
   onStatusChange: (val: QuotationFilterStatus) => void;
   onOpenExportPreview: () => void;
@@ -26,10 +27,12 @@ const TABS: { label: string; value: QuotationFilterStatus }[] = [
 export function QuotationFilterBar({
   searchTerm,
   selectedStatus,
+  isCustomer = false,
   onSearchChange,
   onStatusChange,
   onOpenExportPreview,
 }: QuotationFilterBarProps) {
+  const visibleTabs = isCustomer ? TABS.filter((tab) => tab.value !== "DRAFT") : TABS;
   return (
     <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-xs mb-5 sm:mb-6 flex flex-col @3xl:flex-row @3xl:items-center justify-between gap-3">
       {/* 1. Kotak Pencarian */}
@@ -66,7 +69,7 @@ export function QuotationFilterBar({
       <div className="flex flex-wrap items-center justify-between @3xl:justify-end gap-2.5 shrink-0">
         {/* Tab Pills */}
         <div className="flex items-center gap-1 p-1 bg-[#f0f4fa] rounded-xl overflow-x-auto max-w-full custom-scrollbar">
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const isActive =
               selectedStatus === tab.value ||
               (tab.value === "SENT" && selectedStatus === "PENDING_APPROVAL");

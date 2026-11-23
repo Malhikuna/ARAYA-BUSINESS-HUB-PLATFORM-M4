@@ -3,35 +3,43 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { QuotationFormHeader } from "@/components/penawaran/QuotationFormHeader";
 import { QuotationValidationBanner } from "@/components/penawaran/QuotationValidationBanner";
 import { useFreshForm } from "@/lib/use-fresh-form";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
-import { ConfirmationModal } from "@/components/common/ConfirmationModal";
-import { formatRupiah } from "@/lib/format";
+import { QuotationSaveConfirmModal } from "@/components/penawaran/QuotationSaveConfirmModal";
 import { QuotationFromPermintaanCard } from "@/components/penawaran/QuotationFromPermintaanCard";
 import { QuotationRequiresPermintaanNotice } from "@/components/penawaran/QuotationRequiresPermintaanNotice";
 import { QuotationCustomerFields } from "@/components/penawaran/QuotationCustomerFields";
 import { QuotationItemTable } from "@/components/penawaran/QuotationItemTable";
 import { QuotationNotesAndTotalCard } from "@/components/penawaran/QuotationNotesAndTotalCard";
 import { QuotationSummarySidebar } from "@/components/penawaran/QuotationSummarySidebar";
-import { Quotation } from "@/types/quotation";
 import { Customer } from "@/types/customer";
 import { ProductItem } from "@/types/product";
 import { PermintaanItem } from "@/types/permintaan";
-import { initialCustomers, getStoredCustomers } from "@/lib/data/mock-customers";
-import { initialProducts, getStoredProducts, syncProductsFromDatabase } from "@/lib/data/mock-products";
-import { getStoredPermintaan, updatePermintaanStatus } from "@/lib/data/mock-permintaan";
+import { syncProductsFromDatabase } from "@/lib/data/mock-products";
+import { getStoredPermintaan } from "@/lib/data/mock-permintaan";
 import { validateQuotationForm } from "@/lib/quotation-form-validation";
 import { useQuotationItems } from "@/lib/use-quotation-items";
 import {
-  saveNewQuotationToStorage,
   generateQuotationNumberForPermintaan,
   getTodayDateStr,
   calculateValidUntil,
 } from "@/lib/data/mock-quotations";
+import {
+  loadInitialActiveServices,
+  loadInitialQuotationCustomers,
+} from "@/lib/quotation-workflow-helpers";
+import {
+  createQuotationViaApi,
+  fetchPartnerActiveServices,
+  fetchServiceRequestPrefill,
+  filterActivePartnerServices,
+  formatRequestDisplayCode,
+  isUuid,
+} from "@/lib/data/quotation-workflow-api";
 
 function TambahPenawaranForm({
   permintaanData,
@@ -40,35 +48,27 @@ function TambahPenawaranForm({
   permintaanData: PermintaanItem;
   onSaved: (targetUrl: string) => void;
 }) {
-  // Master Data Pelanggan & Produk
-  const [customers] = useState<Customer[]>(() => {
-    try {
-      const stored = getStoredCustomers();
-      const parsed: Customer[] = typeof stored === "string" ? JSON.parse(stored) : stored;
-      return Array.isArray(parsed) && parsed.length > 0
-        ? [...initialCustomers, ...parsed.filter((p) => !initialCustomers.some((i) => i.id === p.id))]
-        : initialCustomers;
-    } catch {
-      return initialCustomers;
-    }
-  });
-
-  const [products, setProducts] = useState<ProductItem[]>(() => {
-    try {
-      const parsed: ProductItem[] = JSON.parse(getStoredProducts());
-      const merged = Array.isArray(parsed) && parsed.length > 0
-        ? [...parsed, ...initialProducts.filter((i) => !parsed.some((p) => p.id === i.id))]
-        : initialProducts;
-      return merged.filter((p) => p.category === "Jasa");
-    } catch {
-      return initialProducts.filter((p) => p.category === "Jasa");
-    }
-  });
+  // Master Data Pelanggan & Produk (terkunci khusus Jasa Aktif milik Partner)
+  const [customers] = useState<Customer[]>(loadInitialQuotationCustomers);
+  const [products, setProducts] = useState<ProductItem[]>(loadInitialActiveServices);
 
   useEffect(() => {
-    syncProductsFromDatabase().then((dbItems) => {
-      if (dbItems.length > 0) setProducts(dbItems.filter((p) => p.category === "Jasa"));
+    let active = true;
+    fetchPartnerActiveServices().then((partnerServices) => {
+      if (!active) return;
+      if (partnerServices.length > 0) {
+        setProducts(partnerServices);
+        return;
+      }
+      syncProductsFromDatabase().then((dbItems) => {
+        if (active && dbItems.length > 0) {
+          setProducts(filterActivePartnerServices(dbItems));
+        }
+      });
     });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Form State
@@ -83,6 +83,7 @@ function TambahPenawaranForm({
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [bannerType, setBannerType] = useState<"error" | "warning">("error");
   const [actionHref, setActionHref] = useState<string | undefined>(undefined);
@@ -178,43 +179,49 @@ function TambahPenawaranForm({
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmSave = () => {
-    const selectedCust = customers.find((c) => c.id === selectedCustomerId);
-    const newQuo: Quotation = {
-      id: `QUO-${Date.now()}`,
-      quotation_number: quotationNumber,
-      customer_id: selectedCustomerId || permintaanData.customerId || "CUST-001",
-      customer_name: currentCustomerName || selectedCust?.name || "Pelanggan",
-      customer_phone: permintaanData.whatsapp || selectedCust?.phone,
-      customer_email: selectedCust?.email,
-      customer_address: selectedCust?.address,
-      quotation_date: quotationDate,
-      valid_until: validUntil,
-      status: "DRAFT", // BR-06: status awal selalu Draf, "Terkirim" hanya setelah Kirim ke WhatsApp
-      subtotal,
-      discount_amount: 0,
-      tax_amount: 0,
-      total_amount: totalAmount,
-      notes,
-      permintaan_id: permintaanData.id,
-      permintaan_title: permintaanData.title,
-      items: items.map((it, idx) => ({ ...it, id: `QI-${Date.now()}-${idx}` })),
-      isNew: true,
-      createdAt: new Date().toISOString(),
-    };
+  const handleConfirmSave = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const selectedCust = customers.find((c) => c.id === selectedCustomerId);
+      const result = await createQuotationViaApi({
+        permintaan: permintaanData,
+        customerId: selectedCustomerId || permintaanData.customerId || "CUST-001",
+        customerName: currentCustomerName || selectedCust?.name || "Pelanggan",
+        customerPhone: permintaanData.whatsapp || selectedCust?.phone,
+        customerEmail: selectedCust?.email,
+        customerAddress: selectedCust?.address,
+        quotationNumber,
+        quotationDate,
+        validUntil,
+        notes,
+        items,
+        subtotal,
+        totalAmount,
+      });
 
-    saveNewQuotationToStorage(newQuo);
-    updatePermintaanStatus(permintaanData.id, "Sudah ditawarkan");
+      setIsConfirmOpen(false);
+      if (!result.ok) {
+        setErrorMessage(result.message);
+        setBannerType("error");
+        setActionHref(undefined);
+        setActionLabel(undefined);
+        if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
 
-    setIsConfirmOpen(false);
-    onSaved("/penawaran");
+      onSaved("/penawaran");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  const displayRequestCode = formatRequestDisplayCode(permintaanData.id);
   const backUrl = `/permintaan/lihat/${permintaanData.id}`;
-  const backLabel = `Kembali ke permintaan ${permintaanData.id}`;
+  const backLabel = `Kembali ke permintaan ${displayRequestCode}`;
   const breadcrumbItems = [
     { label: "Permintaan", href: "/permintaan" },
-    { label: permintaanData.id, href: `/permintaan/lihat/${permintaanData.id}` },
+    { label: displayRequestCode, href: `/permintaan/lihat/${permintaanData.id}` },
     { label: "Buat penawaran" },
   ];
 
@@ -307,39 +314,17 @@ function TambahPenawaranForm({
         </div>
       </form>
 
-      <ConfirmationModal
+      <QuotationSaveConfirmModal
         open={isConfirmOpen}
-        title="Simpan dokumen penawaran?"
-        subtitle="Konfirmasi pembuatan penawaran harga baru"
-        description="Penawaran akan disimpan dengan status awal Draf dan status permintaan terkait berubah menjadi Sudah ditawarkan. Anda masih dapat meninjau dokumen sebelum mengirim ke WhatsApp customer."
-        confirmLabel="Ya, simpan penawaran"
-        variant="primary"
-        onConfirm={handleConfirmSave}
-        onCancel={() => setIsConfirmOpen(false)}
-      >
-        <div className="space-y-1.5 text-xs">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Nomor penawaran</span>
-            <span className="font-mono font-bold text-slate-900">{quotationNumber}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Referensi permintaan</span>
-            <span className="font-mono font-semibold text-[#19376d]">{permintaanData.id}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Customer</span>
-            <span className="font-semibold text-slate-800 truncate">{currentCustomerName || "-"}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Jumlah item jasa</span>
-            <span className="font-semibold text-slate-800">{items.length} layanan</span>
-          </div>
-          <div className="flex items-center justify-between gap-3 pt-1.5 border-t border-slate-200/80">
-            <span className="font-semibold text-slate-700">Total penawaran</span>
-            <span className="font-heading font-bold text-[#19376d]">{formatRupiah(totalAmount)}</span>
-          </div>
-        </div>
-      </ConfirmationModal>
+        isSubmitting={isSubmitting}
+        quotationNumber={quotationNumber}
+        requestCode={displayRequestCode}
+        customerName={currentCustomerName}
+        itemsCount={items.length}
+        totalAmount={totalAmount}
+        onConfirm={() => void handleConfirmSave()}
+        onCancel={() => !isSubmitting && setIsConfirmOpen(false)}
+      />
     </div>
   );
 }
@@ -347,44 +332,49 @@ function TambahPenawaranForm({
 function TambahPenawaranGate({ onSaved }: { onSaved: (targetUrl: string) => void }) {
   const searchParams = useSearchParams();
   const fromPermintaan =
+    searchParams?.get("request_id") ||
     searchParams?.get("fromPermintaan") ||
     searchParams?.get("permintaan_id") ||
-    searchParams?.get("request_id") ||
     "";
 
-  const permintaanData = useMemo<PermintaanItem | null>(() => {
+  const localPermintaan = useMemo<PermintaanItem | null>(() => {
     if (!fromPermintaan) return null;
     const list = getStoredPermintaan();
     return list.find((item) => item.id.toLowerCase() === fromPermintaan.toLowerCase()) || null;
   }, [fromPermintaan]);
 
-  if (!fromPermintaan) return <QuotationRequiresPermintaanNotice />;
+  const [apiPermintaan, setApiPermintaan] = useState<PermintaanItem | null>(null);
+  const [isLoadingApi, setIsLoadingApi] = useState<boolean>(() => isUuid(fromPermintaan));
 
-  if (!permintaanData) {
+  useEffect(() => {
+    if (!isUuid(fromPermintaan)) return;
+    let active = true;
+    fetchServiceRequestPrefill(fromPermintaan)
+      .then((found) => {
+        if (active) setApiPermintaan(found);
+      })
+      .finally(() => {
+        if (active) setIsLoadingApi(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [fromPermintaan]);
+
+  const permintaanData = apiPermintaan || localPermintaan;
+
+  if (!fromPermintaan) return <QuotationRequiresPermintaanNotice />;
+  if (isLoadingApi && !permintaanData) {
     return (
-      <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-4">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 className="text-base font-heading font-bold text-slate-900">
-            Permintaan tidak ditemukan
-          </h2>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Permintaan dengan kode <span className="font-mono font-semibold text-slate-700">{fromPermintaan}</span> tidak ditemukan. Silakan pilih permintaan valid dari daftar permintaan.
-          </p>
-        </div>
-        <Link
-          href="/permintaan"
-          className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
-        >
-          Kembali ke daftar permintaan
-        </Link>
+      <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
+        <p className="text-xs text-slate-500 font-medium">Memuat data permintaan jasa untuk prefill...</p>
       </div>
     );
   }
+  if (!permintaanData) return <QuotationRequiresPermintaanNotice missingId={fromPermintaan} />;
 
-  return <TambahPenawaranForm permintaanData={permintaanData} onSaved={onSaved} />;
+  return <TambahPenawaranForm key={permintaanData.id} permintaanData={permintaanData} onSaved={onSaved} />;
 }
 
 export default function TambahPenawaranPage() {

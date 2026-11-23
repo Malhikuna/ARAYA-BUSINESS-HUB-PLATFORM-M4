@@ -23,6 +23,8 @@ import { QuotationWhatsAppPreviewCard } from "@/components/penawaran/QuotationWh
 
 export interface QuotationDetailSidebarProps {
   quotation: Quotation;
+  isCustomer?: boolean;
+  isSendingWa?: boolean;
   onSendToWhatsApp: () => void;
   onDownloadPdf: () => void;
   onPrint: () => void;
@@ -30,10 +32,12 @@ export interface QuotationDetailSidebarProps {
 
 /**
  * Sidebar kanan halaman detail penawaran.
- * Menampilkan Pratinjau WhatsApp & Tahapan Penawaran.
+ * Menampilkan Pratinjau WhatsApp (khusus Partner) & Tahapan Penawaran.
  */
 export function QuotationDetailSidebar({
   quotation,
+  isCustomer = false,
+  isSendingWa = false,
   onSendToWhatsApp,
   onDownloadPdf,
   onPrint,
@@ -53,12 +57,13 @@ export function QuotationDetailSidebar({
   const derivedPmtId =
     quotation.permintaan_id || derivePermintaanIdFromQuotationNumber(quotation.quotation_number);
 
-  // Mode Draf
-  if (isDraft) {
+  // Mode Draf (Pratinjau WhatsApp hanya untuk Partner Jasa, bukan Customer M1)
+  if (isDraft && !isCustomer) {
     return (
       <div className="space-y-6">
         <QuotationWhatsAppPreviewCard
           quotation={quotation}
+          isSending={isSendingWa}
           onSendToWhatsApp={onSendToWhatsApp}
         />
 
