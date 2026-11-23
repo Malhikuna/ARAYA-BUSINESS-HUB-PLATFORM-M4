@@ -38,6 +38,26 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
+  const normalizedRole = user.role.trim().toLowerCase();
+  if (
+    normalizedRole !== 'admin' &&
+    normalizedRole !== 'administrator' &&
+    normalizedRole !== 'super_admin' &&
+    normalizedRole !== 'partner'
+  ) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Hanya Admin atau Partner yang dapat mengonversi quotation menjadi invoice.',
+          details: [],
+          trace_id: traceId,
+        },
+      },
+      { status: 403, headers: { 'X-Request-Id': traceId } }
+    );
+  }
+
   // 2. Ambil data Quotation
   const quotation = findQuotationById(id);
   if (!quotation) {
