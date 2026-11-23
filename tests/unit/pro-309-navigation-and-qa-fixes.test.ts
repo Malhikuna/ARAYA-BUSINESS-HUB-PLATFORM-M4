@@ -32,7 +32,7 @@ describe("PRO-309: Navigasi adaptif M3/M1 & route guard (M4-US1-AC3)", () => {
     assert.equal(canAccessRoute("PARTNER_PRODUCT", "/produk", "produk", false).allowed, true);
   });
 
-  it("menampilkan menu khusus Customer (Penawaran, Invoice saya, Pesanan saya) dan membatasi rute Partner", () => {
+  it("menampilkan menu khusus Customer (Penawaran saya, Invoice saya, Pesanan saya) dan membatasi rute Partner", () => {
     const resolved = resolveRoleFromAuthSession({ role: "customer", name: "Budi" });
     assert.deepEqual(resolved, { role: "CUSTOMER", tipeUsaha: null });
 
@@ -40,7 +40,7 @@ describe("PRO-309: Navigasi adaptif M3/M1 & route guard (M4-US1-AC3)", () => {
     assert.deepEqual(
       menus.map((m) => ({ name: m.name, href: m.href })),
       [
-        { name: "Penawaran", href: "/penawaran" },
+        { name: "Penawaran saya", href: "/penawaran" },
         { name: "Invoice saya", href: "/invoice" },
         { name: "Pesanan saya", href: "/order" },
       ]

@@ -77,7 +77,7 @@ export function getDefaultRouteForRole(role: AppUserRole): string {
 
 /**
  * Daftar menu sidebar adaptif sesuai PRD Modul 4 (M4-US1-AC3 & portal Customer M1):
- * - Customer M1: Penawaran, Invoice saya, Pesanan saya
+ * - Customer M1: Penawaran saya, Invoice saya, Pesanan saya
  * - Partner Produk (tipe_usaha = produk): Produk, Pelanggan, Invoice, Order (tanpa Permintaan & Penawaran)
  * - Partner Jasa (tipe_usaha = jasa): Jasa, Pelanggan, Permintaan, Penawaran, Invoice, Order
  * - Admin: Katalog, Pelanggan
@@ -90,7 +90,7 @@ export function getVisibleSidebarMenus(
 
   if (effectiveRole === "CUSTOMER") {
     return [
-      { name: "Penawaran", href: "/penawaran", matchPrefix: "/penawaran", iconKey: "file" },
+      { name: "Penawaran saya", href: "/penawaran", matchPrefix: "/penawaran", iconKey: "file" },
       { name: "Invoice saya", href: "/invoice", matchPrefix: "/invoice", iconKey: "receipt" },
       { name: "Pesanan saya", href: "/order", matchPrefix: "/order", iconKey: "truck" },
     ];
@@ -162,7 +162,7 @@ export function canAccessRoute(
         redirectTo: "/penawaran",
         title: "Akses Terbatas untuk Akun Customer",
         reason:
-          "Halaman ini khusus Partner/Admin. Gunakan menu Penawaran, Invoice saya, atau Pesanan saya.",
+          "Halaman ini khusus Partner/Admin. Gunakan menu Penawaran saya, Invoice saya, atau Pesanan saya.",
       };
     }
     return { allowed: true, redirectTo: "/penawaran" };
