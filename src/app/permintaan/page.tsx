@@ -64,6 +64,9 @@ export default function PermintaanPage() {
       const localItems = getStoredPermintaan();
       const merged = mergeServiceRequestsWithLocal(dbItems, localItems);
       setItems(merged);
+      if (dbItems.length > 0) {
+        savePermintaanToStorage(merged);
+      }
     } finally {
       setIsSyncing(false);
     }
