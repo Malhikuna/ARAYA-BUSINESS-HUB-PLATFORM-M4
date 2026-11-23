@@ -132,6 +132,29 @@ export function mergeServiceRequestsWithLocal(
 }
 
 /**
+ * Menerapkan overlay status lokal ("Sudah ditawarkan") ke data permintaan dari database
+ * tanpa mencampurkan baris mock PMT-* agar jumlah permintaan dan penawaran tetap sinkron 1:1.
+ */
+export function applyLocalPermintaanStatusOverlay(
+  dbItems: PermintaanItem[],
+  localItems: PermintaanItem[]
+): PermintaanItem[] {
+  const localById = new Map(localItems.map((item) => [item.id.toLowerCase(), item]));
+  return dbItems.map((dbItem) => {
+    const localMatch = localById.get(dbItem.id.toLowerCase());
+    if (localMatch && dbItem.status === "Baru" && localMatch.status === "Sudah ditawarkan") {
+      return {
+        ...dbItem,
+        status: "Sudah ditawarkan",
+        quotationId: dbItem.quotationId || localMatch.quotationId,
+        quotationNumber: dbItem.quotationNumber || localMatch.quotationNumber,
+      };
+    }
+    return dbItem;
+  });
+}
+
+/**
  * Membangun tautan tombol "Buat penawaran" sesuai kontrak PRO-310 / UC-03.
  */
 export function buildCreateQuotationHref(item: Pick<PermintaanItem, "id">): string {

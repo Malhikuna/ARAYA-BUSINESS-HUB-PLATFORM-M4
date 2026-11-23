@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, Send, RefreshCw } from "lucide-react";
@@ -12,6 +12,7 @@ import {
   subscribePermintaanStorage,
 } from "@/lib/data/mock-permintaan";
 import {
+  applyLocalPermintaanStatusOverlay,
   fetchServiceRequestsFromApi,
   mergeServiceRequestsWithLocal,
 } from "@/lib/data/service-requests-api";
@@ -35,6 +36,7 @@ export default function PermintaanPage() {
   const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
 
   const [items, setItems] = useState<PermintaanItem[]>([]);
+  const dbItemsRef = useRef<PermintaanItem[] | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PermintaanTabFilter>("ALL");
@@ -62,10 +64,14 @@ export default function PermintaanPage() {
     try {
       const dbItems = await fetchServiceRequestsFromApi();
       const localItems = getStoredPermintaan();
-      const merged = mergeServiceRequestsWithLocal(dbItems, localItems);
-      setItems(merged);
       if (dbItems.length > 0) {
-        savePermintaanToStorage(merged);
+        dbItemsRef.current = dbItems;
+        const resolved = applyLocalPermintaanStatusOverlay(dbItems, localItems);
+        setItems(resolved);
+        savePermintaanToStorage(resolved);
+      } else {
+        dbItemsRef.current = null;
+        setItems(localItems);
       }
     } finally {
       setIsSyncing(false);
@@ -75,14 +81,21 @@ export default function PermintaanPage() {
   useEffect(() => {
     if (isUnauthorizedRole) return;
     const timer = window.setTimeout(() => {
-      setItems(getStoredPermintaan());
+      const stored = getStoredPermintaan();
+      const hasCachedDbItems =
+        stored.length > 0 && stored.every((entry) => !entry.id.startsWith("PMT-"));
+      if (hasCachedDbItems) {
+        setItems(stored);
+      }
       void loadFromApi();
     }, 0);
     const unsubscribe = subscribePermintaanStorage(() => {
-      setItems((prev) => mergeServiceRequestsWithLocal(
-        prev.filter((p) => !p.id.startsWith("PMT-")),
-        getStoredPermintaan()
-      ));
+      const latestLocal = getStoredPermintaan();
+      if (dbItemsRef.current && dbItemsRef.current.length > 0) {
+        setItems(applyLocalPermintaanStatusOverlay(dbItemsRef.current, latestLocal));
+      } else {
+        setItems(latestLocal);
+      }
     });
     return () => {
       window.clearTimeout(timer);
@@ -91,9 +104,14 @@ export default function PermintaanPage() {
   }, [isUnauthorizedRole, loadFromApi]);
 
   const handleSimulatedCreated = (createdItem: PermintaanItem) => {
-    setItems((prev) => mergeServiceRequestsWithLocal([createdItem], prev));
-    const currentLocal = getStoredPermintaan();
-    savePermintaanToStorage(mergeServiceRequestsWithLocal([createdItem], currentLocal));
+    const nextDbItems =
+      dbItemsRef.current && dbItemsRef.current.length > 0
+        ? mergeServiceRequestsWithLocal([createdItem], dbItemsRef.current)
+        : [createdItem];
+    dbItemsRef.current = nextDbItems;
+    const resolved = applyLocalPermintaanStatusOverlay(nextDbItems, getStoredPermintaan());
+    setItems(resolved);
+    savePermintaanToStorage(resolved);
     setCurrentPage(1);
     setToastState({
       status: "visible",
