@@ -1,7 +1,17 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Info, ShieldCheck, UserCheck, Wrench } from "lucide-react";
+import Link from "next/link";
+import {
+  BadgeCheck,
+  CheckCircle2,
+  Info,
+  MessageCircle,
+  ReceiptText,
+  ShieldCheck,
+  UserCheck,
+  Wrench,
+} from "lucide-react";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
@@ -47,14 +57,18 @@ export function QuotationViewerDevToggle({
 export interface QuotationCustomerStatusBannerProps {
   status: "DRAFT" | "SENT" | "APPROVED" | "REJECTED";
   quotationNumber: string;
+  approvedAtLabel?: string;
+  whatsAppUrl?: string | null;
 }
 
 /**
- * Banner informasi status khusus tampilan Customer login M1 pada halaman detail penawaran (UC-05).
+ * Banner & kartu status khusus tampilan Customer login M1 pada halaman detail penawaran (UC-05).
  */
 export function QuotationCustomerStatusBanner({
   status,
   quotationNumber,
+  approvedAtLabel,
+  whatsAppUrl,
 }: QuotationCustomerStatusBannerProps) {
   if (status === "SENT") {
     return (
@@ -74,15 +88,50 @@ export function QuotationCustomerStatusBanner({
 
   if (status === "APPROVED") {
     return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900">
-        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <p className="font-bold">Penawaran telah Anda setujui</p>
-          <p className="text-emerald-800 leading-relaxed">
-            Persetujuan tercatat untuk dokumen{" "}
-            <span className="font-mono font-semibold">{quotationNumber}</span>. Partner jasa kini
-            dapat menerbitkan invoice resmi untuk layanan ini.
-          </p>
+      <div className="bg-[#eaf8fe] border border-sky-200 rounded-2xl p-4 sm:p-5 flex flex-col @2xl:flex-row @2xl:items-center justify-between gap-4 text-xs shadow-2xs">
+        <div className="flex items-start gap-3.5 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-sky-200/80 text-[#0e7490] flex items-center justify-center shrink-0">
+            <BadgeCheck className="w-5 h-5" />
+          </div>
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-heading font-bold text-[#0c4a6e]">
+                Penawaran Berhasil Disetujui
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-200/80 text-[#0c4a6e]">
+                Selesai disetujui
+              </span>
+            </div>
+            <p className="font-semibold text-slate-800">
+              {approvedAtLabel
+                ? `Anda menyetujui penawaran ini pada ${approvedAtLabel}.`
+                : `Persetujuan Anda untuk dokumen ${quotationNumber} telah tercatat.`}
+            </p>
+            <p className="text-slate-600 leading-relaxed">
+              Partner akan mengirim invoice; Anda dapat membayarnya di menu Invoice saya.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          {whatsAppUrl && (
+            <a
+              href={whatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold shadow-2xs transition-colors whitespace-nowrap"
+            >
+              <MessageCircle className="w-4 h-4 text-[#0e7490]" />
+              <span>Hubungi partner via WhatsApp</span>
+            </a>
+          )}
+          <Link
+            href="/invoice"
+            className="inline-flex items-center justify-center gap-2 px-5 h-10 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-bold shadow-xs transition-colors whitespace-nowrap"
+          >
+            <ReceiptText className="w-4 h-4" />
+            <span>Lihat Invoice saya</span>
+          </Link>
         </div>
       </div>
     );
@@ -103,6 +152,47 @@ export function QuotationCustomerStatusBanner({
   }
 
   return null;
+}
+
+export interface QuotationPartnerApprovedBannerProps {
+  customerName: string;
+  approvedAtLabel?: string;
+  onCreateInvoice: () => void;
+}
+
+/**
+ * Banner hijau di halaman detail penawaran Partner Jasa saat Customer telah menyetujui penawaran (UC-05 -> UC-06).
+ */
+export function QuotationPartnerApprovedBanner({
+  customerName,
+  approvedAtLabel,
+  onCreateInvoice,
+}: QuotationPartnerApprovedBannerProps) {
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      <div className="flex items-start gap-3 min-w-0">
+        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="space-y-0.5 min-w-0">
+          <p className="font-bold text-emerald-950">
+            Disetujui oleh customer ({customerName})
+            {approvedAtLabel ? ` pada ${approvedAtLabel}` : ""}.
+          </p>
+          <p className="text-emerald-800 leading-relaxed">
+            Invoice sekarang dapat dibuat dan diterbitkan langsung untuk penagihan.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onCreateInvoice}
+        className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+      >
+        <ReceiptText className="w-4 h-4" />
+        <span>Buat invoice sekarang</span>
+      </button>
+    </div>
+  );
 }
 
 export interface QuotationCustomerApproveModalProps {

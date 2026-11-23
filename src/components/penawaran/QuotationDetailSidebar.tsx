@@ -6,8 +6,10 @@ import {
   Download,
   Printer,
   Check,
+  CheckCircle2,
   MessageCircle,
   Info,
+  ReceiptText,
 } from "lucide-react";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
@@ -26,19 +28,21 @@ export interface QuotationDetailSidebarProps {
   isCustomer?: boolean;
   isSendingWa?: boolean;
   onSendToWhatsApp: () => void;
+  onCreateInvoice?: () => void;
   onDownloadPdf: () => void;
   onPrint: () => void;
 }
 
 /**
  * Sidebar kanan halaman detail penawaran.
- * Menampilkan Pratinjau WhatsApp (khusus Partner) & Tahapan Penawaran.
+ * Menampilkan Pratinjau WhatsApp (khusus Partner), Riwayat Aktivitas, & Tahapan Penawaran.
  */
 export function QuotationDetailSidebar({
   quotation,
   isCustomer = false,
   isSendingWa = false,
   onSendToWhatsApp,
+  onCreateInvoice,
   onDownloadPdf,
   onPrint,
 }: QuotationDetailSidebarProps) {
@@ -87,7 +91,7 @@ export function QuotationDetailSidebar({
                   {derivedPmtId
                     ? `Dibuat dari permintaan ${derivedPmtId}`
                     : "Draf penawaran dibuat"}{" "}
-                  • {createdDateTimeLabel} • Oleh {profile.name}
+                  | {createdDateTimeLabel} | Oleh {profile.name}
                 </p>
               </div>
             </div>
@@ -102,7 +106,117 @@ export function QuotationDetailSidebar({
     );
   }
 
-  // Mode Terkirim / Disetujui / Ditolak
+  const sentTimeLabel = formatJamSingkat(quotation.sent_at || quotation.updated_at || createdTimestamp);
+  const approvedTimeLabel = formatJamSingkat(quotation.approved_at || quotation.updated_at || createdTimestamp);
+
+  if (!isCustomer && isApproved) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-slate-900">Riwayat aktivitas</h2>
+            <span className="text-xs text-slate-400 font-medium">3 aktivitas</span>
+          </div>
+
+          <div className="relative space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+            <div className="relative pl-5 space-y-0.5 text-xs">
+              <span className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-[#0e7490] ring-4 ring-white" />
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 font-bold text-slate-900">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Disetujui customer</span>
+                </span>
+                {approvedTimeLabel && (
+                  <span className="text-[11px] text-slate-400 font-mono">{approvedTimeLabel}</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Disetujui oleh {quotation.customer_name} melalui portal daring customer
+              </p>
+            </div>
+
+            <div className="relative pl-5 space-y-0.5 text-xs">
+              <span className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-slate-400 ring-4 ring-white" />
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 font-bold text-slate-800">
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Dikirim lewat WhatsApp</span>
+                </span>
+                {sentTimeLabel && (
+                  <span className="text-[11px] text-slate-400 font-mono">{sentTimeLabel}</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Tautan portal penawaran dikirim ke nomor {quotation.customer_phone || "customer"}
+              </p>
+            </div>
+
+            <div className="relative pl-5 space-y-0.5 text-xs">
+              <span className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-slate-400 ring-4 ring-white" />
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-slate-800">
+                  {derivedPmtId ? `Dibuat dari permintaan ${derivedPmtId}` : "Penawaran dibuat"}
+                </span>
+                {createdTimeLabel && (
+                  <span className="text-[11px] text-slate-400 font-mono">{createdTimeLabel}</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                {derivedPmtId ? `Dibuat dari permintaan ${derivedPmtId}` : "Draf penawaran dibuat"} | Oleh {profile.name}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <ReceiptText className="w-4 h-4 text-[#19376d]" />
+              <h2 className="text-sm font-bold text-slate-900">Status pembuatan invoice</h2>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+              Siap diterbitkan
+            </span>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Penawaran <strong>{quotation.quotation_number}</strong> senilai{" "}
+            <strong className="text-[#19376d]">{formatRupiah(quotation.total_amount)}</strong> telah
+            disetujui customer dan siap dikonversi menjadi invoice tagihan.
+          </p>
+          <div className="space-y-2">
+            {onCreateInvoice && (
+              <button
+                type="button"
+                onClick={onCreateInvoice}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#19376d] hover:bg-[#122852] text-xs font-bold text-white shadow-xs transition-colors cursor-pointer"
+              >
+                <ReceiptText className="w-4 h-4" />
+                <span>Buat invoice sekarang</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDownloadPdf}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#eef4ff] hover:bg-[#e2edff] text-xs font-bold text-[#19376d] transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Unduh format PDF</span>
+            </button>
+            <button
+              type="button"
+              onClick={onPrint}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#eef4ff] hover:bg-[#e2edff] text-xs font-bold text-[#19376d] transition-colors cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Cetak dokumen</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mode Terkirim / Disetujui (Customer) / Ditolak
   const steps = [
     {
       num: 1,

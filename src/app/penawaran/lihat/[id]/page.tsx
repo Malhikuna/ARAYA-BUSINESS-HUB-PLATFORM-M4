@@ -16,6 +16,7 @@ import { QuotationEditModal } from "@/components/penawaran/QuotationEditModal";
 import {
   QuotationCustomerApproveModal,
   QuotationCustomerStatusBanner,
+  QuotationPartnerApprovedBanner,
   QuotationViewerDevToggle,
 } from "@/components/penawaran/QuotationCustomerActions";
 import { useDevRole } from "@/lib/auth/dev-role";
@@ -169,8 +170,8 @@ function LihatPenawaranContent() {
       setShowInvoiceAlert(false);
       setToastState({
         status: "visible",
-        title: "Penawaran disetujui",
-        description: "Status penawaran berubah menjadi Disetujui. Partner jasa kini dapat menerbitkan invoice.",
+        title: "Penawaran disetujui.",
+        description: `Partner ${profile.name} telah menerima persetujuan Anda.`,
       });
     } finally {
       setIsApproving(false);
@@ -200,6 +201,19 @@ function LihatPenawaranContent() {
 
   const createdTimestamp = quotation.created_at || quotation.createdAt;
   const updatedTimestamp = quotation.updated_at || createdTimestamp;
+  const approvedAtLabel = quotation.approved_at || quotation.updated_at
+    ? formatWaktuPembaruan(quotation.approved_at || quotation.updated_at)
+    : undefined;
+  const customerContactPartnerWaUrl = buildCustomerApprovalWhatsAppUrl({
+    phone: quotation.customer_phone,
+    customerName: quotation.customer_name,
+    senderName: profile.name,
+    quotationId: quotation.id,
+    quotationNumber: quotation.quotation_number,
+    title: quotation.permintaan_title || quotation.items[0]?.name || "layanan jasa",
+    totalAmount: quotation.total_amount,
+    validUntil: quotation.valid_until,
+  });
 
   return (
     <>
@@ -214,7 +228,10 @@ function LihatPenawaranContent() {
         {/* Top Bar: Breadcrumb di kiri, Waktu dibuat di kanan */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <Breadcrumb
-            items={[{ label: "Penawaran", href: "/penawaran" }, { label: `Penawaran ${quotation.quotation_number}` }]}
+            items={[
+              { label: isCustomer ? "Penawaran saya" : "Penawaran", href: "/penawaran" },
+              { label: `Penawaran ${quotation.quotation_number}` },
+            ]}
             separator="/"
             className="mb-0"
           />
@@ -258,11 +275,20 @@ function LihatPenawaranContent() {
           onRequestCustomerApprove={() => setIsApproveModalOpen(true)}
         />
 
-        {/* Banner Informasi Khusus Customer M1 (UC-05) */}
-        {isCustomer && (
+        {/* Banner Informasi Khusus Customer M1 (untuk status Draf/Terkirim di atas) */}
+        {isCustomer && !isApproved && (
           <QuotationCustomerStatusBanner
             status={canonicalStatus}
             quotationNumber={quotation.quotation_number}
+          />
+        )}
+
+        {/* Banner Hijau Partner Jasa saat Customer telah menyetujui penawaran (UC-05 -> UC-06) */}
+        {!isCustomer && isApproved && (
+          <QuotationPartnerApprovedBanner
+            customerName={quotation.customer_name}
+            approvedAtLabel={approvedAtLabel}
+            onCreateInvoice={handleCreateInvoice}
           />
         )}
 
@@ -278,8 +304,18 @@ function LihatPenawaranContent() {
 
         {/* Grid Layout Detail 2 Kolom (8 vs 4) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 space-y-6">
             <QuotationDetailInfoCard quotation={quotation} />
+
+            {/* Kartu Penawaran Berhasil Disetujui khusus Customer M1 di bawah rincian (UC-05) */}
+            {isCustomer && isApproved && (
+              <QuotationCustomerStatusBanner
+                status={canonicalStatus}
+                quotationNumber={quotation.quotation_number}
+                approvedAtLabel={approvedAtLabel}
+                whatsAppUrl={customerContactPartnerWaUrl}
+              />
+            )}
           </div>
 
           <div className="lg:col-span-4">
@@ -288,6 +324,7 @@ function LihatPenawaranContent() {
               isCustomer={isCustomer}
               isSendingWa={isSendingWa}
               onSendToWhatsApp={() => void handleSendToWhatsApp()}
+              onCreateInvoice={handleCreateInvoice}
               onDownloadPdf={() => setIsExportOpen(true)}
               onPrint={() => window.print()}
             />

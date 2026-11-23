@@ -93,6 +93,17 @@ export function QuotationDetailHeader({
               </button>
             )}
 
+            {(isSent || isApproved) && (
+              <button
+                type="button"
+                onClick={onSendWhatsApp}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs transition-colors cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span>Kirim ulang WA</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onCreateInvoice}
@@ -102,17 +113,17 @@ export function QuotationDetailHeader({
                   ? "Buat tagihan invoice"
                   : "Invoice hanya dapat dibuat setelah penawaran disetujui customer (BR-07)"
               }
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors ${
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold shadow-xs transition-colors ${
                 isApproved
-                  ? "border-slate-200 text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
-                  : "border-slate-100 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60"
+                  ? "border-[#19376d] text-white bg-[#19376d] hover:bg-[#122852] cursor-pointer"
+                  : "border-slate-100 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60 font-semibold"
               }`}
             >
-              <ReceiptText className="w-4 h-4 text-slate-400" />
+              <ReceiptText className={`w-4 h-4 ${isApproved ? "text-white" : "text-slate-400"}`} />
               <span>Buat invoice</span>
             </button>
 
-            {isDraft ? (
+            {isDraft && (
               <button
                 type="button"
                 onClick={onSendWhatsApp}
@@ -122,16 +133,7 @@ export function QuotationDetailHeader({
                 <MessageCircle className="w-4 h-4" />
                 <span>{isSendingWa ? "Mengirim..." : "Kirim ke WhatsApp"}</span>
               </button>
-            ) : isSent ? (
-              <button
-                type="button"
-                onClick={onSendWhatsApp}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <span>Kirim ulang</span>
-              </button>
-            ) : null}
+            )}
           </>
         )}
       </div>
