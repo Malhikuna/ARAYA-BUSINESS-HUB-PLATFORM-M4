@@ -24,12 +24,24 @@ describe("PRO-309: Navigasi adaptif M3/M1 & route guard (M4-US1-AC3)", () => {
 
     // Override tipe_usaha = "produk" dari M3 harus memaksa akses Partner Produk meski role awal PARTNER_SERVICE
     assert.equal(resolveEffectiveRole("PARTNER_SERVICE", "produk"), "PARTNER_PRODUCT");
-    assert.equal(canAccessRoute("PARTNER_SERVICE", "/permintaan", "produk", false).allowed, false);
-    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/permintaan/lihat/PMT-0001", "produk", false).allowed, false);
-    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/penawaran", "produk", false).allowed, false);
-    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/penawaran/tambah", "produk", false).allowed, false);
-    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/penawaran/lihat/QUO-005", "produk", false).allowed, false);
-    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/produk", "produk", false).allowed, true);
+    assert.equal(canAccessRoute("PARTNER_SERVICE", "/permintaan", "produk").allowed, false);
+    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/permintaan/lihat/PMT-0001", "produk").allowed, false);
+    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/penawaran", "produk").allowed, false);
+    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/penawaran/tambah", "produk").allowed, false);
+    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/penawaran/lihat/QUO-005", "produk").allowed, false);
+    assert.equal(canAccessRoute("PARTNER_PRODUCT", "/produk", "produk").allowed, true);
+  });
+
+  it("memblokir akses langsung ADMIN ke /permintaan & /penawaran secara konsisten (dev maupun production)", () => {
+    const menus = getVisibleSidebarMenus("ADMIN", null);
+    assert.deepEqual(menus.map((m) => m.href), ["/produk", "/pelanggan"]);
+    assert.equal(canAccessRoute("ADMIN", "/permintaan", null).allowed, false);
+    assert.equal(canAccessRoute("ADMIN", "/permintaan/lihat/PMT-0001", null).allowed, false);
+    assert.equal(canAccessRoute("ADMIN", "/penawaran", null).allowed, false);
+    assert.equal(canAccessRoute("ADMIN", "/penawaran/tambah", null).allowed, false);
+    assert.equal(canAccessRoute("ADMIN", "/penawaran/lihat/QUO-005", null).allowed, false);
+    assert.equal(canAccessRoute("ADMIN", "/produk", null).allowed, true);
+    assert.equal(canAccessRoute("ADMIN", "/pelanggan", null).allowed, true);
   });
 
   it("menampilkan menu khusus Customer (Penawaran saya, Invoice saya, Pesanan saya) dan membatasi rute Partner", () => {
@@ -46,14 +58,14 @@ describe("PRO-309: Navigasi adaptif M3/M1 & route guard (M4-US1-AC3)", () => {
       ]
     );
 
-    assert.equal(canAccessRoute("CUSTOMER", "/penawaran", null, false).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/penawaran/lihat/QUO-005", null, false).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/invoice", null, false).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/order", null, false).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/penawaran/tambah", null, false).allowed, false);
-    assert.equal(canAccessRoute("CUSTOMER", "/permintaan", null, false).allowed, false);
-    assert.equal(canAccessRoute("CUSTOMER", "/produk", null, false).allowed, false);
-    assert.equal(canAccessRoute("CUSTOMER", "/pelanggan", null, false).allowed, false);
+    assert.equal(canAccessRoute("CUSTOMER", "/penawaran", null).allowed, true);
+    assert.equal(canAccessRoute("CUSTOMER", "/penawaran/lihat/QUO-005", null).allowed, true);
+    assert.equal(canAccessRoute("CUSTOMER", "/invoice", null).allowed, true);
+    assert.equal(canAccessRoute("CUSTOMER", "/order", null).allowed, true);
+    assert.equal(canAccessRoute("CUSTOMER", "/penawaran/tambah", null).allowed, false);
+    assert.equal(canAccessRoute("CUSTOMER", "/permintaan", null).allowed, false);
+    assert.equal(canAccessRoute("CUSTOMER", "/produk", null).allowed, false);
+    assert.equal(canAccessRoute("CUSTOMER", "/pelanggan", null).allowed, false);
   });
 
   it("mengizinkan seluruh menu modul penjualan untuk Partner Jasa (tipe_usaha = jasa)", () => {
@@ -64,8 +76,8 @@ describe("PRO-309: Navigasi adaptif M3/M1 & route guard (M4-US1-AC3)", () => {
       menus.map((m) => m.href),
       ["/produk", "/pelanggan", "/permintaan", "/penawaran", "/invoice", "/order"]
     );
-    assert.equal(canAccessRoute("PARTNER_SERVICE", "/permintaan", "jasa", false).allowed, true);
-    assert.equal(canAccessRoute("PARTNER_SERVICE", "/penawaran/tambah", "jasa", false).allowed, true);
+    assert.equal(canAccessRoute("PARTNER_SERVICE", "/permintaan", "jasa").allowed, true);
+    assert.equal(canAccessRoute("PARTNER_SERVICE", "/penawaran/tambah", "jasa").allowed, true);
   });
 });
 

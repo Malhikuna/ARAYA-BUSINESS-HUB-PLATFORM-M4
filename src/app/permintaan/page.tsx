@@ -25,8 +25,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function PermintaanPage() {
   const router = useRouter();
-  const { isDev, activeRole, tipeUsaha } = useDevRole();
-  const isUnauthorizedRole = !canAccessRoute(activeRole, "/permintaan", tipeUsaha, isDev).allowed;
+  const { activeRole, tipeUsaha } = useDevRole();
+  const isUnauthorizedRole = !canAccessRoute(activeRole, "/permintaan", tipeUsaha).allowed;
   const [items, setItems] = useState<PermintaanItem[]>([]);
   const [activeTab, setActiveTab] = useState<PermintaanTabFilter>("ALL");
   const [searchTerm, setSearchTerm] = useState("");

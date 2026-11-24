@@ -128,8 +128,7 @@ export function getVisibleSidebarMenus(
 export function canAccessRoute(
   role: AppUserRole,
   pathname: string,
-  tipeUsaha?: PartnerTipeUsaha | null,
-  isDev = false
+  tipeUsaha?: PartnerTipeUsaha | null
 ): RouteAccessDecision {
   const effectiveRole = resolveEffectiveRole(role, tipeUsaha);
   const path = (pathname || "").trim();
@@ -168,7 +167,7 @@ export function canAccessRoute(
     return { allowed: true, redirectTo: "/penawaran" };
   }
 
-  if (effectiveRole === "ADMIN" && isDev && (isPermintaanRoute || isPenawaranRoute)) {
+  if (effectiveRole === "ADMIN" && (isPermintaanRoute || isPenawaranRoute)) {
     return {
       allowed: false,
       redirectTo: "/produk",

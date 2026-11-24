@@ -133,8 +133,7 @@ export function Navbar({
                         const access = canAccessRoute(
                           roleKey,
                           currentPath,
-                          item.tipeUsaha,
-                          true
+                          item.tipeUsaha
                         );
                         if (!access.allowed) {
                           router.push(access.redirectTo);

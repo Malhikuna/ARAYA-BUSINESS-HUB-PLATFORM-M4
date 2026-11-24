@@ -26,8 +26,8 @@ function useIsMounted(): boolean {
 function DetailPermintaanContent() {
   const router = useRouter();
   const isMounted = useIsMounted();
-  const { isDev, activeRole, tipeUsaha } = useDevRole();
-  const isUnauthorizedRole = !canAccessRoute(activeRole, "/permintaan/lihat", tipeUsaha, isDev).allowed;
+  const { activeRole, tipeUsaha } = useDevRole();
+  const isUnauthorizedRole = !canAccessRoute(activeRole, "/permintaan/lihat", tipeUsaha).allowed;
   const routeParams = useParams<{ id: string }>();
   const itemId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
   const item = isMounted && !isUnauthorizedRole ? findPermintaanById(itemId) : null;

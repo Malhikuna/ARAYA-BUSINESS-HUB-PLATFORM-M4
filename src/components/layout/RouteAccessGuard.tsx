@@ -21,9 +21,9 @@ function RouteAccessGuardInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
   const router = useRouter();
   const isMounted = useIsMounted();
-  const { isDev, activeRole, tipeUsaha } = useDevRole();
+  const { activeRole, tipeUsaha } = useDevRole();
 
-  const decision = canAccessRoute(activeRole, pathname, tipeUsaha, isDev);
+  const decision = canAccessRoute(activeRole, pathname, tipeUsaha);
   const isBlocked = isMounted && !decision.allowed;
 
   useEffect(() => {
@@ -50,7 +50,7 @@ function RouteAccessGuardInner({ children }: { children: React.ReactNode }) {
           href={decision.redirectTo}
           className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
         >
-          {decision.redirectTo === "/penawaran" ? "Kembali ke Penawaran" : "Kembali ke Katalog"}
+          {decision.redirectTo === "/penawaran" ? "Kembali ke Penawaran saya" : "Kembali ke Katalog"}
         </Link>
       </div>
     );
