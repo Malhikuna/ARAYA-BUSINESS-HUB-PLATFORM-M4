@@ -10,6 +10,7 @@ import {
   derivePermintaanIdFromQuotationNumber,
   normalizeQuotationStatus,
 } from "@/lib/data/mock-quotations";
+import { formatRequestDisplayCode } from "@/lib/data/quotation-workflow-api";
 import { Pagination } from "@/components/common/Pagination";
 
 export interface QuotationTableProps {
@@ -25,7 +26,7 @@ export interface QuotationTableProps {
 }
 
 /**
- * Tabel daftar penawaran harga dengan scroll horizontal responsif,
+ * Tabel daftar penawaran harga Partner Jasa dengan scroll horizontal responsif,
  * nomor permintaan yang terhubung, dan 2 tombol aksi (Ubah & Hapus).
  */
 export function QuotationTable({
@@ -65,10 +66,12 @@ export function QuotationTable({
                 const isDraft = canonicalStatus === "DRAFT";
                 const isRejected = canonicalStatus === "REJECTED";
 
-                // Resolusi nomor permintaan melalui helper terpusat (mendukung PNW-YYYYMM-XXXX & PNW-XXXX)
-                const derivedPmtId =
+                // Resolusi nomor permintaan melalui helper terpusat (UUID tampil ringkas SR-XXXXXXXX)
+                const rawPmtId =
+                  item.service_request_id ||
                   item.permintaan_id ||
                   derivePermintaanIdFromQuotationNumber(item.quotation_number);
+                const derivedPmtId = rawPmtId ? formatRequestDisplayCode(rawPmtId) : undefined;
                 const pmtTitle =
                   item.permintaan_title || item.notes || "Layanan konsultasi & jasa";
 

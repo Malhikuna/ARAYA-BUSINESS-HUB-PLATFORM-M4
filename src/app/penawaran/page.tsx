@@ -12,7 +12,6 @@ import { Quotation, QuotationFilterStatus } from "@/types/quotation";
 import {
   initialQuotations,
   getStoredQuotations,
-  fetchQuotationsListFromDatabase,
   subscribeQuotationStorage,
   formatTanggalIndo,
   deleteQuotationFromStorage,
@@ -22,6 +21,7 @@ import {
   QUOTATION_TOAST_TYPE_KEY,
   QUOTATION_TOAST_NUMBER_KEY,
 } from "@/lib/data/mock-quotations";
+import { fetchPartnerQuotationsApi } from "@/lib/data/quotation-workflow-api";
 import { downloadQuotationListPdf } from "@/lib/export-quotation-pdf";
 import { updatePermintaanStatus } from "@/lib/data/mock-permintaan";
 import { QuotationDeleteModal } from "@/components/penawaran/QuotationDeleteModal";
@@ -110,8 +110,8 @@ export default function PenawaranPage() {
       }
     }, 0);
 
-    // 3. Ambil data resmi dari database PostgreSQL jika ada
-    fetchQuotationsListFromDatabase().then((dbList) => {
+    // 3. Ambil data resmi dari database PostgreSQL untuk Partner Jasa
+    fetchPartnerQuotationsApi().then((dbList) => {
       if (dbList.length > 0) {
         setQuotations(dbList);
       }
@@ -188,7 +188,7 @@ export default function PenawaranPage() {
         </p>
       </div>
 
-      {/* Kartu Metrik Ringkasan (Draf, Terkirim, Disetujui) */}
+      {/* Kartu Metrik Ringkasan */}
       <QuotationMetricCards
         drafCount={metrics.draf}
         terkirimCount={metrics.terkirim}

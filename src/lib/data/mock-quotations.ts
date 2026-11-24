@@ -51,6 +51,8 @@ export function getQuotationActivities(quotation: Quotation) {
       : new Date(fallbackDate);
 
   const updatedTime = formatJamSingkat(updatedDate) || "-";
+  const sentTime = formatJamSingkat(quotation.sent_at ? new Date(quotation.sent_at) : updatedDate) || updatedTime;
+  const approvedTime = formatJamSingkat(quotation.approved_at ? new Date(quotation.approved_at) : updatedDate) || updatedTime;
   const createdTime = formatJamSingkat(createdDate) || "-";
   const canonical = normalizeQuotationStatus(quotation.status);
 
@@ -58,7 +60,7 @@ export function getQuotationActivities(quotation: Quotation) {
     list.push({
       id: "ACT-APPROVE",
       title: "Penawaran disetujui",
-      time: updatedTime,
+      time: approvedTime,
       description: "",
       status: "completed" as const,
     });
@@ -76,7 +78,7 @@ export function getQuotationActivities(quotation: Quotation) {
     list.push({
       id: "ACT-SEND",
       title: "Terkirim ke pelanggan",
-      time: updatedTime,
+      time: sentTime,
       description: quotation.customer_email
         ? `Penawaran dikirim ke ${quotation.customer_email}`
         : `Dokumen penawaran dikirim ke ${quotation.customer_name}`,
@@ -104,16 +106,16 @@ export function subscribeQuotationStorage(callback: () => void) {
   };
 }
 
-const STORAGE_KEY_DELETED = "araya_deleted_quotations_v5";
-const STORAGE_KEY_ADDED = "araya_added_quotations_v5";
-const STORAGE_KEY_UPDATED = "araya_updated_quotations_v5";
+export const QUOTATION_STORAGE_KEY_DELETED = "araya_deleted_quotations_v5";
+export const QUOTATION_STORAGE_KEY_ADDED = "araya_added_quotations_v5";
+export const QUOTATION_STORAGE_KEY_UPDATED = "araya_updated_quotations_v5";
 
 export function applyQuotationStorageOverlay(baseList: Quotation[]): Quotation[] {
   if (typeof window === "undefined") return baseList;
   try {
-    const deletedIds: string[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY_DELETED) || "[]");
-    const addedList: Quotation[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY_ADDED) || "[]");
-    const updatedMap: Record<string, Partial<Quotation>> = JSON.parse(sessionStorage.getItem(STORAGE_KEY_UPDATED) || "{}");
+    const deletedIds: string[] = JSON.parse(sessionStorage.getItem(QUOTATION_STORAGE_KEY_DELETED) || "[]");
+    const addedList: Quotation[] = JSON.parse(sessionStorage.getItem(QUOTATION_STORAGE_KEY_ADDED) || "[]");
+    const updatedMap: Record<string, Partial<Quotation>> = JSON.parse(sessionStorage.getItem(QUOTATION_STORAGE_KEY_UPDATED) || "{}");
     const merged = [
       ...addedList,
       ...baseList.filter((q) => !addedList.some((a) => a.id === q.id || a.quotation_number === q.quotation_number)),
@@ -142,7 +144,8 @@ export function findQuotationById(id: string): Quotation | null {
   return all.find((q) => q.id === id || q.quotation_number === id) || null;
 }
 
-function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
+export function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
+  const linkedRequestId = row.service_request_id || row.service_requests?.id || undefined;
   const derivedPmtId = derivePermintaanIdFromQuotationNumber(row.quotation_number);
   const matchedPmt = derivedPmtId ? initialPermintaan.find((p) => p.id === derivedPmtId) : undefined;
 
@@ -154,6 +157,9 @@ function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
     customer_phone: row.customers?.phone,
     customer_email: row.customers?.email,
     customer_address: row.customers?.address,
+    customer_user_id: row.customers?.user_id || row.service_requests?.customer_user_id || undefined,
+    partner_name: row.partner?.name || row.partner_name || undefined,
+    partner_phone: row.partner?.whatsapp || row.partner?.phone || row.partner_phone || undefined,
     quotation_date: row.quotation_date ? String(row.quotation_date).split("T")[0] : "",
     valid_until: row.valid_until ? String(row.valid_until).split("T")[0] : undefined,
     status: row.status as QuotationStatus,
@@ -162,8 +168,11 @@ function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
     tax_amount: Number(row.tax_amount) || 0,
     total_amount: Number(row.total_amount) || 0,
     notes: row.notes || "",
-    permintaan_id: derivedPmtId,
-    permintaan_title: matchedPmt?.title || row.notes || "Layanan konsultasi & jasa",
+    service_request_id: linkedRequestId,
+    permintaan_id: linkedRequestId || derivedPmtId,
+    permintaan_title: row.service_requests?.title || matchedPmt?.title || row.notes || "Layanan konsultasi & jasa",
+    sent_at: row.sent_at || undefined,
+    approved_at: row.approved_at || undefined,
     created_at: row.created_at,
     updated_at: row.updated_at,
     items: Array.isArray(row.quotation_items)
@@ -209,53 +218,55 @@ export async function fetchQuotationsListFromDatabase(): Promise<Quotation[]> {
   }
 }
 
-export function saveNewQuotationToStorage(newQuo: Quotation) {
+export function saveNewQuotationToStorage(newQuo: Quotation, skipApiSync = false) {
   if (typeof window === "undefined") return;
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY_ADDED);
+    const raw = sessionStorage.getItem(QUOTATION_STORAGE_KEY_ADDED);
     const list: Quotation[] = raw ? JSON.parse(raw) : [];
     const updated = [newQuo, ...list.filter((x) => x.id !== newQuo.id && x.quotation_number !== newQuo.quotation_number)];
-    sessionStorage.setItem(STORAGE_KEY_ADDED, JSON.stringify(updated));
+    sessionStorage.setItem(QUOTATION_STORAGE_KEY_ADDED, JSON.stringify(updated));
     sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "created");
     sessionStorage.setItem(QUOTATION_TOAST_NUMBER_KEY, newQuo.quotation_number);
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
 
-    fetch("/api/m4/v1/quotations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
-      body: JSON.stringify({
-        customer_id: newQuo.customer_id,
-        quotation_date: newQuo.quotation_date,
-        valid_until: newQuo.valid_until,
-        notes: newQuo.notes,
-        items: newQuo.items.map((it) => ({
-          product_service_id: it.product_service_id,
-          description: it.name,
-          quantity: it.quantity,
-          unit_price: it.unit_price,
-          discount_amount: 0,
-          tax_rate: 0,
-        })),
-      }),
-    }).catch(() => {});
+    if (!skipApiSync) {
+      fetch("/api/m4/v1/quotations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: DEV_AUTH_HEADER },
+        body: JSON.stringify({
+          customer_id: newQuo.customer_id,
+          quotation_date: newQuo.quotation_date,
+          valid_until: newQuo.valid_until,
+          notes: newQuo.notes,
+          items: newQuo.items.map((it) => ({
+            product_service_id: it.product_service_id,
+            description: it.name,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            discount_amount: 0,
+            tax_rate: newQuo.tax_rate ?? (newQuo.tax_amount > 0 ? 11 : 0),
+          })),
+        }),
+      }).catch(() => {});
+    }
   } catch {
     // ignore
   }
 }
 
-// TODO: Integrasikan dengan endpoint POST /api/m4/v1/quotations/:id/send-whatsapp setelah sinkronisasi penuh dengan PR #81 (saat ini lokal sessionStorage).
-export function markQuotationAsSentInStorage(id: string) {
+export function markQuotationAsSentInStorage(id: string, sentAt?: string) {
   if (typeof window === "undefined") return;
   try {
-    const updatedRaw = sessionStorage.getItem(STORAGE_KEY_UPDATED);
+    const now = sentAt || new Date().toISOString();
+    const updatedRaw = sessionStorage.getItem(QUOTATION_STORAGE_KEY_UPDATED);
     const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
     updatedMap[id] = {
       ...(updatedMap[id] || {}),
-      status: "PENDING_APPROVAL" as QuotationStatus,
-      sent_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      status: "terkirim" as QuotationStatus,
+      sent_at: now,
+      updated_at: now,
     };
-    sessionStorage.setItem(STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
+    sessionStorage.setItem(QUOTATION_STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
     sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "sent");
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
   } catch {
@@ -263,18 +274,19 @@ export function markQuotationAsSentInStorage(id: string) {
   }
 }
 
-// TODO: Integrasikan dengan endpoint persetujuan Customer backend setelah sinkronisasi penuh dengan PR #81 (saat ini simulasi lokal sessionStorage).
-export function approveQuotationInStorage(id: string) {
+export function approveQuotationInStorage(id: string, approvedAt?: string) {
   if (typeof window === "undefined") return;
   try {
-    const updatedRaw = sessionStorage.getItem(STORAGE_KEY_UPDATED);
+    const now = approvedAt || new Date().toISOString();
+    const updatedRaw = sessionStorage.getItem(QUOTATION_STORAGE_KEY_UPDATED);
     const updatedMap: Record<string, Partial<Quotation>> = updatedRaw ? JSON.parse(updatedRaw) : {};
     updatedMap[id] = {
       ...(updatedMap[id] || {}),
-      status: "APPROVED" as QuotationStatus,
-      updated_at: new Date().toISOString(),
+      status: "disetujui" as QuotationStatus,
+      approved_at: now,
+      updated_at: now,
     };
-    sessionStorage.setItem(STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
+    sessionStorage.setItem(QUOTATION_STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
     sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "approved");
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
   } catch {
@@ -282,20 +294,19 @@ export function approveQuotationInStorage(id: string) {
   }
 }
 
-// TODO: Masih lokal sessionStorage; sambungkan ke endpoint DELETE backend saat integrasi API penuh siap.
 export function deleteQuotationFromStorage(id: string, quotationNumber?: string) {
   if (typeof window === "undefined") return;
   try {
-    const deletedList: string[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY_DELETED) || "[]");
+    const deletedList: string[] = JSON.parse(sessionStorage.getItem(QUOTATION_STORAGE_KEY_DELETED) || "[]");
     for (const key of [id, quotationNumber].filter((k): k is string => Boolean(k))) {
       if (!deletedList.includes(key)) deletedList.push(key);
     }
-    sessionStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(deletedList));
-    const rawAdded = sessionStorage.getItem(STORAGE_KEY_ADDED);
+    sessionStorage.setItem(QUOTATION_STORAGE_KEY_DELETED, JSON.stringify(deletedList));
+    const rawAdded = sessionStorage.getItem(QUOTATION_STORAGE_KEY_ADDED);
     if (rawAdded) {
       const addedList: Quotation[] = JSON.parse(rawAdded);
       sessionStorage.setItem(
-        STORAGE_KEY_ADDED,
+        QUOTATION_STORAGE_KEY_ADDED,
         JSON.stringify(addedList.filter((q) => q.id !== id && q.quotation_number !== id && q.quotation_number !== quotationNumber))
       );
     }
@@ -306,15 +317,14 @@ export function deleteQuotationFromStorage(id: string, quotationNumber?: string)
   }
 }
 
-// TODO: Masih lokal sessionStorage; sambungkan ke endpoint PATCH/PUT backend saat integrasi API penuh siap.
 export function saveUpdatedQuotationToStorage(updatedQuo: Quotation) {
   if (typeof window === "undefined") return;
   try {
-    const updatedMap: Record<string, Partial<Quotation>> = JSON.parse(sessionStorage.getItem(STORAGE_KEY_UPDATED) || "{}");
+    const updatedMap: Record<string, Partial<Quotation>> = JSON.parse(sessionStorage.getItem(QUOTATION_STORAGE_KEY_UPDATED) || "{}");
     const entry = { ...updatedQuo, updated_at: new Date().toISOString() };
     updatedMap[updatedQuo.id] = entry;
     updatedMap[updatedQuo.quotation_number] = entry;
-    sessionStorage.setItem(STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
+    sessionStorage.setItem(QUOTATION_STORAGE_KEY_UPDATED, JSON.stringify(updatedMap));
     sessionStorage.setItem(QUOTATION_TOAST_TYPE_KEY, "updated");
     window.dispatchEvent(new Event("araya-quotation-storage-update"));
   } catch {

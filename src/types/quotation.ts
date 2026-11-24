@@ -45,16 +45,22 @@ export interface Quotation {
   status: QuotationStatus;
   subtotal: number;
   discount_amount: number;
+  tax_rate?: number;
   tax_amount: number;
   total_amount: number;
   notes?: string;
+  partner_name?: string;
+  partner_phone?: string;
+  service_request_id?: string;
   permintaan_id?: string;
   permintaan_title?: string;
+  customer_user_id?: string;
   items: QuotationLineItem[];
   activities?: QuotationActivity[];
   updated_at?: string;
   created_at?: string;
   sent_at?: string;
+  approved_at?: string;
   updated_at_label?: string;
   isNew?: boolean;
   createdAt?: string;
@@ -92,6 +98,7 @@ export interface DbQuotationRow {
   id: string;
   quotation_number: string;
   customer_id: string;
+  service_request_id?: string | null;
   quotation_date?: string | Date | null;
   valid_until?: string | Date | null;
   status: string;
@@ -100,8 +107,14 @@ export interface DbQuotationRow {
   tax_amount?: number | string | null;
   total_amount: number | string;
   notes?: string | null;
+  sent_at?: string | null;
+  approved_at?: string | null;
   created_at?: string;
   updated_at?: string;
-  customers?: { name?: string; phone?: string; email?: string; address?: string } | null;
+  customers?: { id?: string; user_id?: string | null; name?: string; phone?: string; email?: string; address?: string } | null;
+  partner?: { name?: string; phone?: string; whatsapp?: string } | null;
+  partner_name?: string | null;
+  partner_phone?: string | null;
+  service_requests?: { id?: string; title?: string; status?: string; customer_user_id?: string | null } | null;
   quotation_items?: DbQuotationItemRow[] | null;
 }

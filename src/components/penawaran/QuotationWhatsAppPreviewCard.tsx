@@ -14,6 +14,7 @@ const getServerHost = () => "";
 
 export interface QuotationWhatsAppPreviewCardProps {
   quotation: Quotation;
+  isSending?: boolean;
   onSendToWhatsApp: () => void;
 }
 
@@ -22,6 +23,7 @@ export interface QuotationWhatsAppPreviewCardProps {
  */
 export function QuotationWhatsAppPreviewCard({
   quotation,
+  isSending = false,
   onSendToWhatsApp,
 }: QuotationWhatsAppPreviewCardProps) {
   const { profile } = useDevRole();
@@ -76,10 +78,11 @@ export function QuotationWhatsAppPreviewCard({
       <button
         type="button"
         onClick={onSendToWhatsApp}
-        className="w-full h-11 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+        disabled={isSending}
+        className="w-full h-11 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] disabled:opacity-60 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
       >
         <MessageCircle className="w-4 h-4" />
-        <span>Kirim ke WhatsApp</span>
+        <span>{isSending ? "Mengirim..." : "Kirim ke WhatsApp"}</span>
       </button>
     </div>
   );
