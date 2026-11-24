@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldAlert, Send, RefreshCw } from "lucide-react";
+import { ShieldAlert, Send, RefreshCw, AlertCircle } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
 import {
@@ -34,11 +34,13 @@ export default function PermintaanPage() {
   const router = useRouter();
   const { isDev, activeRole } = useDevRole();
   const showSimulator = isDev || process.env.NODE_ENV !== "production";
-  const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
+  const isUnauthorizedRole = activeRole !== "PARTNER_SERVICE";
 
   const [items, setItems] = useState<PermintaanItem[]>([]);
   const dbItemsRef = useRef<PermintaanItem[] | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PermintaanTabFilter>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,21 +65,22 @@ export default function PermintaanPage() {
   const loadFromApi = useCallback(async () => {
     setIsSyncing(true);
     try {
-      const dbItems = await fetchServiceRequestsFromApi();
-      if (dbItems.length > 0) {
-        dbItemsRef.current = dbItems;
+      const result = await fetchServiceRequestsFromApi();
+      if (result.ok) {
+        setApiError(null);
+        dbItemsRef.current = result.items;
         const resolved = applyLocalQuotationOverlayToRequests(
-          dbItems,
+          result.items,
           getLocalActiveAddedQuotations()
         );
         setItems(resolved);
         savePermintaanToStorage(resolved);
       } else {
-        dbItemsRef.current = null;
-        setItems(getStoredPermintaan());
+        setApiError(result.message);
       }
     } finally {
       setIsSyncing(false);
+      setHasLoaded(true);
     }
   }, []);
 
@@ -93,15 +96,13 @@ export default function PermintaanPage() {
       void loadFromApi();
     }, 0);
     const unsubscribe = subscribePermintaanStorage(() => {
-      if (dbItemsRef.current && dbItemsRef.current.length > 0) {
+      if (dbItemsRef.current !== null) {
         setItems(
           applyLocalQuotationOverlayToRequests(
             dbItemsRef.current,
             getLocalActiveAddedQuotations()
           )
         );
-      } else {
-        setItems(getStoredPermintaan());
       }
     });
     return () => {
@@ -260,6 +261,29 @@ export default function PermintaanPage() {
         onSearchChange={handleSearchChange}
       />
 
+      {apiError && (
+        <div
+          role="alert"
+          className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        >
+          <div className="flex items-start gap-2.5 text-rose-800">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+            <div className="text-xs leading-relaxed">
+              <span className="font-semibold">Gagal memuat permintaan jasa:</span> {apiError}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadFromApi()}
+            disabled={isSyncing}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white text-rose-700 border border-rose-200 hover:bg-rose-100/70 transition-colors cursor-pointer shrink-0 disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+            <span>Coba lagi</span>
+          </button>
+        </div>
+      )}
+
       {/* Data Table */}
       <PermintaanTable
         items={currentData}
@@ -267,6 +291,15 @@ export default function PermintaanPage() {
         currentPage={safeCurrentPage}
         totalPages={totalPages}
         itemsPerPage={ITEMS_PER_PAGE}
+        emptyMessage={
+          items.length === 0 && !searchTerm.trim() && activeTab === "ALL"
+            ? apiError
+              ? "Data permintaan jasa belum dapat dimuat dari server. Silakan klik Coba lagi."
+              : !hasLoaded && isSyncing
+              ? "Memuat daftar permintaan jasa..."
+              : "Belum ada permintaan jasa masuk dari customer."
+            : "Tidak ada permintaan jasa yang sesuai filter atau pencarian."
+        }
         onPageChange={(page) => setCurrentPage(page)}
       />
 

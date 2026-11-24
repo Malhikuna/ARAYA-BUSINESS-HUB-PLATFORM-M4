@@ -33,8 +33,8 @@ function useIsMounted(): boolean {
 function DetailPermintaanContent() {
   const router = useRouter();
   const isMounted = useIsMounted();
-  const { isDev, activeRole } = useDevRole();
-  const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
+  const { activeRole } = useDevRole();
+  const isUnauthorizedRole = activeRole !== "PARTNER_SERVICE";
   const routeParams = useParams<{ id: string }>();
   const itemId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
 

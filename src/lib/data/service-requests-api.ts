@@ -227,38 +227,92 @@ export function resolveLinkedQuotationLink(
   return null;
 }
 
-function resolveBearerHeader(fallbackToken: string): string {
-  if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem("araya_access_token");
-      if (stored && stored.trim()) return `Bearer ${stored.trim()}`;
-    } catch {
-      /* ignore */
-    }
-  }
-  return `Bearer ${fallbackToken}`;
+export type FetchServiceRequestsResult =
+  | { ok: true; items: PermintaanItem[] }
+  | { ok: false; status: number; message: string };
+
+export interface ResolveBearerOptions {
+  allowMockFallback?: boolean;
+  storedToken?: string | null;
 }
 
-export async function fetchServiceRequestsFromApi(): Promise<PermintaanItem[]> {
-  if (typeof window === "undefined") return [];
+function isMockAuthAllowedByEnv(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_ENABLE_ROLE_SWITCHER === "true" ||
+    process.env.NODE_ENV !== "production"
+  );
+}
+
+/**
+ * Menyusun header Authorization Bearer: memakai token login asli jika tersedia,
+ * dan hanya mengizinkan fallback mock token di mode dev/lokal (bukan production).
+ */
+export function resolveBearerHeader(
+  fallbackToken: string,
+  options?: ResolveBearerOptions
+): string | undefined {
+  let token = options?.storedToken;
+  if (token === undefined && typeof window !== "undefined") {
+    try {
+      token = localStorage.getItem("araya_access_token");
+    } catch {
+      token = null;
+    }
+  }
+  if (token && token.trim()) return `Bearer ${token.trim()}`;
+  const allowMock = options?.allowMockFallback ?? isMockAuthAllowedByEnv();
+  return allowMock ? `Bearer ${fallbackToken}` : undefined;
+}
+
+export async function fetchServiceRequestsFromApi(
+  fetchImpl: typeof fetch = fetch
+): Promise<FetchServiceRequestsResult> {
+  if (typeof window === "undefined" && fetchImpl === fetch) {
+    return { ok: true, items: [] };
+  }
+  const authHeader = resolveBearerHeader("mock-partner-token");
   try {
-    const res = await fetch("/api/m4/v1/service-requests?limit=100", {
-      headers: { Authorization: resolveBearerHeader("mock-partner-token") },
+    const res = await fetchImpl("/api/m4/v1/service-requests?limit=100", {
+      headers: authHeader ? { Authorization: authHeader } : undefined,
     });
-    if (!res.ok) return [];
-    const json = await res.json();
-    if (!json?.success || !Array.isArray(json.data)) return [];
-    return (json.data as DbServiceRequestRow[]).map(mapDbServiceRequestToPermintaan);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const apiMsg =
+        json?.error && typeof json.error === "object" && typeof json.error.message === "string"
+          ? json.error.message
+          : res.status === 401
+          ? "Sesi autentikasi tidak valid atau telah berakhir. Silakan login ulang."
+          : res.status === 403
+          ? "Anda tidak memiliki izin untuk memuat daftar permintaan jasa."
+          : `Gagal memuat daftar permintaan jasa (HTTP ${res.status}).`;
+      return { ok: false, status: res.status, message: apiMsg };
+    }
+    if (!json?.success || !Array.isArray(json.data)) {
+      return {
+        ok: false,
+        status: res.status,
+        message: "Format respons API permintaan jasa tidak valid.",
+      };
+    }
+    return {
+      ok: true,
+      items: (json.data as DbServiceRequestRow[]).map(mapDbServiceRequestToPermintaan),
+    };
   } catch {
-    return [];
+    return {
+      ok: false,
+      status: 0,
+      message: "Tidak dapat terhubung ke server API permintaan jasa.",
+    };
   }
 }
 
 export async function fetchServiceRequestByIdFromApi(id: string): Promise<PermintaanItem | null> {
   if (typeof window === "undefined" || !isUuid(id)) return null;
+  const authHeader = resolveBearerHeader("mock-partner-token");
   try {
     const res = await fetch(`/api/m4/v1/service-requests/${encodeURIComponent(id)}`, {
-      headers: { Authorization: resolveBearerHeader("mock-partner-token") },
+      headers: authHeader ? { Authorization: authHeader } : undefined,
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -279,7 +333,8 @@ export async function submitM5ServiceRequest(
   if (input.serviceKey && input.serviceKey.trim()) {
     headers["X-Service-Key"] = input.serviceKey.trim();
   } else {
-    headers["Authorization"] = resolveBearerHeader("mock-customer-token");
+    const authHeader = resolveBearerHeader("mock-customer-token");
+    if (authHeader) headers["Authorization"] = authHeader;
   }
 
   try {

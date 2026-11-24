@@ -2,9 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyLocalQuotationOverlayToRequests,
+  fetchServiceRequestsFromApi,
   mapDbServiceRequestToPermintaan,
   mergeServiceRequestsWithLocal,
   buildCreateQuotationHref,
+  resolveBearerHeader,
   resolveLinkedQuotationLink,
   isUuid,
 } from "@/lib/data/service-requests-api";
@@ -117,6 +119,52 @@ describe("PRO-310: Mapper & helper Permintaan Jasa (M4-US3-AC1 & AC2)", () => {
     assert.equal(withQuo[0].status, "Sudah ditawarkan");
     assert.equal(withQuo[0].quotationId, "QUO-123");
     assert.equal(withQuo[0].quotationNumber, "PNW-0006");
+  });
+
+  it("membedakan hasil API kosong [] (ok: true) dengan error HTTP/jaringan (ok: false)", async () => {
+    const emptyFetch: typeof fetch = async () =>
+      new Response(JSON.stringify({ success: true, data: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    const emptyRes = await fetchServiceRequestsFromApi(emptyFetch);
+    assert.deepEqual(emptyRes, { ok: true, items: [] });
+
+    const errorFetch: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({ success: false, error: { code: "UNAUTHORIZED", message: "Token diperlukan." } }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    const errRes = await fetchServiceRequestsFromApi(errorFetch);
+    assert.equal(errRes.ok, false);
+    if (!errRes.ok) {
+      assert.equal(errRes.status, 401);
+      assert.equal(errRes.message, "Token diperlukan.");
+    }
+
+    const netErrFetch: typeof fetch = async () => {
+      throw new Error("ECONNREFUSED");
+    };
+    const netRes = await fetchServiceRequestsFromApi(netErrFetch);
+    assert.equal(netRes.ok, false);
+    if (!netRes.ok) {
+      assert.equal(netRes.status, 0);
+    }
+  });
+
+  it("tidak menyisipkan mock token di production bila tidak ada token login tersimpan", () => {
+    assert.equal(
+      resolveBearerHeader("mock-partner-token", { allowMockFallback: false, storedToken: null }),
+      undefined
+    );
+    assert.equal(
+      resolveBearerHeader("mock-partner-token", { allowMockFallback: false, storedToken: "real-jwt-123" }),
+      "Bearer real-jwt-123"
+    );
+    assert.equal(
+      resolveBearerHeader("mock-partner-token", { allowMockFallback: true, storedToken: null }),
+      "Bearer mock-partner-token"
+    );
   });
 });
 

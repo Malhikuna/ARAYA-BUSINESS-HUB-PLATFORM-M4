@@ -13,6 +13,7 @@ export interface PermintaanTableProps {
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
+  emptyMessage?: string;
   onPageChange: (page: number) => void;
 }
 
@@ -27,6 +28,7 @@ export function PermintaanTable({
   currentPage,
   totalPages,
   itemsPerPage,
+  emptyMessage = "Tidak ada permintaan jasa yang sesuai filter atau pencarian.",
   onPageChange,
 }: PermintaanTableProps) {
   const router = useRouter();
@@ -69,7 +71,7 @@ export function PermintaanTable({
             {items.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center text-slate-500 text-xs">
-                  Tidak ada permintaan jasa yang sesuai filter atau pencarian.
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
