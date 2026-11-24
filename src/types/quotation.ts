@@ -45,9 +45,12 @@ export interface Quotation {
   status: QuotationStatus;
   subtotal: number;
   discount_amount: number;
+  tax_rate?: number;
   tax_amount: number;
   total_amount: number;
   notes?: string;
+  partner_name?: string;
+  partner_phone?: string;
   service_request_id?: string;
   permintaan_id?: string;
   permintaan_title?: string;
@@ -109,6 +112,9 @@ export interface DbQuotationRow {
   created_at?: string;
   updated_at?: string;
   customers?: { id?: string; user_id?: string | null; name?: string; phone?: string; email?: string; address?: string } | null;
+  partner?: { name?: string; phone?: string; whatsapp?: string } | null;
+  partner_name?: string | null;
+  partner_phone?: string | null;
   service_requests?: { id?: string; title?: string; status?: string; customer_user_id?: string | null } | null;
   quotation_items?: DbQuotationItemRow[] | null;
 }

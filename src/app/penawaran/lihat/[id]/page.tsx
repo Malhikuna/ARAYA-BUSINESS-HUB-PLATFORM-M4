@@ -33,7 +33,7 @@ import {
 } from "@/lib/data/mock-quotations";
 import {
   approveQuotationByCustomerApi,
-  buildCustomerApprovalWhatsAppUrl,
+  buildCustomerToPartnerWhatsAppUrl,
   fetchQuotationDetailForViewerApi,
   sendQuotationViaWhatsAppApi,
 } from "@/lib/data/quotation-workflow-api";
@@ -98,32 +98,10 @@ function LihatPenawaranContent() {
   const isApproved = canonicalStatus === "APPROVED";
   const isSent = canonicalStatus === "SENT";
 
-  // Aksi Kirim ke WhatsApp (UC-04 / M4-US2-AC5: panggil endpoint backend Draf -> Terkirim lalu buka wa.me/62...)
+  // Aksi Kirim / Kirim Ulang ke WhatsApp (UC-04 / M4-US2-AC5):
+  // Selalu memanggil POST /send-whatsapp (idempotent 200 saat sudah Terkirim tanpa menimpa sent_at).
   const handleSendToWhatsApp = async () => {
     if (isSendingWa) return;
-    if (!isDraft) {
-      const resendUrl = buildCustomerApprovalWhatsAppUrl({
-        phone: quotation.customer_phone,
-        customerName: quotation.customer_name,
-        senderName: profile.name,
-        quotationId: quotation.id,
-        quotationNumber: quotation.quotation_number,
-        title: quotation.permintaan_title || quotation.items[0]?.name || "layanan jasa",
-        totalAmount: quotation.total_amount,
-        validUntil: quotation.valid_until,
-      });
-      if (!resendUrl) {
-        setToastState({
-          status: "visible",
-          title: "Nomor WhatsApp belum tersedia",
-          description: "Lengkapi nomor telepon/WhatsApp pelanggan terlebih dahulu sebelum mengirim penawaran.",
-        });
-        return;
-      }
-      window.open(resendUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
     setIsSendingWa(true);
     try {
       const result = await sendQuotationViaWhatsAppApi(quotation, profile.name);
@@ -142,8 +120,10 @@ function LihatPenawaranContent() {
       }
       setToastState({
         status: "visible",
-        title: "Penawaran Terkirim",
-        description: `Status ${quotation.quotation_number} diperbarui ke Terkirim dan tautan WhatsApp dibuka.`,
+        title: isDraft ? "Penawaran Terkirim" : "Tautan WhatsApp Dibuka",
+        description: isDraft
+          ? `Status ${quotation.quotation_number} diperbarui ke Terkirim dan tautan WhatsApp dibuka.`
+          : `Penawaran ${quotation.quotation_number} dikirim ulang melalui WhatsApp.`,
       });
     } finally {
       setIsSendingWa(false);
@@ -204,15 +184,12 @@ function LihatPenawaranContent() {
   const approvedAtLabel = quotation.approved_at || quotation.updated_at
     ? formatWaktuPembaruan(quotation.approved_at || quotation.updated_at)
     : undefined;
-  const customerContactPartnerWaUrl = buildCustomerApprovalWhatsAppUrl({
-    phone: quotation.customer_phone,
+  const customerContactPartnerWaUrl = buildCustomerToPartnerWhatsAppUrl({
+    partnerPhone: quotation.partner_phone,
+    partnerName: quotation.partner_name,
     customerName: quotation.customer_name,
-    senderName: profile.name,
-    quotationId: quotation.id,
     quotationNumber: quotation.quotation_number,
     title: quotation.permintaan_title || quotation.items[0]?.name || "layanan jasa",
-    totalAmount: quotation.total_amount,
-    validUntil: quotation.valid_until,
   });
 
   return (

@@ -5,9 +5,11 @@ import { initialCustomers, getStoredCustomers } from "@/lib/data/mock-customers"
 import { initialProducts, getStoredProducts } from "@/lib/data/mock-products";
 import { formatRupiah } from "@/lib/format";
 import { formatTanggalIndo } from "@/lib/quotation-helpers";
+import { normalizeWhatsAppDigits } from "@/components/permintaan/whatsapp-url";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+export const DEFAULT_QUOTATION_PPN_RATE = 11;
 
 export interface ApiServiceRequestPrefillRow {
   id: string;
@@ -32,14 +34,40 @@ export function formatRequestDisplayCode(id: string): string {
 }
 
 /**
- * Normalisasi nomor WhatsApp (08..., +62..., 62...) menjadi awalan 62 tanpa simbol non-digit.
+ * Normalisasi nomor WhatsApp (08..., 8..., +62..., 62...) menggunakan helper terpusat.
  */
 export function normalizeWhatsAppTo62(phone?: string | null): string {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.startsWith("62")) return digits;
-  return digits;
+  return normalizeWhatsAppDigits(phone);
+}
+
+/**
+ * Menghitung PPN per baris menggunakan pembulatan Round-Half-Up berbasis BigInt (NFR-04).
+ */
+export function calculateLinePpnRupiah(lineSubtotal: number, taxRate: number): number {
+  if (lineSubtotal <= 0 || taxRate <= 0) return 0;
+  const subtotalBig = BigInt(Math.round(lineSubtotal));
+  const rateBasisPoints = BigInt(Math.round(taxRate * 100));
+  const numerator = subtotalBig * rateBasisPoints + BigInt(5000);
+  return Number(numerator / BigInt(10000));
+}
+
+/**
+ * Menyusun tautan WhatsApp dari Customer ke Partner setelah penawaran disetujui (UC-05).
+ * Mengembalikan null apabila nomor WhatsApp Partner belum tersedia/tidak valid.
+ */
+export function buildCustomerToPartnerWhatsAppUrl(params: {
+  partnerPhone?: string | null;
+  partnerName?: string;
+  customerName: string;
+  quotationNumber: string;
+  title: string;
+}): string | null {
+  const normalizedPhone = normalizeWhatsAppTo62(params.partnerPhone);
+  if (!normalizedPhone || normalizedPhone.length < 10) return null;
+  const partnerGreeting = params.partnerName?.trim() || "Partner";
+  const customerLabel = params.customerName.trim() || "Pelanggan";
+  const message = `Halo ${partnerGreeting}, saya ${customerLabel}. Saya telah menyetujui penawaran ${params.quotationNumber} (${params.title}). Mohon informasi penerbitan invoice dan langkah pengerjaan selanjutnya. Terima kasih.`;
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }
 
 /**
@@ -105,16 +133,25 @@ export function loadInitialActiveServices(): ProductItem[] {
   }
 }
 
-export function resolveQuotationAuthHeader(mode: "partner" | "customer"): string {
-  const fallback = mode === "customer" ? "mock-customer-token" : "mock-partner-token";
-  if (typeof window !== "undefined") {
+export function resolveQuotationAuthHeader(
+  mode: "partner" | "customer",
+  options?: { allowMockFallback?: boolean; storedToken?: string | null }
+): string | undefined {
+  let token = options?.storedToken;
+  if (token === undefined && typeof window !== "undefined") {
     try {
-      const stored = localStorage.getItem("araya_access_token");
-      if (stored && stored.trim()) return `Bearer ${stored.trim()}`;
+      token = localStorage.getItem("araya_access_token");
     } catch {
-      /* ignore */
+      token = null;
     }
   }
+  if (token && token.trim()) return `Bearer ${token.trim()}`;
+  const allowMock =
+    options?.allowMockFallback ??
+    (process.env.NEXT_PUBLIC_ENABLE_ROLE_SWITCHER === "true" ||
+      process.env.NODE_ENV !== "production");
+  if (!allowMock) return undefined;
+  const fallback = mode === "customer" ? "mock-customer-token" : "mock-partner-token";
   return `Bearer ${fallback}`;
 }
 

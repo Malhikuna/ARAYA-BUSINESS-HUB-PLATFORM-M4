@@ -158,6 +158,8 @@ export function mapDatabaseRowToQuotation(row: DbQuotationRow): Quotation {
     customer_email: row.customers?.email,
     customer_address: row.customers?.address,
     customer_user_id: row.customers?.user_id || row.service_requests?.customer_user_id || undefined,
+    partner_name: row.partner?.name || row.partner_name || undefined,
+    partner_phone: row.partner?.whatsapp || row.partner?.phone || row.partner_phone || undefined,
     quotation_date: row.quotation_date ? String(row.quotation_date).split("T")[0] : "",
     valid_until: row.valid_until ? String(row.valid_until).split("T")[0] : undefined,
     status: row.status as QuotationStatus,
@@ -242,7 +244,7 @@ export function saveNewQuotationToStorage(newQuo: Quotation, skipApiSync = false
             quantity: it.quantity,
             unit_price: it.unit_price,
             discount_amount: 0,
-            tax_rate: 0,
+            tax_rate: newQuo.tax_rate ?? (newQuo.tax_amount > 0 ? 11 : 0),
           })),
         }),
       }).catch(() => {});

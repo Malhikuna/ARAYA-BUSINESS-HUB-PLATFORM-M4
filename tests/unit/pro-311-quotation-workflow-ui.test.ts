@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import {
   approveQuotationByCustomerApi,
   buildCustomerApprovalWhatsAppUrl,
+  buildCustomerToPartnerWhatsAppUrl,
   createQuotationViaApi,
+  fetchQuotationDetailForViewerApi,
+  fetchQuotationsForViewerApi,
   filterActivePartnerServices,
   formatRequestDisplayCode,
   mapServiceRequestRowToPrefill,
@@ -54,8 +57,9 @@ describe("PRO-311: Prefill service_request, Jasa-only lock & WhatsApp helper (M4
     assert.equal(formatRequestDisplayCode(prefill.id), "SR-30000000");
   });
 
-  it("menormalisasi nomor WA (08..., +62...) dan menyusun URL wa.me/62...", () => {
+  it("menormalisasi nomor WA (08..., 8..., +62...) dan menyusun URL Partner->Customer serta Customer->Partner", () => {
     assert.equal(normalizeWhatsAppTo62("0812-3456-7890"), "6281234567890");
+    assert.equal(normalizeWhatsAppTo62("812-3456-7890"), "6281234567890");
     assert.equal(normalizeWhatsAppTo62("+62 817 1122 3344"), "6281711223344");
 
     const url = buildCustomerApprovalWhatsAppUrl({
@@ -71,6 +75,27 @@ describe("PRO-311: Prefill service_request, Jasa-only lock & WhatsApp helper (M4
     });
     assert.ok(url?.startsWith("https://wa.me/6281234567890?text="));
     assert.ok(url?.includes("PNW-202611-0001"));
+
+    const customerToPartnerUrl = buildCustomerToPartnerWhatsAppUrl({
+      partnerPhone: "0813-9999-8888",
+      partnerName: "Studio Kreasi Mandiri",
+      customerName: "PT Maju Bersama",
+      quotationNumber: "PNW-202611-0001",
+      title: "Audit Pajak",
+    });
+    assert.ok(customerToPartnerUrl?.startsWith("https://wa.me/6281399998888?text="));
+    const decodedMsg = decodeURIComponent(customerToPartnerUrl!.split("?text=")[1] || "");
+    assert.ok(decodedMsg.includes("Studio Kreasi Mandiri"));
+    assert.ok(decodedMsg.includes("telah menyetujui penawaran PNW-202611-0001"));
+    assert.equal(
+      buildCustomerToPartnerWhatsAppUrl({
+        partnerPhone: "",
+        customerName: "PT Maju Bersama",
+        quotationNumber: "PNW-202611-0001",
+        title: "Audit Pajak",
+      }),
+      null
+    );
 
     const invalid = buildCustomerApprovalWhatsAppUrl({
       phone: "123",
@@ -116,22 +141,12 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
     );
   });
 
-  it("POST /api/m4/v1/quotations mengirim service_request_id + status draf dan fallback ke DRAFT bila backend belum merge PR #81", async () => {
+  it("POST /api/m4/v1/quotations mengirim service_request_id, status draf, dan PPN 11% tanpa fallback legacy DRAFT", async () => {
     const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
     const mockFetch: typeof fetch = async (input, init) => {
       const url = String(input);
       const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
       calls.push({ url, body });
-
-      if (calls.length === 1) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: { code: "VALIDATION_ERROR", message: "Status tidak valid", fields: { status: "Invalid enum" } },
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
 
       return new Response(
         JSON.stringify({
@@ -143,11 +158,11 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
             service_request_id: SAMPLE_REQUEST_UUID,
             quotation_date: "2026-11-23",
             valid_until: "2026-12-07",
-            status: "DRAFT",
+            status: "draf",
             subtotal: "1000000.00",
             discount_amount: "0.00",
-            tax_amount: "0.00",
-            total_amount: "1000000.00",
+            tax_amount: "110000.00",
+            total_amount: "1110000.00",
             customers: { name: "Dudi Santoso", phone: "081711223344", email: "dudi@example.com" },
             quotation_items: [],
           },
@@ -186,20 +201,85 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
           },
         ],
         subtotal: 1000000,
-        totalAmount: 1000000,
+        taxRate: 11,
+        taxAmount: 110000,
+        totalAmount: 1110000,
       },
       mockFetch
     );
 
     assert.equal(result.ok, true);
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 1);
     assert.equal(calls[0].body.service_request_id, SAMPLE_REQUEST_UUID);
     assert.equal(calls[0].body.status, "draf");
-    assert.equal(calls[1].body.status, "DRAFT");
+    const sentItems = calls[0].body.items as Array<{ tax_rate: number }>;
+    assert.equal(sentItems[0].tax_rate, 11);
     if (result.ok) {
       assert.equal(result.data.id, SAMPLE_QUOTATION_UUID);
-      assert.equal(result.data.quotation_number, "PNW-202611-0010");
+      assert.equal(result.data.tax_amount, 110000);
+      assert.equal(result.data.total_amount, 1110000);
     }
+  });
+
+  it("tidak melakukan auto-eskalasi mock-admin-token maupun fallback PATCH /status saat 404/403 (NFR-02)", async () => {
+    const sampleQuo: Quotation = {
+      id: SAMPLE_QUOTATION_UUID,
+      quotation_number: "PNW-202611-0010",
+      customer_id: SAMPLE_CUSTOMER_UUID,
+      customer_name: "Dudi Santoso",
+      customer_phone: "081711223344",
+      quotation_date: "2026-11-23",
+      valid_until: "2026-12-07",
+      status: "terkirim",
+      subtotal: 1000000,
+      discount_amount: 0,
+      tax_amount: 110000,
+      total_amount: 1110000,
+      items: [],
+    };
+
+    let approveCalls = 0;
+    const forbiddenApproveFetch: typeof fetch = async () => {
+      approveCalls += 1;
+      return new Response(
+        JSON.stringify({ success: false, error: { code: "QUOTATION_NOT_FOUND", message: "Penawaran tidak ditemukan." } }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    };
+    const approveRes = await approveQuotationByCustomerApi(sampleQuo, forbiddenApproveFetch);
+    assert.equal(approveCalls, 1);
+    assert.equal(approveRes.ok, false);
+    if (!approveRes.ok) assert.equal(approveRes.status, 404);
+
+    let waCalls = 0;
+    const missingWaFetch: typeof fetch = async () => {
+      waCalls += 1;
+      return new Response(
+        JSON.stringify({ success: false, error: { code: "NOT_FOUND", message: "Penawaran tidak ditemukan." } }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    };
+    const waRes = await sendQuotationViaWhatsAppApi(sampleQuo, "Rani K.", missingWaFetch);
+    assert.equal(waCalls, 1);
+    assert.equal(waRes.ok, false);
+
+    let listCalls = 0;
+    const listForbiddenFetch: typeof fetch = async () => {
+      listCalls += 1;
+      return new Response(JSON.stringify({ success: false }), { status: 403 });
+    };
+    const listRes = await fetchQuotationsForViewerApi("customer", listForbiddenFetch);
+    assert.equal(listCalls, 1);
+    assert.deepEqual(listRes, []);
+
+    let detailCalls = 0;
+    const detailForbiddenFetch: typeof fetch = async () => {
+      detailCalls += 1;
+      return new Response(JSON.stringify({ success: false }), { status: 403 });
+    };
+    const detailRes = await fetchQuotationDetailForViewerApi(SAMPLE_QUOTATION_UUID, "customer", detailForbiddenFetch);
+    assert.equal(detailCalls, 1);
+    assert.equal(detailRes, null);
   });
 
   it("POST /send-whatsapp & POST /approve memanggil endpoint resmi PR #81 dan mengembalikan status baru", async () => {

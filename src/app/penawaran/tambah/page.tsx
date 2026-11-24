@@ -33,7 +33,9 @@ import {
   loadInitialQuotationCustomers,
 } from "@/lib/quotation-workflow-helpers";
 import {
+  calculateLinePpnRupiah,
   createQuotationViaApi,
+  DEFAULT_QUOTATION_PPN_RATE,
   fetchPartnerActiveServices,
   fetchServiceRequestPrefill,
   filterActivePartnerServices,
@@ -99,8 +101,14 @@ function TambahPenawaranForm({
     handleDescriptionChange,
     handleQuantityChange,
     subtotal,
-    totalAmount,
   } = useQuotationItems(permintaanData, products, clearError);
+
+  const taxRate = DEFAULT_QUOTATION_PPN_RATE;
+  const taxAmount = useMemo(
+    () => items.reduce((sum, it) => sum + calculateLinePpnRupiah(it.subtotal, taxRate), 0),
+    [items, taxRate]
+  );
+  const totalAmount = subtotal + taxAmount;
 
   // Peringatan otomatis jika permintaan sudah pernah dibuatkan penawaran (BR-13)
   const isAlreadyOffered = permintaanData.status === "Sudah ditawarkan";
@@ -197,6 +205,8 @@ function TambahPenawaranForm({
         notes,
         items,
         subtotal,
+        taxRate,
+        taxAmount,
         totalAmount,
       });
 

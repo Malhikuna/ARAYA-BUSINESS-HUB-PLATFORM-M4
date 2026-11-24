@@ -114,7 +114,7 @@ export function QuotationCustomerStatusBanner({
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
-          {whatsAppUrl && (
+          {whatsAppUrl ? (
             <a
               href={whatsAppUrl}
               target="_blank"
@@ -124,6 +124,16 @@ export function QuotationCustomerStatusBanner({
               <MessageCircle className="w-4 h-4 text-[#0e7490]" />
               <span>Hubungi partner via WhatsApp</span>
             </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Nomor WhatsApp partner belum tersedia"
+              className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold cursor-not-allowed whitespace-nowrap"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>WA partner belum tersedia</span>
+            </button>
           )}
           <Link
             href="/invoice"
