@@ -10,6 +10,7 @@ import {
 import { Customer, CustomerForm, CustomerSource } from "@/types/customer";
 import { CustomerFormView } from "@/components/pelanggan/CustomerFormView";
 import { useDevRole } from "@/lib/auth/dev-role";
+import { parseCustomerApiError } from "@/lib/customer-api-error";
 
 export default function TambahPelangganPage() {
   const { formKey, leaveForm } = useFreshForm();
@@ -31,13 +32,7 @@ export default function TambahPelangganPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (json.code === "DUPLICATE_EMAIL") {
-          return { field: "email" as const, error: "Alamat email sudah terdaftar untuk pelanggan lain." };
-        }
-        if (json.code === "DUPLICATE_PHONE") {
-          return { field: "phone" as const, error: "Nomor telepon/WhatsApp sudah terdaftar untuk pelanggan lain." };
-        }
-        return { field: "name" as const, error: json.error?.message || "Gagal menyimpan data pelanggan." };
+        return parseCustomerApiError(res.status, json, "Gagal menyimpan data pelanggan.");
       }
 
       const newCust: Customer = {
@@ -57,21 +52,10 @@ export default function TambahPelangganPage() {
       saveNewCustomerToStorage(newCust, true);
       leaveForm("/pelanggan");
     } catch {
-      const newCust: Customer = {
-        id: `CUST-${Date.now()}`,
-        name: form.name.trim(),
-        initials: getCustomerInitials(form.name, 2),
-        avatarBg: "bg-blue-100 text-blue-700",
-        phone: form.phone.trim(),
-        email: cleanEmail,
-        address: form.address.trim(),
-        city: detectCityFromAddress(form.address.trim(), "Bandung"),
-        source: customerSource,
-        isNew: true,
-        createdAt: new Date().toISOString(),
+      return {
+        field: "name" as const,
+        error: "Gagal terhubung ke server. Periksa koneksi Anda lalu coba simpan lagi.",
       };
-      saveNewCustomerToStorage(newCust, true);
-      leaveForm("/pelanggan");
     }
   };
 

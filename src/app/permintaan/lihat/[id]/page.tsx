@@ -11,6 +11,7 @@ import { PermintaanDetailHero } from "@/components/permintaan/PermintaanDetailHe
 import { PermintaanDetailContent } from "@/components/permintaan/PermintaanDetailContent";
 import { PermintaanDetailSidebar } from "@/components/permintaan/PermintaanDetailSidebar";
 import { useDevRole } from "@/lib/auth/dev-role";
+import { canAccessRoute } from "@/lib/auth/navigation-access";
 
 const emptySubscribe = () => () => {};
 
@@ -25,8 +26,8 @@ function useIsMounted(): boolean {
 function DetailPermintaanContent() {
   const router = useRouter();
   const isMounted = useIsMounted();
-  const { isDev, activeRole } = useDevRole();
-  const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
+  const { activeRole, tipeUsaha } = useDevRole();
+  const isUnauthorizedRole = !canAccessRoute(activeRole, "/permintaan/lihat", tipeUsaha).allowed;
   const routeParams = useParams<{ id: string }>();
   const itemId = routeParams?.id ? decodeURIComponent(routeParams.id) : "";
   const item = isMounted && !isUnauthorizedRole ? findPermintaanById(itemId) : null;

@@ -3,12 +3,16 @@
 import React from "react";
 import { FileText } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
+import { DEFAULT_PPN_RATE } from "@/lib/quotation-helpers";
 
 export interface QuotationNotesAndTotalCardProps {
   notes: string;
   subtotal: number;
+  taxRate?: number;
+  taxAmount?: number;
   totalAmount: number;
   onNotesChange: (val: string) => void;
+  onTaxRateChange?: (rate: number) => void;
 }
 
 /**
@@ -22,26 +26,25 @@ function getTotalFontSize(amount: number): string {
 }
 
 /**
- * Card Catatan untuk Customer dan Box Ringkasan Penawaran (Subtotal & Total).
- * Didesain rapi, proporsional, dan tahan terhadap nominal berdigit panjang.
+ * Card Catatan untuk Customer dan Box Ringkasan Penawaran (Subtotal, PPN 11%, & Total).
  */
 export function QuotationNotesAndTotalCard({
   notes,
   subtotal,
+  taxRate = DEFAULT_PPN_RATE,
+  taxAmount = 0,
   totalAmount,
   onNotesChange,
+  onTaxRateChange,
 }: QuotationNotesAndTotalCardProps) {
   return (
     <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-100 shadow-xs space-y-4">
-      {/* Header Card */}
       <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
         <FileText className="w-4 h-4 text-[#19376d]" />
         <h2 className="text-sm font-bold text-slate-900">Catatan untuk customer</h2>
       </div>
 
-      {/* Susunan Atas-Bawah: Catatan Textarea & Box Ringkasan agar lebih lebar */}
       <div className="space-y-4">
-        {/* Catatan untuk Customer (Lebar Penuh) */}
         <div className="space-y-2">
           <textarea
             id="quotation-notes"
@@ -56,7 +59,7 @@ export function QuotationNotesAndTotalCard({
           </p>
         </div>
 
-        {/* Box Ringkasan Penawaran: Subtotal & Total (Lebar Penuh) */}
+        {/* Box Ringkasan Penawaran: Subtotal, PPN (default 11% UU HPP), & Total */}
         <div className="w-full bg-[#f0f4fa] rounded-2xl p-4 sm:p-5 space-y-3 border border-blue-100/60 shadow-2xs">
           <div className="flex items-center justify-between text-xs text-slate-600">
             <span>Subtotal</span>
@@ -65,6 +68,32 @@ export function QuotationNotesAndTotalCard({
               title={formatRupiah(subtotal)}
             >
               {formatRupiah(subtotal)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-xs text-slate-600">
+            <div className="flex items-center gap-2 flex-wrap">
+              <label htmlFor="quotation-ppn-rate" className="text-slate-600 font-medium">
+                Pajak (PPN {taxRate}%)
+              </label>
+              {onTaxRateChange && (
+                <select
+                  id="quotation-ppn-rate"
+                  aria-label="Pilih tarif PPN penawaran"
+                  value={String(taxRate)}
+                  onChange={(e) => onTaxRateChange(Number(e.target.value))}
+                  className="h-7 px-2 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-[#19376d] outline-none focus:ring-1 focus:ring-[#19376d] cursor-pointer"
+                >
+                  <option value="11">11% (Standar UU HPP)</option>
+                  <option value="0">0% (Bebas PPN)</option>
+                </select>
+              )}
+            </div>
+            <span
+              className="font-semibold text-slate-900 text-right whitespace-nowrap tabular-nums"
+              title={formatRupiah(taxAmount)}
+            >
+              {formatRupiah(taxAmount)}
             </span>
           </div>
 

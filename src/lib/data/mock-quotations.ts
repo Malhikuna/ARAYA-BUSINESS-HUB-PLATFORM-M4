@@ -4,6 +4,9 @@ import { initialPermintaan } from "./mock-permintaan-data";
 import {
   QUOTATION_TOAST_TYPE_KEY,
   QUOTATION_TOAST_NUMBER_KEY,
+  DEFAULT_PPN_RATE,
+  calculateLineTaxRupiah,
+  calculateQuotationTaxSummary,
   derivePermintaanIdFromQuotationNumber,
   normalizeQuotationStatus,
   getQuotationStatusLabel,
@@ -20,6 +23,9 @@ export {
   initialQuotations,
   QUOTATION_TOAST_TYPE_KEY,
   QUOTATION_TOAST_NUMBER_KEY,
+  DEFAULT_PPN_RATE,
+  calculateLineTaxRupiah,
+  calculateQuotationTaxSummary,
   derivePermintaanIdFromQuotationNumber,
   normalizeQuotationStatus,
   getQuotationStatusLabel,
@@ -234,7 +240,7 @@ export function saveNewQuotationToStorage(newQuo: Quotation) {
           quantity: it.quantity,
           unit_price: it.unit_price,
           discount_amount: 0,
-          tax_rate: 0,
+          tax_rate: newQuo.tax_rate ?? (newQuo.tax_amount > 0 ? DEFAULT_PPN_RATE : 0),
         })),
       }),
     }).catch(() => {});

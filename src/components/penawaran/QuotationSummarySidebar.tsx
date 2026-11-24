@@ -8,17 +8,22 @@ export interface QuotationSummarySidebarProps {
   quotationNumber?: string;
   customerName?: string;
   itemsCount: number;
+  subtotal?: number;
+  taxRate?: number;
+  taxAmount?: number;
   totalAmount: number;
 }
 
 /**
  * Sidebar Tahapan Penawaran dan Rangkuman Dokumen pada form Buat Penawaran.
- * Sesuai desain Figma M4-US2 (Image 1 & 2).
  */
 export function QuotationSummarySidebar({
   quotationNumber = "-",
   customerName = "",
   itemsCount,
+  subtotal,
+  taxRate,
+  taxAmount,
   totalAmount,
 }: QuotationSummarySidebarProps) {
   return (
@@ -115,6 +120,20 @@ export function QuotationSummarySidebar({
             <span className="text-slate-500">Jumlah jasa</span>
             <span className="font-semibold text-slate-800">{itemsCount} item layanan</span>
           </div>
+
+          {typeof subtotal === "number" && (
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Subtotal</span>
+              <span className="font-semibold text-slate-800 tabular-nums">{formatRupiah(subtotal)}</span>
+            </div>
+          )}
+
+          {typeof taxAmount === "number" && (
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">PPN ({taxRate ?? 11}%)</span>
+              <span className="font-semibold text-slate-800 tabular-nums">{formatRupiah(taxAmount)}</span>
+            </div>
+          )}
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
             <span className="text-xs font-semibold text-slate-700 shrink-0">Total penawaran</span>

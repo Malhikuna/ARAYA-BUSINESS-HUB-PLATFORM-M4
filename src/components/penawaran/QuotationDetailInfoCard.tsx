@@ -264,6 +264,12 @@ export function QuotationDetailInfoCard({ quotation }: QuotationDetailInfoCardPr
               <span>Subtotal</span>
               <span className="font-semibold text-slate-900">{formatRupiah(quotation.subtotal)}</span>
             </div>
+            {quotation.tax_amount > 0 && (
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>PPN ({quotation.tax_rate ?? 11}%)</span>
+                <span className="font-semibold text-slate-900">{formatRupiah(quotation.tax_amount)}</span>
+              </div>
+            )}
             <div className="pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-4">
               <span className="text-xs sm:text-sm font-bold text-slate-900 shrink-0">Total</span>
               <span

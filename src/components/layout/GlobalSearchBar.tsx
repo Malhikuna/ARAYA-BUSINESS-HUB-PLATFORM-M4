@@ -29,7 +29,7 @@ const QUICK_MENU_LINKS: QuickMenuLink[] = [
 
 export function GlobalSearchBar() {
   const router = useRouter();
-  const { isDev, activeRole } = useDevRole();
+  const { isDev, activeRole, tipeUsaha } = useDevRole();
   const rawSaved = useSyncExternalStore(subscribeCustomerStorage, getStoredCustomers, getServerStoredCustomers);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -49,11 +49,11 @@ export function GlobalSearchBar() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const matchedMenus = useMemo(() => {
-    // Konsisten pada mode dev maupun non-dev: peran activeRole (ADMIN saat !isDev) menentukan tautan aktif
-    const allowedLinks =
+    // Konsisten pada mode dev maupun non-dev: 3 role dashboard M4 & tipeUsaha menentukan tautan aktif
+    const allowedLinks: QuickMenuLink[] =
       activeRole === "ADMIN"
         ? QUICK_MENU_LINKS.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
-        : activeRole === "PARTNER_PRODUCT"
+        : activeRole === "PARTNER_PRODUCT" || tipeUsaha === "produk"
         ? QUICK_MENU_LINKS.filter((l) => !l.href.startsWith("/penawaran") && !l.href.startsWith("/permintaan"))
         : QUICK_MENU_LINKS;
 
@@ -102,7 +102,7 @@ export function GlobalSearchBar() {
       });
 
     return [...customerMatches, ...navMatches];
-  }, [normalizedQuery, isDev, activeRole, rawSaved]);
+  }, [normalizedQuery, isDev, activeRole, tipeUsaha, rawSaved]);
 
   const handleSelectRoute = (href: string) => {
     setIsOpen(false);

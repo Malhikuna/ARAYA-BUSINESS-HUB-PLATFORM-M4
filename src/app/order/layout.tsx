@@ -1,11 +1,16 @@
 import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { RouteAccessGuard } from "@/components/layout/RouteAccessGuard";
 
 export default function OrderLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <AppLayout>
+      <RouteAccessGuard>{children}</RouteAccessGuard>
+    </AppLayout>
+  );
 }
 

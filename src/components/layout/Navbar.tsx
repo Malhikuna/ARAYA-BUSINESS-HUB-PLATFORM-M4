@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { User, Menu, ChevronDown, Check, ShieldCheck, Package, Wrench } from "lucide-react";
 import { GlobalSearchBar } from "@/components/layout/GlobalSearchBar";
 import { useDevRole, DevUserRole, DEV_ROLE_PROFILES } from "@/lib/auth/dev-role";
+import { canAccessRoute } from "@/lib/auth/navigation-access";
 
 export interface NavbarProps {
   isSidebarOpen?: boolean;
@@ -127,21 +128,13 @@ export function Navbar({
                           typeof window !== "undefined"
                             ? window.location.pathname
                             : "";
-                        if (
-                          roleKey === "ADMIN" &&
-                          (currentPath.startsWith("/penawaran") ||
-                            currentPath.startsWith("/invoice") ||
-                            currentPath.startsWith("/order") ||
-                            currentPath.startsWith("/permintaan"))
-                        ) {
-                          router.push("/produk");
-                        }
-                        if (
-                          roleKey === "PARTNER_PRODUCT" &&
-                          (currentPath.startsWith("/penawaran") ||
-                            currentPath.startsWith("/permintaan"))
-                        ) {
-                          router.push("/produk");
+                        const access = canAccessRoute(
+                          roleKey,
+                          currentPath,
+                          item.tipeUsaha
+                        );
+                        if (!access.allowed) {
+                          router.push(access.redirectTo);
                         }
                       }}
                       className={`w-full text-left flex items-start gap-2.5 p-2 rounded-xl transition-colors cursor-pointer ${

@@ -45,6 +45,7 @@ export interface Quotation {
   status: QuotationStatus;
   subtotal: number;
   discount_amount: number;
+  tax_rate?: number;
   tax_amount: number;
   total_amount: number;
   notes?: string;

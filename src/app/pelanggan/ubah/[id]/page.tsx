@@ -14,6 +14,7 @@ import { Customer, CustomerForm } from "@/types/customer";
 import { CustomerFormView } from "@/components/pelanggan/CustomerFormView";
 import { useDevRole, getCustomerPartnerInfo } from "@/lib/auth/dev-role";
 import { useFreshForm } from "@/lib/use-fresh-form";
+import { parseCustomerApiError } from "@/lib/customer-api-error";
 
 const emptySubscribe = () => () => {};
 
@@ -98,16 +99,13 @@ function UbahPelangganContent() {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          if (json.code === "DUPLICATE_EMAIL") {
-            return { field: "email" as const, error: "Alamat email sudah terdaftar untuk pelanggan lain." };
-          }
-          if (json.code === "DUPLICATE_PHONE") {
-            return { field: "phone" as const, error: "Nomor telepon/WhatsApp sudah terdaftar untuk pelanggan lain." };
-          }
-          return { field: "name" as const, error: json.error?.message || "Gagal memperbarui data pelanggan." };
+          return parseCustomerApiError(res.status, json, "Gagal memperbarui data pelanggan.");
         }
       } catch {
-        // continue to local storage
+        return {
+          field: "name" as const,
+          error: "Gagal terhubung ke server. Periksa koneksi Anda lalu coba simpan lagi.",
+        };
       }
     }
 
@@ -116,10 +114,11 @@ function UbahPelangganContent() {
       name: form.name.trim(),
       initials: getCustomerInitials(form.name, 2),
       avatarBg: customer.avatarBg || "bg-blue-100 text-blue-700",
-      phone: form.phone.trim() || "0812 3456 7890",
+      phone: form.phone.trim(),
       email: cleanEmail || "-",
       address: form.address.trim(),
       city: detectCityFromAddress(form.address.trim(), customer.city || "Bandung"),
+      source: customer.source,
       createdAt: customer.createdAt || new Date().toISOString(),
     };
 

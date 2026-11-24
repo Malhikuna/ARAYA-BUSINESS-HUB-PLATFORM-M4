@@ -19,13 +19,14 @@ import {
 import { PermintaanTable } from "@/components/permintaan/PermintaanTable";
 import { matchesPermintaanQuery } from "@/lib/search-matchers";
 import { useDevRole } from "@/lib/auth/dev-role";
+import { canAccessRoute } from "@/lib/auth/navigation-access";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function PermintaanPage() {
   const router = useRouter();
-  const { isDev, activeRole } = useDevRole();
-  const isUnauthorizedRole = isDev && activeRole !== "PARTNER_SERVICE";
+  const { activeRole, tipeUsaha } = useDevRole();
+  const isUnauthorizedRole = !canAccessRoute(activeRole, "/permintaan", tipeUsaha).allowed;
   const [items, setItems] = useState<PermintaanItem[]>([]);
   const [activeTab, setActiveTab] = useState<PermintaanTabFilter>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
