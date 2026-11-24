@@ -10,9 +10,22 @@ import {
   markInvoicePaidInStore,
   updateOrderStatusInStore,
 } from "@/lib/data/mock-invoices-orders";
+import {
+  mapApiInvoiceRowToRecord,
+  mapApiOrderRowToRecord,
+} from "@/lib/data/invoice-order-mappers";
 
-function resolveAuthHeader(mode: "customer" | "partner"): string {
-  const fallback = mode === "customer" ? "mock-customer-token" : "mock-partner-token";
+export { mapApiInvoiceRowToRecord, mapApiOrderRowToRecord };
+
+export interface ApiFallbackOptions {
+  allowDevFallback?: boolean;
+}
+
+export function isLocalDevFallbackEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_ROLE_SWITCHER === "true";
+}
+
+function resolveAuthHeader(mode: "customer" | "partner", allowDevFallback: boolean): string | undefined {
   if (typeof window !== "undefined") {
     try {
       const stored = localStorage.getItem("araya_access_token");
@@ -21,27 +34,36 @@ function resolveAuthHeader(mode: "customer" | "partner"): string {
       /* ignore */
     }
   }
+  if (!allowDevFallback) return undefined;
+  const fallback = mode === "customer" ? "mock-customer-token" : "mock-partner-token";
   return `Bearer ${fallback}`;
 }
 
 export async function fetchInvoicesForViewerApi(
   isCustomer: boolean,
   customerUserId: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  options?: ApiFallbackOptions
 ): Promise<InvoiceRecord[]> {
+  const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
   const endpoint = isCustomer ? "/api/m4/v1/me/invoices?limit=100" : "/api/m4/v1/invoices?limit=100";
+  const authHeader = resolveAuthHeader(isCustomer ? "customer" : "partner", allowDevFallback);
   try {
     const res = await fetchImpl(endpoint, {
-      headers: { Authorization: resolveAuthHeader(isCustomer ? "customer" : "partner") },
+      headers: authHeader ? { Authorization: authHeader } : undefined,
     });
     if (res.ok) {
       const json = await res.json();
-      if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data as InvoiceRecord[];
+      if (json?.success && Array.isArray(json.data)) {
+        const mapped = (json.data as unknown[]).map(mapApiInvoiceRowToRecord);
+        if (mapped.length > 0 || !allowDevFallback) {
+          return mapped;
+        }
       }
     }
+    if (!allowDevFallback) return [];
   } catch {
-    /* fallback ke store lokal tersinkronisasi sampai endpoint backend M4-US4 ter-merge */
+    if (!allowDevFallback) return [];
   }
 
   const stored = getStoredInvoices();
@@ -53,21 +75,28 @@ export async function fetchInvoicesForViewerApi(
 export async function fetchOrdersForViewerApi(
   isCustomer: boolean,
   customerUserId: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  options?: ApiFallbackOptions
 ): Promise<OrderRecord[]> {
+  const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
   const endpoint = isCustomer ? "/api/m4/v1/me/orders?limit=100" : "/api/m4/v1/orders?limit=100";
+  const authHeader = resolveAuthHeader(isCustomer ? "customer" : "partner", allowDevFallback);
   try {
     const res = await fetchImpl(endpoint, {
-      headers: { Authorization: resolveAuthHeader(isCustomer ? "customer" : "partner") },
+      headers: authHeader ? { Authorization: authHeader } : undefined,
     });
     if (res.ok) {
       const json = await res.json();
-      if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data as OrderRecord[];
+      if (json?.success && Array.isArray(json.data)) {
+        const mapped = (json.data as unknown[]).map(mapApiOrderRowToRecord);
+        if (mapped.length > 0 || !allowDevFallback) {
+          return mapped;
+        }
       }
     }
+    if (!allowDevFallback) return [];
   } catch {
-    /* fallback ke store lokal tersinkronisasi sampai endpoint backend M4-US5 ter-merge */
+    if (!allowDevFallback) return [];
   }
 
   const stored = getStoredOrders();
@@ -83,11 +112,13 @@ export type MidtransPaymentInitResult =
 
 /**
  * Menginisiasi transaksi Midtrans Snap melalui POST /api/m4/v1/invoices/[id]/payments (UC-07 / PRO-60).
- * Jika endpoint belum ter-merge (404), beralih ke modal Midtrans Sandbox untuk simulasi uji lokal.
+ * Fallback simulasi lokal (`sandbox_fallback`) dikunci ketat hanya untuk mode dev (`isDev`),
+ * sedangkan di production (!isDev) wajib mengembalikan error jujur tanpa mutasi lokal.
  */
 export async function initiateMidtransPaymentApi(
   invoice: InvoiceRecord,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  options?: ApiFallbackOptions
 ): Promise<MidtransPaymentInitResult> {
   if (normalizeInvoiceStatus(invoice.status) === "PAID") {
     return {
@@ -97,15 +128,17 @@ export async function initiateMidtransPaymentApi(
     };
   }
 
+  const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
+  const authHeader = resolveAuthHeader("customer", allowDevFallback);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (authHeader) headers.Authorization = authHeader;
+
   try {
     const res = await fetchImpl(
       `/api/m4/v1/invoices/${encodeURIComponent(invoice.id)}/payments`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: resolveAuthHeader("customer"),
-        },
+        headers,
         body: JSON.stringify({ invoice_id: invoice.id }),
       }
     );
@@ -121,10 +154,15 @@ export async function initiateMidtransPaymentApi(
           redirectUrl: typeof redirectUrl === "string" ? redirectUrl : undefined,
         };
       }
-      return { mode: "sandbox_fallback", invoice };
+      if (allowDevFallback) return { mode: "sandbox_fallback", invoice };
+      return {
+        mode: "error",
+        status: 502,
+        message: "Token pembayaran Midtrans Snap tidak ditemukan pada respons server.",
+      };
     }
 
-    if (res.status === 404) {
+    if (res.status === 404 && allowDevFallback) {
       return { mode: "sandbox_fallback", invoice };
     }
 
@@ -135,22 +173,29 @@ export async function initiateMidtransPaymentApi(
       message: String(errJson?.error?.message || "Gagal memulai sesi pembayaran Midtrans."),
     };
   } catch {
-    return { mode: "sandbox_fallback", invoice };
+    if (allowDevFallback) return { mode: "sandbox_fallback", invoice };
+    return {
+      mode: "error",
+      status: 0,
+      message: "Tidak dapat terhubung ke server pembayaran Midtrans. Silakan coba lagi.",
+    };
   }
 }
 
 export type OrderStatusUpdateResult =
-  | { ok: true; order: OrderRecord }
+  | { ok: true; order: OrderRecord; isLocalSimulation?: boolean }
   | { ok: false; status: number; message: string };
 
 /**
  * Memperbarui progres Order Partner (UC-08 / PRO-66) dengan penegakan Guard U-01 & BR-09.
+ * Mutasi mock lokal saat 404/network error dikunci ketat hanya untuk mode dev (`isDev`).
  */
 export async function updatePartnerOrderStatusApi(
   order: OrderRecord,
   nextStatus: OrderStatus,
   actorLabel: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  options?: ApiFallbackOptions
 ): Promise<OrderStatusUpdateResult> {
   const guard = evaluateOrderProcessGuard(order);
   if (guard.isFinal) {
@@ -173,24 +218,34 @@ export async function updatePartnerOrderStatusApi(
     };
   }
 
+  const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
+  const authHeader = resolveAuthHeader("partner", allowDevFallback);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (authHeader) headers.Authorization = authHeader;
+
   try {
     const res = await fetchImpl(`/api/m4/v1/orders/${encodeURIComponent(order.id)}/status`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: resolveAuthHeader("partner"),
-      },
+      headers,
       body: JSON.stringify({ status: nextStatus }),
     });
 
     if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      if (json?.data && typeof json.data === "object") {
+        return { ok: true, order: mapApiOrderRowToRecord(json.data) };
+      }
       const updated = updateOrderStatusInStore(order.id, nextStatus, actorLabel);
       return { ok: true, order: updated || { ...order, status: nextStatus, status_updated_at: new Date().toISOString() } };
     }
 
-    if (res.status === 404) {
+    if (res.status === 404 && allowDevFallback) {
       const updated = updateOrderStatusInStore(order.id, nextStatus, actorLabel);
-      return { ok: true, order: updated || { ...order, status: nextStatus, status_updated_at: new Date().toISOString() } };
+      return {
+        ok: true,
+        order: updated || { ...order, status: nextStatus, status_updated_at: new Date().toISOString() },
+        isLocalSimulation: true,
+      };
     }
 
     const errJson = await res.json().catch(() => ({}));
@@ -200,8 +255,19 @@ export async function updatePartnerOrderStatusApi(
       message: String(errJson?.error?.message || "Gagal memperbarui status order."),
     };
   } catch {
-    const updated = updateOrderStatusInStore(order.id, nextStatus, actorLabel);
-    return { ok: true, order: updated || { ...order, status: nextStatus, status_updated_at: new Date().toISOString() } };
+    if (allowDevFallback) {
+      const updated = updateOrderStatusInStore(order.id, nextStatus, actorLabel);
+      return {
+        ok: true,
+        order: updated || { ...order, status: nextStatus, status_updated_at: new Date().toISOString() },
+        isLocalSimulation: true,
+      };
+    }
+    return {
+      ok: false,
+      status: 0,
+      message: "Tidak dapat terhubung ke server untuk memperbarui status order.",
+    };
   }
 }
 
@@ -209,5 +275,6 @@ export function completeSandboxInvoicePayment(
   invoiceId: string,
   paymentMethod: string
 ): InvoiceRecord | null {
+  if (!isLocalDevFallbackEnabled()) return null;
   return markInvoicePaidInStore(invoiceId, paymentMethod);
 }

@@ -88,6 +88,14 @@ export function MidtransSnapModal({
         </div>
 
         <div className="p-5 space-y-4">
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-[11px] text-amber-900">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <span>
+              <strong>Mode Simulasi Dev Lokal:</strong> Modal ini hanya aktif saat mode pengembangan
+              ketika endpoint pembayaran backend belum tersedia, dan hanya mensimulasikan settlement pada sesi browser lokal.
+            </span>
+          </div>
+
           <div className="bg-[#f0f4fa] rounded-xl p-4 space-y-2 text-xs">
             <div className="flex items-center justify-between gap-2">
               <span className="text-slate-500">Nomor invoice</span>

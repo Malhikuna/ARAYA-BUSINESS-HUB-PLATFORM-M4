@@ -1,12 +1,13 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
   CreditCard,
+  RefreshCw,
   ShieldCheck,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
@@ -42,11 +43,38 @@ function DetailInvoiceContent() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [snapModalOpen, setSnapModalOpen] = useState(false);
+  const [awaitingWebhook, setAwaitingWebhook] = useState(false);
+  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [toast, setToast] = useState<{
     status: ToastStatus;
     title: string;
     description: string;
   }>({ status: "hidden", title: "", description: "" });
+
+  const fetchLatestInvoice = useCallback(async () => {
+    setIsRefreshingStatus(true);
+    try {
+      const list = await fetchInvoicesForViewerApi(isCustomer, customerUserId);
+      const found =
+        list.find(
+          (item) =>
+            item.id.toLowerCase() === invoiceId.toLowerCase() ||
+            item.invoice_number.toLowerCase() === invoiceId.toLowerCase()
+        ) || null;
+      const allowed =
+        found && (!isCustomer || canCustomerViewRecord(found.customer_user_id, customerUserId))
+          ? found
+          : null;
+      setInvoice(allowed);
+      setIsLoaded(true);
+      if (allowed && normalizeInvoiceStatus(allowed.status) === "PAID") {
+        setAwaitingWebhook(false);
+      }
+      return allowed;
+    } finally {
+      setIsRefreshingStatus(false);
+    }
+  }, [invoiceId, isCustomer, customerUserId]);
 
   useEffect(() => {
     let active = true;
@@ -120,12 +148,29 @@ function DetailInvoiceContent() {
       if (res.mode === "snap" && typeof window !== "undefined" && window.snap?.pay) {
         window.snap.pay(res.snapToken, {
           onSuccess: () => {
-            const updated = completeSandboxInvoicePayment(invoice.id, "Midtrans Snap");
-            if (updated) setInvoice(updated);
+            void fetchLatestInvoice().then((latest) => {
+              if (latest && normalizeInvoiceStatus(latest.status) === "PAID") {
+                setToast({
+                  status: "visible",
+                  title: "Pembayaran terkonfirmasi",
+                  description: `Invoice ${invoice.invoice_number} telah berstatus Lunas dari server.`,
+                });
+              } else {
+                setAwaitingWebhook(true);
+                setToast({
+                  status: "visible",
+                  title: "Menunggu konfirmasi webhook",
+                  description: `Pembayaran ${invoice.invoice_number} sedang diverifikasi Midtrans. Klik Perbarui status untuk mengecek ulang.`,
+                });
+              }
+            });
+          },
+          onPending: () => {
+            setAwaitingWebhook(true);
             setToast({
               status: "visible",
-              title: "Pembayaran berhasil",
-              description: `Invoice ${invoice.invoice_number} kini berstatus Lunas.`,
+              title: "Menunggu pembayaran",
+              description: `Selesaikan pembayaran ${invoice.invoice_number} lalu klik Perbarui status.`,
             });
           },
           onError: () => {
@@ -139,10 +184,13 @@ function DetailInvoiceContent() {
         return;
       }
       if (res.mode === "snap" && res.redirectUrl) {
+        setAwaitingWebhook(true);
         window.open(res.redirectUrl, "_blank", "noopener,noreferrer");
         return;
       }
-      setSnapModalOpen(true);
+      if (res.mode === "sandbox_fallback") {
+        setSnapModalOpen(true);
+      }
     } finally {
       setIsPaying(false);
     }
@@ -244,6 +292,28 @@ function DetailInvoiceContent() {
               {invoice.payment_method || "Midtrans"}
             </p>
           </div>
+        </div>
+      ) : awaitingWebhook ? (
+        <div
+          role="status"
+          className="bg-[#eaf8fe] border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-sky-950"
+        >
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-[#0e7490] shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              <strong>Menunggu konfirmasi webhook Midtrans.</strong> Status invoice akan diperbarui
+              otomatis menjadi Lunas dari server begitu notifikasi settlement valid diterima (BR-08).
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isRefreshingStatus}
+            onClick={() => void fetchLatestInvoice()}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 text-[#0c4a6e] font-semibold cursor-pointer shrink-0 disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStatus ? "animate-spin" : ""}`} />
+            <span>{isRefreshingStatus ? "Memeriksa..." : "Perbarui status"}</span>
+          </button>
         </div>
       ) : (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900">
