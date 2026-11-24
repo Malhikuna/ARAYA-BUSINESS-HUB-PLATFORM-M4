@@ -44,28 +44,20 @@ describe("PRO-309: Navigasi adaptif M3/M1 & route guard (M4-US1-AC3)", () => {
     assert.equal(canAccessRoute("ADMIN", "/pelanggan", null).allowed, true);
   });
 
-  it("menampilkan menu khusus Customer (Penawaran saya, Invoice saya, Pesanan saya) dan membatasi rute Partner", () => {
-    const resolved = resolveRoleFromAuthSession({ role: "customer", name: "Budi" });
-    assert.deepEqual(resolved, { role: "CUSTOMER", tipeUsaha: null });
-
-    const menus = getVisibleSidebarMenus("CUSTOMER", null);
+  it("hanya mendukung 3 role dashboard (Super Admin, Partner Produk, Partner Jasa) tanpa role Customer", () => {
+    assert.equal(resolveRoleFromAuthSession({ role: "customer", name: "Budi" }), null);
+    assert.deepEqual(resolveRoleFromAuthSession({ role: "admin", name: "Rani" }), {
+      role: "ADMIN",
+      tipeUsaha: null,
+    });
     assert.deepEqual(
-      menus.map((m) => ({ name: m.name, href: m.href })),
-      [
-        { name: "Penawaran saya", href: "/penawaran" },
-        { name: "Invoice saya", href: "/invoice" },
-        { name: "Pesanan saya", href: "/order" },
-      ]
+      resolveRoleFromAuthSession({ role: "partner", tipe_usaha: "produk" }),
+      { role: "PARTNER_PRODUCT", tipeUsaha: "produk" }
     );
-
-    assert.equal(canAccessRoute("CUSTOMER", "/penawaran", null).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/penawaran/lihat/QUO-005", null).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/invoice", null).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/order", null).allowed, true);
-    assert.equal(canAccessRoute("CUSTOMER", "/penawaran/tambah", null).allowed, false);
-    assert.equal(canAccessRoute("CUSTOMER", "/permintaan", null).allowed, false);
-    assert.equal(canAccessRoute("CUSTOMER", "/produk", null).allowed, false);
-    assert.equal(canAccessRoute("CUSTOMER", "/pelanggan", null).allowed, false);
+    assert.deepEqual(
+      resolveRoleFromAuthSession({ role: "partner", tipe_usaha: "jasa" }),
+      { role: "PARTNER_SERVICE", tipeUsaha: "jasa" }
+    );
   });
 
   it("mengizinkan seluruh menu modul penjualan untuk Partner Jasa (tipe_usaha = jasa)", () => {

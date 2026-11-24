@@ -2,15 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useDevRole } from "@/lib/auth/dev-role";
 
 export default function Home() {
   const router = useRouter();
-  const { activeRole } = useDevRole();
 
   useEffect(() => {
-    router.replace(activeRole === "CUSTOMER" ? "/penawaran" : "/pelanggan");
-  }, [router, activeRole]);
+    router.replace("/pelanggan");
+  }, [router]);
 
   return (
     <div className="min-h-[50vh] flex items-center justify-center">

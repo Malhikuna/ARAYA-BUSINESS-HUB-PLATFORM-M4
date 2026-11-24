@@ -49,15 +49,9 @@ export function GlobalSearchBar() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const matchedMenus = useMemo(() => {
-    // Konsisten pada mode dev maupun non-dev: role & tipeUsaha menentukan tautan aktif
+    // Konsisten pada mode dev maupun non-dev: 3 role dashboard M4 & tipeUsaha menentukan tautan aktif
     const allowedLinks: QuickMenuLink[] =
-      activeRole === "CUSTOMER"
-        ? [
-            { id: "nav-cust-penawaran", label: "Penawaran", subtitle: "Portal Customer | Tinjau & setujui penawaran", href: "/penawaran", category: "Customer", keywords: "penawaran quotation setujui" },
-            { id: "nav-cust-invoice", label: "Invoice saya", subtitle: "Portal Customer | Tagihan & pembayaran", href: "/invoice", category: "Customer", keywords: "invoice tagihan faktur bayar" },
-            { id: "nav-cust-order", label: "Pesanan saya", subtitle: "Portal Customer | Pantau status pesanan", href: "/order", category: "Customer", keywords: "order pesanan status pengiriman" },
-          ]
-        : activeRole === "ADMIN"
+      activeRole === "ADMIN"
         ? QUICK_MENU_LINKS.filter((l) => l.href.startsWith("/pelanggan") || l.href.startsWith("/produk"))
         : activeRole === "PARTNER_PRODUCT" || tipeUsaha === "produk"
         ? QUICK_MENU_LINKS.filter((l) => !l.href.startsWith("/penawaran") && !l.href.startsWith("/permintaan"))
@@ -73,7 +67,7 @@ export function GlobalSearchBar() {
         item.keywords.includes(normalizedQuery)
     );
 
-    if (!isDev || activeRole === "CUSTOMER") return navMatches;
+    if (!isDev) return navMatches;
 
     let savedList: Customer[] = [];
     try { savedList = JSON.parse(rawSaved); } catch { savedList = []; }

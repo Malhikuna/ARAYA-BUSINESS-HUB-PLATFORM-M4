@@ -1,4 +1,4 @@
-export type AppUserRole = "ADMIN" | "PARTNER_PRODUCT" | "PARTNER_SERVICE" | "CUSTOMER";
+export type AppUserRole = "ADMIN" | "PARTNER_PRODUCT" | "PARTNER_SERVICE";
 
 export type PartnerTipeUsaha = "produk" | "jasa";
 
@@ -33,7 +33,7 @@ export function normalizeTipeUsaha(raw?: unknown): PartnerTipeUsaha | null {
 }
 
 /**
- * Memetakan payload sesi login M1 + tipe_usaha M3 menjadi role navigasi frontend.
+ * Memetakan payload sesi login M1 + tipe_usaha M3 menjadi role navigasi frontend (3 role dashboard M4).
  */
 export function resolveRoleFromAuthSession(session?: StoredAuthSession | null): {
   role: AppUserRole;
@@ -43,9 +43,6 @@ export function resolveRoleFromAuthSession(session?: StoredAuthSession | null): 
   const roleLower = session.role.trim().toLowerCase();
   const tipeUsaha = normalizeTipeUsaha(session.tipe_usaha);
 
-  if (roleLower === "customer") {
-    return { role: "CUSTOMER", tipeUsaha: null };
-  }
   if (roleLower === "partner") {
     if (tipeUsaha === "jasa") return { role: "PARTNER_SERVICE", tipeUsaha: "jasa" };
     return { role: "PARTNER_PRODUCT", tipeUsaha: "produk" };
@@ -71,30 +68,21 @@ export function resolveEffectiveRole(
   return role;
 }
 
-export function getDefaultRouteForRole(role: AppUserRole): string {
-  return role === "CUSTOMER" ? "/penawaran" : "/produk";
+export function getDefaultRouteForRole(): string {
+  return "/produk";
 }
 
 /**
- * Daftar menu sidebar adaptif sesuai PRD Modul 4 (M4-US1-AC3 & portal Customer M1):
- * - Customer M1: Penawaran saya, Invoice saya, Pesanan saya
+ * Daftar menu sidebar adaptif untuk 3 role dashboard M4 (M4-US1-AC3):
  * - Partner Produk (tipe_usaha = produk): Produk, Pelanggan, Invoice, Order (tanpa Permintaan & Penawaran)
  * - Partner Jasa (tipe_usaha = jasa): Jasa, Pelanggan, Permintaan, Penawaran, Invoice, Order
- * - Admin: Katalog, Pelanggan
+ * - Super Admin: Katalog, Pelanggan
  */
 export function getVisibleSidebarMenus(
   role: AppUserRole,
   tipeUsaha?: PartnerTipeUsaha | null
 ): SidebarMenuItemSpec[] {
   const effectiveRole = resolveEffectiveRole(role, tipeUsaha);
-
-  if (effectiveRole === "CUSTOMER") {
-    return [
-      { name: "Penawaran saya", href: "/penawaran", matchPrefix: "/penawaran", iconKey: "file" },
-      { name: "Invoice saya", href: "/invoice", matchPrefix: "/invoice", iconKey: "receipt" },
-      { name: "Pesanan saya", href: "/order", matchPrefix: "/order", iconKey: "truck" },
-    ];
-  }
 
   if (effectiveRole === "PARTNER_PRODUCT") {
     return [
@@ -134,12 +122,6 @@ export function canAccessRoute(
   const path = (pathname || "").trim();
   const isPermintaanRoute = path === "/permintaan" || path.startsWith("/permintaan/");
   const isPenawaranRoute = path === "/penawaran" || path.startsWith("/penawaran/");
-  const isPenawaranCreateRoute = path === "/penawaran/tambah" || path.startsWith("/penawaran/tambah/");
-  const isProdukOrPelanggan =
-    path === "/produk" ||
-    path.startsWith("/produk/") ||
-    path === "/pelanggan" ||
-    path.startsWith("/pelanggan/");
 
   if (effectiveRole === "PARTNER_PRODUCT") {
     if (isPermintaanRoute || isPenawaranRoute) {
@@ -154,19 +136,6 @@ export function canAccessRoute(
     return { allowed: true, redirectTo: "/produk" };
   }
 
-  if (effectiveRole === "CUSTOMER") {
-    if (isPermintaanRoute || isProdukOrPelanggan || isPenawaranCreateRoute) {
-      return {
-        allowed: false,
-        redirectTo: "/penawaran",
-        title: "Akses Terbatas untuk Akun Customer",
-        reason:
-          "Halaman ini khusus Partner/Admin. Gunakan menu Penawaran saya, Invoice saya, atau Pesanan saya.",
-      };
-    }
-    return { allowed: true, redirectTo: "/penawaran" };
-  }
-
   if (effectiveRole === "ADMIN" && (isPermintaanRoute || isPenawaranRoute)) {
     return {
       allowed: false,
@@ -177,5 +146,5 @@ export function canAccessRoute(
     };
   }
 
-  return { allowed: true, redirectTo: getDefaultRouteForRole(effectiveRole) };
+  return { allowed: true, redirectTo: getDefaultRouteForRole() };
 }

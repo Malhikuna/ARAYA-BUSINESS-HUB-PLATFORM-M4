@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, UserCheck, Menu, ChevronDown, Check, ShieldCheck, Package, Wrench } from "lucide-react";
+import { User, Menu, ChevronDown, Check, ShieldCheck, Package, Wrench } from "lucide-react";
 import { GlobalSearchBar } from "@/components/layout/GlobalSearchBar";
 import { useDevRole, DevUserRole, DEV_ROLE_PROFILES } from "@/lib/auth/dev-role";
 import { canAccessRoute } from "@/lib/auth/navigation-access";
@@ -53,7 +53,7 @@ export function Navbar({
         )}
 
         <Link
-          href={activeRole === "CUSTOMER" ? "/penawaran" : "/pelanggan"}
+          href="/pelanggan"
           className="font-heading font-bold text-sm md:text-base lg:text-lg text-slate-900 tracking-tight hover:opacity-90 transition-opacity whitespace-nowrap shrink-0"
         >
           Araya Business Hub
@@ -115,8 +115,6 @@ export function Navbar({
                       ? ShieldCheck
                       : roleKey === "PARTNER_PRODUCT"
                       ? Package
-                      : roleKey === "CUSTOMER"
-                      ? UserCheck
                       : Wrench;
 
                   return (

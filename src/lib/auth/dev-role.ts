@@ -54,15 +54,6 @@ export const DEV_ROLE_PROFILES: Record<DevUserRole, DevRoleProfile> = {
     tipeUsaha: "jasa",
     description: "Kelola Jasa, Pelanggan, Permintaan, Penawaran, Invoice & Order",
   },
-  CUSTOMER: {
-    id: "CUSTOMER",
-    name: "Budi Santoso",
-    roleLabel: "Customer",
-    catalogMenuName: "Penawaran",
-    businessMode: "Semua",
-    tipeUsaha: null,
-    description: "Lihat Penawaran, Invoice saya & Pesanan saya",
-  },
 };
 
 export function subscribeDevRole(callback: () => void): () => void {
@@ -97,8 +88,7 @@ export function getStoredDevRole(): DevUserRole {
     if (
       stored === "ADMIN" ||
       stored === "PARTNER_PRODUCT" ||
-      stored === "PARTNER_SERVICE" ||
-      stored === "CUSTOMER"
+      stored === "PARTNER_SERVICE"
     ) {
       return stored;
     }

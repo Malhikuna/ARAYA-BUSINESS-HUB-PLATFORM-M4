@@ -50,7 +50,7 @@ function RouteAccessGuardInner({ children }: { children: React.ReactNode }) {
           href={decision.redirectTo}
           className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
         >
-          {decision.redirectTo === "/penawaran" ? "Kembali ke Penawaran saya" : "Kembali ke Katalog"}
+          Kembali ke Katalog
         </Link>
       </div>
     );
