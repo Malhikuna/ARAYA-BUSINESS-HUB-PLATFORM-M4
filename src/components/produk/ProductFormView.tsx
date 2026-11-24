@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, Package, Briefcase, ChevronDown } from "lucide-react";
+import { AlertCircle, Package, Briefcase } from "lucide-react";
 import { formatRupiah, formatRibuan } from "@/lib/format";
 import { generateProductSku } from "@/lib/data/mock-products";
 import { ProductCategory, ProductStatus, ProductFormErrors, BusinessMode } from "@/types/product";
@@ -218,19 +218,59 @@ export function ProductFormView({
               </div>
 
               <div>
-                <label htmlFor="status" className="block text-xs font-bold text-slate-800 mb-2">
+                <span id="status-katalog-label" className="block text-xs font-bold text-slate-800 mb-2">
                   Status Katalog
-                </label>
-                <div className="relative">
-                  <select
-                    id="status" name="status" value={form.status} onChange={handleTextChange}
-                    className="w-full h-11 pl-4 pr-10 rounded-lg bg-white border border-slate-300 text-xs sm:text-sm text-slate-800 outline-none appearance-none cursor-pointer focus:border-[#19376d] focus:ring-1 focus:ring-[#19376d] transition-all"
+                </span>
+                <button
+                  id="status"
+                  type="button"
+                  role="switch"
+                  aria-checked={form.status === "Aktif"}
+                  aria-labelledby="status-katalog-label"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      status: prev.status === "Aktif" ? "Nonaktif" : "Aktif",
+                    }))
+                  }
+                  className={`w-full h-11 px-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#19376d]/25 ${
+                    form.status === "Aktif"
+                      ? "bg-emerald-50/50 border-emerald-200 hover:border-emerald-300"
+                      : "bg-slate-50 border-slate-300 hover:border-slate-400"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        form.status === "Aktif" ? "bg-emerald-500" : "bg-slate-400"
+                      }`}
+                    />
+                    <span
+                      className={`text-xs sm:text-sm font-semibold truncate ${
+                        form.status === "Aktif" ? "text-emerald-800" : "text-slate-600"
+                      }`}
+                    >
+                      {form.status === "Aktif" ? "Aktif" : "Nonaktif"}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                      form.status === "Aktif" ? "bg-emerald-600" : "bg-slate-300"
+                    }`}
                   >
-                    <option value="Aktif">Aktif (Siap ditawarkan)</option>
-                    <option value="Nonaktif">Nonaktif (Arsip sementara)</option>
-                  </select>
-                  <ChevronDown aria-hidden="true" className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500" />
-                </div>
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white shadow-xs transition-transform ${
+                        form.status === "Aktif" ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </span>
+                </button>
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  {form.status === "Aktif"
+                    ? "Siap ditawarkan pada penawaran dan faktur."
+                    : "Diarsipkan sementara dan disembunyikan dari penawaran."}
+                </p>
               </div>
             </div>
 
