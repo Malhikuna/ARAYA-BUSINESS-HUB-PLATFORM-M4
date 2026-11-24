@@ -21,9 +21,7 @@ import {
   QUOTATION_TOAST_TYPE_KEY,
   QUOTATION_TOAST_NUMBER_KEY,
 } from "@/lib/data/mock-quotations";
-import { fetchQuotationsForViewerApi } from "@/lib/data/quotation-workflow-api";
-import { useQuotationViewerMode } from "@/lib/auth/customer-session";
-import { QuotationViewerDevToggle } from "@/components/penawaran/QuotationCustomerActions";
+import { fetchPartnerQuotationsApi } from "@/lib/data/quotation-workflow-api";
 import { downloadQuotationListPdf } from "@/lib/export-quotation-pdf";
 import { updatePermintaanStatus } from "@/lib/data/mock-permintaan";
 import { QuotationDeleteModal } from "@/components/penawaran/QuotationDeleteModal";
@@ -37,7 +35,6 @@ const ITEMS_PER_PAGE = 10;
  * Menampilkan ringkasan metrik (Draf, Terkirim, Disetujui), tab filter status, tabel penawaran, serta modal PDF.
  */
 export default function PenawaranPage() {
-  const { isCustomer, isDevPreviewAvailable, toggleCustomerPreview } = useQuotationViewerMode();
   const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
   const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
   const [quotationToEdit, setQuotationToEdit] = useState<Quotation | null>(null);
@@ -113,8 +110,8 @@ export default function PenawaranPage() {
       }
     }, 0);
 
-    // 3. Ambil data resmi dari database PostgreSQL sesuai role (Partner Jasa / Customer M1)
-    fetchQuotationsForViewerApi(isCustomer ? "customer" : "partner").then((dbList) => {
+    // 3. Ambil data resmi dari database PostgreSQL untuk Partner Jasa
+    fetchPartnerQuotationsApi().then((dbList) => {
       if (dbList.length > 0) {
         setQuotations(dbList);
       }
@@ -128,38 +125,26 @@ export default function PenawaranPage() {
       window.clearTimeout(timer);
       unsubscribe();
     };
-  }, [isCustomer]);
-
-  // Customer M1 hanya melihat penawaran yang sudah dikirimkan (bukan Draf internal Partner)
-  const visibleQuotations = useMemo(
-    () =>
-      isCustomer
-        ? quotations.filter((q) => normalizeQuotationStatus(q.status) !== "DRAFT")
-        : quotations,
-    [quotations, isCustomer]
-  );
+  }, []);
 
   const metrics = useMemo(() => {
-    const draf = visibleQuotations.filter((q) => normalizeQuotationStatus(q.status) === "DRAFT").length;
-    const terkirim = visibleQuotations.filter((q) => normalizeQuotationStatus(q.status) === "SENT").length;
-    const disetujui = visibleQuotations.filter((q) => normalizeQuotationStatus(q.status) === "APPROVED").length;
+    const draf = quotations.filter((q) => normalizeQuotationStatus(q.status) === "DRAFT").length;
+    const terkirim = quotations.filter((q) => normalizeQuotationStatus(q.status) === "SENT").length;
+    const disetujui = quotations.filter((q) => normalizeQuotationStatus(q.status) === "APPROVED").length;
     return { draf, terkirim, disetujui };
-  }, [visibleQuotations]);
-
-  const effectiveStatusFilter: QuotationFilterStatus =
-    isCustomer && statusFilter === "DRAFT" ? "ALL" : statusFilter;
+  }, [quotations]);
 
   const filteredData = useMemo(() => {
-    const list = visibleQuotations.filter((item) => {
+    const list = quotations.filter((item) => {
       const matchesSearch = matchesQuotationQuery(item, searchQuery);
       const canonical = normalizeQuotationStatus(item.status);
 
       const matchesStatus =
-        effectiveStatusFilter === "ALL" ||
-        (effectiveStatusFilter === "DRAFT" && canonical === "DRAFT") ||
-        ((effectiveStatusFilter === "SENT" || effectiveStatusFilter === "PENDING_APPROVAL") && canonical === "SENT") ||
-        (effectiveStatusFilter === "APPROVED" && canonical === "APPROVED") ||
-        (effectiveStatusFilter === "REJECTED" && canonical === "REJECTED");
+        statusFilter === "ALL" ||
+        (statusFilter === "DRAFT" && canonical === "DRAFT") ||
+        ((statusFilter === "SENT" || statusFilter === "PENDING_APPROVAL") && canonical === "SENT") ||
+        (statusFilter === "APPROVED" && canonical === "APPROVED") ||
+        (statusFilter === "REJECTED" && canonical === "REJECTED");
 
       return matchesSearch && matchesStatus;
     });
@@ -172,7 +157,7 @@ export default function PenawaranPage() {
       if (dateCompare !== 0) return dateCompare;
       return (b.quotation_number || "").localeCompare(a.quotation_number || "");
     });
-  }, [visibleQuotations, searchQuery, effectiveStatusFilter]);
+  }, [quotations, searchQuery, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -194,26 +179,13 @@ export default function PenawaranPage() {
       <Breadcrumb items={[{ label: "Penawaran" }]} />
 
       {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">
-            {isCustomer ? "Penawaran saya" : "Daftar penawaran"}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            {isCustomer
-              ? "Tinjau penawaran jasa yang dikirimkan Partner dan berikan persetujuan Anda."
-              : "Penawaran dibuat dari permintaan customer."}
-          </p>
-        </div>
-        {isDevPreviewAvailable && (
-          <QuotationViewerDevToggle
-            isCustomer={isCustomer}
-            onToggle={(next) => {
-              toggleCustomerPreview(next);
-              setCurrentPage(1);
-            }}
-          />
-        )}
+      <div>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">
+          Daftar penawaran
+        </h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Penawaran dibuat dari permintaan customer.
+        </p>
       </div>
 
       {/* Kartu Metrik Ringkasan */}
@@ -221,15 +193,12 @@ export default function PenawaranPage() {
         drafCount={metrics.draf}
         terkirimCount={metrics.terkirim}
         disetujuiCount={metrics.disetujui}
-        isCustomer={isCustomer}
-        totalCount={visibleQuotations.length}
       />
 
       {/* Filter Bar (Pencarian, Tab Status & Tombol Ekspor) */}
       <QuotationFilterBar
         searchTerm={searchQuery}
-        selectedStatus={effectiveStatusFilter}
-        isCustomer={isCustomer}
+        selectedStatus={statusFilter}
         onSearchChange={(val) => {
           setSearchQuery(val);
           setCurrentPage(1);
@@ -249,7 +218,6 @@ export default function PenawaranPage() {
         totalPages={totalPages}
         startIndex={startIndex}
         endIndex={endIndex}
-        isCustomer={isCustomer}
         onPageChange={setCurrentPage}
         onRequestEdit={(item) => setQuotationToEdit(item)}
         onRequestDelete={(item) => setQuotationToDelete(item)}

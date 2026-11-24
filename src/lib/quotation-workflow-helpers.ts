@@ -52,25 +52,6 @@ export function calculateLinePpnRupiah(lineSubtotal: number, taxRate: number): n
 }
 
 /**
- * Menyusun tautan WhatsApp dari Customer ke Partner setelah penawaran disetujui (UC-05).
- * Mengembalikan null apabila nomor WhatsApp Partner belum tersedia/tidak valid.
- */
-export function buildCustomerToPartnerWhatsAppUrl(params: {
-  partnerPhone?: string | null;
-  partnerName?: string;
-  customerName: string;
-  quotationNumber: string;
-  title: string;
-}): string | null {
-  const normalizedPhone = normalizeWhatsAppTo62(params.partnerPhone);
-  if (!normalizedPhone || normalizedPhone.length < 10) return null;
-  const partnerGreeting = params.partnerName?.trim() || "Partner";
-  const customerLabel = params.customerName.trim() || "Pelanggan";
-  const message = `Halo ${partnerGreeting}, saya ${customerLabel}. Saya telah menyetujui penawaran ${params.quotationNumber} (${params.title}). Mohon informasi penerbitan invoice dan langkah pengerjaan selanjutnya. Terima kasih.`;
-  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
-}
-
-/**
  * Menyusun tautan WhatsApp https://wa.me/62... berisi ringkasan penawaran & tautan persetujuan Customer.
  */
 export function buildCustomerApprovalWhatsAppUrl(params: {
@@ -134,7 +115,6 @@ export function loadInitialActiveServices(): ProductItem[] {
 }
 
 export function resolveQuotationAuthHeader(
-  mode: "partner" | "customer",
   options?: { allowMockFallback?: boolean; storedToken?: string | null }
 ): string | undefined {
   let token = options?.storedToken;
@@ -151,8 +131,7 @@ export function resolveQuotationAuthHeader(
     (process.env.NEXT_PUBLIC_ENABLE_ROLE_SWITCHER === "true" ||
       process.env.NODE_ENV !== "production");
   if (!allowMock) return undefined;
-  const fallback = mode === "customer" ? "mock-customer-token" : "mock-partner-token";
-  return `Bearer ${fallback}`;
+  return "Bearer mock-partner-token";
 }
 
 export function mapServiceRequestRowToPrefill(row: ApiServiceRequestPrefillRow): PermintaanItem {

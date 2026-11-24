@@ -1,35 +1,28 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, MessageCircle, Pencil, ReceiptText } from "lucide-react";
+import { MessageCircle, Pencil, ReceiptText } from "lucide-react";
 import { CanonicalQuotationStatus } from "@/lib/quotation-helpers";
 
 export interface QuotationDetailHeaderProps {
   quotationNumber: string;
   canonicalStatus: CanonicalQuotationStatus;
-  isCustomer: boolean;
   isSendingWa: boolean;
-  isApproving: boolean;
   onEdit: () => void;
   onCreateInvoice: () => void;
   onSendWhatsApp: () => void;
-  onRequestCustomerApprove: () => void;
 }
 
 /**
- * Header halaman detail penawaran: nomor dokumen, badge status, dan tombol aksi
- * terpisah secara ketat antara peran Partner Jasa (UC-04) dan Customer M1 (UC-05).
+ * Header halaman detail penawaran Partner Jasa (UC-04): nomor dokumen, badge status, dan tombol aksi.
  */
 export function QuotationDetailHeader({
   quotationNumber,
   canonicalStatus,
-  isCustomer,
   isSendingWa,
-  isApproving,
   onEdit,
   onCreateInvoice,
   onSendWhatsApp,
-  onRequestCustomerApprove,
 }: QuotationDetailHeaderProps) {
   const isDraft = canonicalStatus === "DRAFT";
   const isSent = canonicalStatus === "SENT";
@@ -68,73 +61,58 @@ export function QuotationDetailHeader({
       </div>
 
       <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
-        {isCustomer ? (
-          isSent ? (
-            <button
-              type="button"
-              onClick={onRequestCustomerApprove}
-              disabled={isApproving}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#19376d] hover:bg-[#122852] disabled:opacity-60 shadow-sm transition-colors cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isApproving ? "Menyetujui..." : "Setujui"}</span>
-            </button>
-          ) : null
-        ) : (
-          <>
-            {isDraft && (
-              <button
-                type="button"
-                onClick={onEdit}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
-              >
-                <Pencil className="w-4 h-4 text-slate-500" />
-                <span>Ubah</span>
-              </button>
-            )}
+        {isDraft && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
+          >
+            <Pencil className="w-4 h-4 text-slate-500" />
+            <span>Ubah</span>
+          </button>
+        )}
 
-            {(isSent || isApproved) && (
-              <button
-                type="button"
-                onClick={onSendWhatsApp}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <span>Kirim ulang WA</span>
-              </button>
-            )}
+        {(isSent || isApproved) && (
+          <button
+            type="button"
+            onClick={onSendWhatsApp}
+            disabled={isSendingWa}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs transition-colors cursor-pointer disabled:opacity-60"
+          >
+            <MessageCircle className="w-4 h-4 text-emerald-600" />
+            <span>{isSendingWa ? "Mengirim..." : "Kirim ulang WA"}</span>
+          </button>
+        )}
 
-            <button
-              type="button"
-              onClick={onCreateInvoice}
-              disabled={!isApproved}
-              title={
-                isApproved
-                  ? "Buat tagihan invoice"
-                  : "Invoice hanya dapat dibuat setelah penawaran disetujui customer (BR-07)"
-              }
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold shadow-xs transition-colors ${
-                isApproved
-                  ? "border-[#19376d] text-white bg-[#19376d] hover:bg-[#122852] cursor-pointer"
-                  : "border-slate-100 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60 font-semibold"
-              }`}
-            >
-              <ReceiptText className={`w-4 h-4 ${isApproved ? "text-white" : "text-slate-400"}`} />
-              <span>Buat invoice</span>
-            </button>
+        <button
+          type="button"
+          onClick={onCreateInvoice}
+          disabled={!isApproved}
+          title={
+            isApproved
+              ? "Buat tagihan invoice"
+              : "Invoice hanya dapat dibuat setelah penawaran disetujui customer (BR-07)"
+          }
+          className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold shadow-xs transition-colors ${
+            isApproved
+              ? "border-[#19376d] text-white bg-[#19376d] hover:bg-[#122852] cursor-pointer"
+              : "border-slate-100 text-slate-400 bg-slate-50 cursor-not-allowed opacity-60 font-semibold"
+          }`}
+        >
+          <ReceiptText className={`w-4 h-4 ${isApproved ? "text-white" : "text-slate-400"}`} />
+          <span>Buat invoice</span>
+        </button>
 
-            {isDraft && (
-              <button
-                type="button"
-                onClick={onSendWhatsApp}
-                disabled={isSendingWa}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#22c55e] hover:bg-[#16a34a] disabled:opacity-60 shadow-xs transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>{isSendingWa ? "Mengirim..." : "Kirim ke WhatsApp"}</span>
-              </button>
-            )}
-          </>
+        {isDraft && (
+          <button
+            type="button"
+            onClick={onSendWhatsApp}
+            disabled={isSendingWa}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#22c55e] hover:bg-[#16a34a] disabled:opacity-60 shadow-xs transition-colors cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>{isSendingWa ? "Mengirim..." : "Kirim ke WhatsApp"}</span>
+          </button>
         )}
       </div>
     </div>

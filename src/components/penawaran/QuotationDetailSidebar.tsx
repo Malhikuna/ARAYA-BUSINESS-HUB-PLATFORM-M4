@@ -25,7 +25,6 @@ import { QuotationWhatsAppPreviewCard } from "@/components/penawaran/QuotationWh
 
 export interface QuotationDetailSidebarProps {
   quotation: Quotation;
-  isCustomer?: boolean;
   isSendingWa?: boolean;
   onSendToWhatsApp: () => void;
   onCreateInvoice?: () => void;
@@ -34,12 +33,11 @@ export interface QuotationDetailSidebarProps {
 }
 
 /**
- * Sidebar kanan halaman detail penawaran.
- * Menampilkan Pratinjau WhatsApp (khusus Partner), Riwayat Aktivitas, & Tahapan Penawaran.
+ * Sidebar kanan halaman detail penawaran Partner Jasa.
+ * Menampilkan Pratinjau WhatsApp, Riwayat Aktivitas, & Tahapan Penawaran.
  */
 export function QuotationDetailSidebar({
   quotation,
-  isCustomer = false,
   isSendingWa = false,
   onSendToWhatsApp,
   onCreateInvoice,
@@ -61,8 +59,8 @@ export function QuotationDetailSidebar({
   const derivedPmtId =
     quotation.permintaan_id || derivePermintaanIdFromQuotationNumber(quotation.quotation_number);
 
-  // Mode Draf (Pratinjau WhatsApp hanya untuk Partner Jasa, bukan Customer M1)
-  if (isDraft && !isCustomer) {
+  // Mode Draf: tampilkan pratinjau pesan WhatsApp & tahapan awal
+  if (isDraft) {
     return (
       <div className="space-y-6">
         <QuotationWhatsAppPreviewCard
@@ -109,7 +107,7 @@ export function QuotationDetailSidebar({
   const sentTimeLabel = formatJamSingkat(quotation.sent_at || quotation.updated_at || createdTimestamp);
   const approvedTimeLabel = formatJamSingkat(quotation.approved_at || quotation.updated_at || createdTimestamp);
 
-  if (!isCustomer && isApproved) {
+  if (isApproved) {
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">

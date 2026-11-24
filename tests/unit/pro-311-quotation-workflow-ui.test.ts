@@ -1,19 +1,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  approveQuotationByCustomerApi,
   buildCustomerApprovalWhatsAppUrl,
-  buildCustomerToPartnerWhatsAppUrl,
   createQuotationViaApi,
-  fetchQuotationDetailForViewerApi,
-  fetchQuotationsForViewerApi,
+  fetchPartnerQuotationDetailApi,
+  fetchPartnerQuotationsApi,
   filterActivePartnerServices,
   formatRequestDisplayCode,
   mapServiceRequestRowToPrefill,
   normalizeWhatsAppTo62,
+  resolveQuotationAuthHeader,
   sendQuotationViaWhatsAppApi,
 } from "@/lib/data/quotation-workflow-api";
-import { isCustomerViewerFromSnapshot } from "@/lib/auth/customer-session";
 import { ProductItem } from "@/types/product";
 import { Quotation } from "@/types/quotation";
 
@@ -57,7 +55,7 @@ describe("PRO-311: Prefill service_request, Jasa-only lock & WhatsApp helper (M4
     assert.equal(formatRequestDisplayCode(prefill.id), "SR-30000000");
   });
 
-  it("menormalisasi nomor WA (08..., 8..., +62...) dan menyusun URL Partner->Customer serta Customer->Partner", () => {
+  it("menormalisasi nomor WA (08..., 8..., +62...) dan menyusun URL wa.me/62...", () => {
     assert.equal(normalizeWhatsAppTo62("0812-3456-7890"), "6281234567890");
     assert.equal(normalizeWhatsAppTo62("812-3456-7890"), "6281234567890");
     assert.equal(normalizeWhatsAppTo62("+62 817 1122 3344"), "6281711223344");
@@ -76,27 +74,6 @@ describe("PRO-311: Prefill service_request, Jasa-only lock & WhatsApp helper (M4
     assert.ok(url?.startsWith("https://wa.me/6281234567890?text="));
     assert.ok(url?.includes("PNW-202611-0001"));
 
-    const customerToPartnerUrl = buildCustomerToPartnerWhatsAppUrl({
-      partnerPhone: "0813-9999-8888",
-      partnerName: "Studio Kreasi Mandiri",
-      customerName: "PT Maju Bersama",
-      quotationNumber: "PNW-202611-0001",
-      title: "Audit Pajak",
-    });
-    assert.ok(customerToPartnerUrl?.startsWith("https://wa.me/6281399998888?text="));
-    const decodedMsg = decodeURIComponent(customerToPartnerUrl!.split("?text=")[1] || "");
-    assert.ok(decodedMsg.includes("Studio Kreasi Mandiri"));
-    assert.ok(decodedMsg.includes("telah menyetujui penawaran PNW-202611-0001"));
-    assert.equal(
-      buildCustomerToPartnerWhatsAppUrl({
-        partnerPhone: "",
-        customerName: "PT Maju Bersama",
-        quotationNumber: "PNW-202611-0001",
-        title: "Audit Pajak",
-      }),
-      null
-    );
-
     const invalid = buildCustomerApprovalWhatsAppUrl({
       phone: "123",
       customerName: "Invalid",
@@ -110,37 +87,7 @@ describe("PRO-311: Prefill service_request, Jasa-only lock & WhatsApp helper (M4
   });
 });
 
-describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-US2-AC3, AC4, AC5)", () => {
-  it("mendeteksi tampilan Customer M1 dari sesi auth maupun switcher dev lokal", () => {
-    assert.equal(
-      isCustomerViewerFromSnapshot({
-        isDevSwitcherEnabled: false,
-        devActiveRole: null,
-        authSessionRole: "Customer",
-        customerPreviewEnabled: false,
-      }),
-      true
-    );
-    assert.equal(
-      isCustomerViewerFromSnapshot({
-        isDevSwitcherEnabled: true,
-        devActiveRole: "CUSTOMER",
-        authSessionRole: null,
-        customerPreviewEnabled: false,
-      }),
-      true
-    );
-    assert.equal(
-      isCustomerViewerFromSnapshot({
-        isDevSwitcherEnabled: true,
-        devActiveRole: "PARTNER_SERVICE",
-        authSessionRole: null,
-        customerPreviewEnabled: false,
-      }),
-      false
-    );
-  });
-
+describe("PRO-311: Alur API Partner Jasa UC-04 (POST /quotations PPN 11% & POST /send-whatsapp)", () => {
   it("POST /api/m4/v1/quotations mengirim service_request_id, status draf, dan PPN 11% tanpa fallback legacy DRAFT", async () => {
     const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
     const mockFetch: typeof fetch = async (input, init) => {
@@ -221,68 +168,7 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
     }
   });
 
-  it("tidak melakukan auto-eskalasi mock-admin-token maupun fallback PATCH /status saat 404/403 (NFR-02)", async () => {
-    const sampleQuo: Quotation = {
-      id: SAMPLE_QUOTATION_UUID,
-      quotation_number: "PNW-202611-0010",
-      customer_id: SAMPLE_CUSTOMER_UUID,
-      customer_name: "Dudi Santoso",
-      customer_phone: "081711223344",
-      quotation_date: "2026-11-23",
-      valid_until: "2026-12-07",
-      status: "terkirim",
-      subtotal: 1000000,
-      discount_amount: 0,
-      tax_amount: 110000,
-      total_amount: 1110000,
-      items: [],
-    };
-
-    let approveCalls = 0;
-    const forbiddenApproveFetch: typeof fetch = async () => {
-      approveCalls += 1;
-      return new Response(
-        JSON.stringify({ success: false, error: { code: "QUOTATION_NOT_FOUND", message: "Penawaran tidak ditemukan." } }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
-      );
-    };
-    const approveRes = await approveQuotationByCustomerApi(sampleQuo, forbiddenApproveFetch);
-    assert.equal(approveCalls, 1);
-    assert.equal(approveRes.ok, false);
-    if (!approveRes.ok) assert.equal(approveRes.status, 404);
-
-    let waCalls = 0;
-    const missingWaFetch: typeof fetch = async () => {
-      waCalls += 1;
-      return new Response(
-        JSON.stringify({ success: false, error: { code: "NOT_FOUND", message: "Penawaran tidak ditemukan." } }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
-      );
-    };
-    const waRes = await sendQuotationViaWhatsAppApi(sampleQuo, "Rani K.", missingWaFetch);
-    assert.equal(waCalls, 1);
-    assert.equal(waRes.ok, false);
-
-    let listCalls = 0;
-    const listForbiddenFetch: typeof fetch = async () => {
-      listCalls += 1;
-      return new Response(JSON.stringify({ success: false }), { status: 403 });
-    };
-    const listRes = await fetchQuotationsForViewerApi("customer", listForbiddenFetch);
-    assert.equal(listCalls, 1);
-    assert.deepEqual(listRes, []);
-
-    let detailCalls = 0;
-    const detailForbiddenFetch: typeof fetch = async () => {
-      detailCalls += 1;
-      return new Response(JSON.stringify({ success: false }), { status: 403 });
-    };
-    const detailRes = await fetchQuotationDetailForViewerApi(SAMPLE_QUOTATION_UUID, "customer", detailForbiddenFetch);
-    assert.equal(detailCalls, 1);
-    assert.equal(detailRes, null);
-  });
-
-  it("POST /send-whatsapp & POST /approve memanggil endpoint resmi PR #81 dan mengembalikan status baru", async () => {
+  it("POST /send-whatsapp memanggil endpoint resmi PR #81 tanpa fallback PATCH /status dan tanpa eskalasi mock-admin-token", async () => {
     const sampleQuo: Quotation = {
       id: SAMPLE_QUOTATION_UUID,
       quotation_number: "PNW-202611-0010",
@@ -294,8 +180,8 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
       status: "draf",
       subtotal: 1000000,
       discount_amount: 0,
-      tax_amount: 0,
-      total_amount: 1000000,
+      tax_amount: 110000,
+      total_amount: 1110000,
       items: [],
     };
 
@@ -312,7 +198,8 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
               customer_id: SAMPLE_CUSTOMER_UUID,
               status: "terkirim",
               subtotal: "1000000.00",
-              total_amount: "1000000.00",
+              tax_amount: "110000.00",
+              total_amount: "1110000.00",
               sent_at: "2026-11-23T05:00:00.000Z",
               customers: { name: "Dudi Santoso", phone: "081711223344" },
               quotation_items: [],
@@ -330,37 +217,35 @@ describe("PRO-311: Deteksi peran Customer login M1 & alur API UC-04 / UC-05 (M4-
       assert.equal(waResult.whatsappUrl, "https://wa.me/6281711223344?text=Halo");
     }
 
-    const mockApproveFetch: typeof fetch = async (input, init) => {
-      assert.ok(String(input).endsWith(`/api/m4/v1/quotations/${SAMPLE_QUOTATION_UUID}/approve`));
-      const headers = init?.headers as Record<string, string>;
-      assert.ok(headers.Authorization.startsWith("Bearer "));
+    let waErrorCalls = 0;
+    const missingWaFetch: typeof fetch = async () => {
+      waErrorCalls += 1;
       return new Response(
-        JSON.stringify({
-          success: true,
-          data: {
-            id: SAMPLE_QUOTATION_UUID,
-            quotation_number: "PNW-202611-0010",
-            customer_id: SAMPLE_CUSTOMER_UUID,
-            status: "disetujui",
-            subtotal: "1000000.00",
-            total_amount: "1000000.00",
-            approved_at: "2026-11-23T05:05:00.000Z",
-            customers: { name: "Dudi Santoso", phone: "081711223344" },
-            quotation_items: [],
-          },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: { code: "NOT_FOUND", message: "Penawaran tidak ditemukan." } }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
       );
     };
+    const errRes = await sendQuotationViaWhatsAppApi(sampleQuo, "Rani K.", missingWaFetch);
+    assert.equal(waErrorCalls, 1);
+    assert.equal(errRes.ok, false);
 
-    const approveResult = await approveQuotationByCustomerApi(
-      { ...sampleQuo, status: "terkirim" },
-      mockApproveFetch
-    );
-    assert.equal(approveResult.ok, true);
-    if (approveResult.ok) {
-      assert.equal(approveResult.data.status, "disetujui");
-      assert.equal(approveResult.data.approved_at, "2026-11-23T05:05:00.000Z");
-    }
+    let listCalls = 0;
+    const listForbiddenFetch: typeof fetch = async () => {
+      listCalls += 1;
+      return new Response(JSON.stringify({ success: false }), { status: 403 });
+    };
+    assert.deepEqual(await fetchPartnerQuotationsApi(listForbiddenFetch), []);
+    assert.equal(listCalls, 1);
+
+    let detailCalls = 0;
+    const detailForbiddenFetch: typeof fetch = async () => {
+      detailCalls += 1;
+      return new Response(JSON.stringify({ success: false }), { status: 403 });
+    };
+    assert.equal(await fetchPartnerQuotationDetailApi(SAMPLE_QUOTATION_UUID, detailForbiddenFetch), null);
+    assert.equal(detailCalls, 1);
+
+    assert.equal(resolveQuotationAuthHeader({ allowMockFallback: false, storedToken: null }), undefined);
+    assert.equal(resolveQuotationAuthHeader({ allowMockFallback: false, storedToken: "jwt-123" }), "Bearer jwt-123");
   });
 });

@@ -3,7 +3,6 @@ import { ProductItem } from "@/types/product";
 import { DbQuotationRow, Quotation, QuotationFormItem } from "@/types/quotation";
 import {
   applyQuotationStorageOverlay,
-  approveQuotationInStorage,
   mapDatabaseRowToQuotation,
   markQuotationAsSentInStorage,
   saveNewQuotationToStorage,
@@ -12,7 +11,6 @@ import { getStoredPermintaan, updatePermintaanStatus } from "@/lib/data/mock-per
 import {
   ApiServiceRequestPrefillRow,
   buildCustomerApprovalWhatsAppUrl,
-  buildCustomerToPartnerWhatsAppUrl,
   calculateLinePpnRupiah,
   DEFAULT_QUOTATION_PPN_RATE,
   filterActivePartnerServices,
@@ -25,7 +23,6 @@ import {
 
 export {
   buildCustomerApprovalWhatsAppUrl,
-  buildCustomerToPartnerWhatsAppUrl,
   calculateLinePpnRupiah,
   DEFAULT_QUOTATION_PPN_RATE,
   filterActivePartnerServices,
@@ -48,7 +45,7 @@ export async function fetchServiceRequestPrefill(
   if (!trimmed) return null;
 
   if (isUuid(trimmed)) {
-    const authHeader = resolveQuotationAuthHeader("partner");
+    const authHeader = resolveQuotationAuthHeader();
     try {
       const res = await fetchImpl(`/api/m4/v1/service-requests/${encodeURIComponent(trimmed)}`, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -70,7 +67,7 @@ export async function fetchServiceRequestPrefill(
 export async function fetchPartnerActiveServices(
   fetchImpl: typeof fetch = fetch
 ): Promise<ProductItem[]> {
-  const authHeader = resolveQuotationAuthHeader("partner");
+  const authHeader = resolveQuotationAuthHeader();
   try {
     const res = await fetchImpl("/api/m4/v1/products?type=SERVICE&is_active=true&limit=100", {
       headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -154,7 +151,7 @@ export async function createQuotationViaApi(
     };
 
     try {
-      const authHeader = resolveQuotationAuthHeader("partner");
+      const authHeader = resolveQuotationAuthHeader();
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (authHeader) headers.Authorization = authHeader;
 
@@ -239,7 +236,7 @@ export async function sendQuotationViaWhatsAppApi(
   }
 
   if (isUuid(quotation.id)) {
-    const authHeader = resolveQuotationAuthHeader("partner");
+    const authHeader = resolveQuotationAuthHeader();
     try {
       const res = await fetchImpl(`/api/m4/v1/quotations/${encodeURIComponent(quotation.id)}/send-whatsapp`, {
         method: "POST",
@@ -271,43 +268,10 @@ export async function sendQuotationViaWhatsAppApi(
   return { ok: true, data: { ...quotation, status: "terkirim", sent_at: now, updated_at: now }, whatsappUrl: fallbackWaUrl };
 }
 
-export async function approveQuotationByCustomerApi(
-  quotation: Quotation,
-  fetchImpl: typeof fetch = fetch
-): Promise<QuotationActionResult<Quotation>> {
-  if (isUuid(quotation.id)) {
-    const authHeader = resolveQuotationAuthHeader("customer");
-    try {
-      const res = await fetchImpl(`/api/m4/v1/quotations/${encodeURIComponent(quotation.id)}/approve`, {
-        method: "POST",
-        headers: authHeader ? { Authorization: authHeader } : undefined,
-      });
-      if (res.ok) {
-        const json = await res.json().catch(() => ({}));
-        const updated = json?.data
-          ? mapDatabaseRowToQuotation(json.data as DbQuotationRow)
-          : { ...quotation, status: "disetujui" as const, approved_at: new Date().toISOString() };
-        approveQuotationInStorage(quotation.id, updated.approved_at);
-        return { ok: true, data: updated };
-      }
-
-      const errJson = await res.json().catch(() => ({}));
-      return { ok: false, status: res.status, message: String(errJson?.error?.message || "Gagal menyetujui penawaran.") };
-    } catch {
-      return { ok: false, status: 0, message: "Tidak dapat terhubung ke endpoint persetujuan penawaran." };
-    }
-  }
-
-  const now = new Date().toISOString();
-  approveQuotationInStorage(quotation.id, now);
-  return { ok: true, data: { ...quotation, status: "disetujui", approved_at: now, updated_at: now } };
-}
-
-export async function fetchQuotationsForViewerApi(
-  viewer: "partner" | "customer",
+export async function fetchPartnerQuotationsApi(
   fetchImpl: typeof fetch = fetch
 ): Promise<Quotation[]> {
-  const authHeader = resolveQuotationAuthHeader(viewer);
+  const authHeader = resolveQuotationAuthHeader();
   try {
     const res = await fetchImpl("/api/m4/v1/quotations?limit=100", {
       headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -321,13 +285,12 @@ export async function fetchQuotationsForViewerApi(
   }
 }
 
-export async function fetchQuotationDetailForViewerApi(
+export async function fetchPartnerQuotationDetailApi(
   id: string,
-  viewer: "partner" | "customer",
   fetchImpl: typeof fetch = fetch
 ): Promise<Quotation | null> {
   if (!id) return null;
-  const authHeader = resolveQuotationAuthHeader(viewer);
+  const authHeader = resolveQuotationAuthHeader();
   try {
     const res = await fetchImpl(`/api/m4/v1/quotations/${encodeURIComponent(id)}`, {
       headers: authHeader ? { Authorization: authHeader } : undefined,

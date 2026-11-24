@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, CheckCircle2, Eye } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Quotation } from "@/types/quotation";
 import { formatRupiah } from "@/lib/format";
 import {
@@ -20,15 +20,14 @@ export interface QuotationTableProps {
   totalPages: number;
   startIndex: number;
   endIndex: number;
-  isCustomer?: boolean;
   onPageChange: (page: number) => void;
   onRequestEdit?: (item: Quotation) => void;
   onRequestDelete?: (item: Quotation) => void;
 }
 
 /**
- * Tabel daftar penawaran harga dengan scroll horizontal responsif,
- * nomor permintaan yang terhubung, dan aksi adaptif (Partner Jasa vs Customer M1).
+ * Tabel daftar penawaran harga Partner Jasa dengan scroll horizontal responsif,
+ * nomor permintaan yang terhubung, dan 2 tombol aksi (Ubah & Hapus).
  */
 export function QuotationTable({
   currentData,
@@ -37,7 +36,6 @@ export function QuotationTable({
   totalPages,
   startIndex,
   endIndex,
-  isCustomer = false,
   onPageChange,
   onRequestEdit,
   onRequestDelete,
@@ -165,38 +163,12 @@ export function QuotationTable({
                       )}
                     </td>
 
-                    {/* 8. Aksi (Customer M1: Tinjau & Setujui / Lihat; Partner: Ubah & Hapus) */}
+                    {/* 8. Aksi (Ubah & Hapus dengan Pembatas | Seragam) */}
                     <td
-                      className="w-36 px-3 sm:px-4 py-3.5 whitespace-nowrap text-right"
+                      className="w-28 px-3 sm:px-4 py-3.5 whitespace-nowrap text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {isCustomer ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/penawaran/lihat/${item.id}`);
-                          }}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
-                            canonicalStatus === "SENT"
-                              ? "bg-[#19376d] hover:bg-[#122852] text-white shadow-2xs"
-                              : "bg-[#eef4ff] hover:bg-blue-100 text-[#19376d]"
-                          }`}
-                        >
-                          {canonicalStatus === "SENT" ? (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Tinjau & Setujui</span>
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>Lihat detail</span>
-                            </>
-                          )}
-                        </button>
-                      ) : (
-                        <div className="inline-flex items-center justify-end gap-1.5 shrink-0">
+                      <div className="inline-flex items-center justify-end gap-1.5 shrink-0">
                         {isDraft ? (
                           <>
                             <button
@@ -291,7 +263,6 @@ export function QuotationTable({
                           </>
                         )}
                       </div>
-                      )}
                     </td>
                   </tr>
                 );
