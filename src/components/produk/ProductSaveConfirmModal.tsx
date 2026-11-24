@@ -31,7 +31,11 @@ export function ProductSaveConfirmModal({
       open={open}
       title={isEdit ? "Simpan perubahan item katalog?" : "Simpan item katalog baru?"}
       subtitle="Konfirmasi penyimpanan katalog"
-      description="Item yang disimpan akan langsung aktif dan dapat dipilih saat menyusun dokumen penawaran maupun invoice."
+      description={
+        form.status === "Aktif"
+          ? "Item yang disimpan berstatus Aktif dan dapat dipilih saat menyusun dokumen penawaran maupun invoice."
+          : "Item ini akan disimpan dalam status Nonaktif dan disembunyikan dari pilihan penawaran maupun invoice."
+      }
       confirmLabel="Ya, simpan"
       variant="primary"
       onConfirm={onConfirm}
