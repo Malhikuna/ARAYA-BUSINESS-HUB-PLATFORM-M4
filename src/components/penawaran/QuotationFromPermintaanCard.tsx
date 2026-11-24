@@ -16,6 +16,7 @@ export function QuotationFromPermintaanCard({
   permintaan,
 }: QuotationFromPermintaanCardProps) {
   const waUrl = buildWhatsAppUrl(permintaan.whatsapp);
+  const displayCode = permintaan.displayCode || permintaan.id;
   const contactName = permintaan.contactPerson || permintaan.customerName;
   const fallbackInitials = permintaan.customerName
     .replace(/^(PT|CV|UD)\s+/i, "")
@@ -34,7 +35,7 @@ export function QuotationFromPermintaanCard({
         </div>
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e0f2fe] text-[#0284c7]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#0284c7]" />
-          <span>Permintaan aktif #{permintaan.id}</span>
+          <span>Permintaan aktif #{displayCode}</span>
         </span>
       </div>
 
@@ -43,7 +44,7 @@ export function QuotationFromPermintaanCard({
           <div>
             <span className="text-slate-400 text-[11px] block mb-1">Judul permintaan</span>
             <span className="font-bold text-slate-900 text-sm">
-              {permintaan.id} | {permintaan.title}
+              {displayCode} | {permintaan.title}
             </span>
           </div>
 

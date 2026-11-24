@@ -44,6 +44,7 @@ export function matchesPermintaanQuery(item: PermintaanItem, query: string): boo
 
   const textParts = [
     item.id,
+    item.displayCode || "",
     item.title,
     item.customerName,
     item.serviceName,
@@ -54,7 +55,7 @@ export function matchesPermintaanQuery(item: PermintaanItem, query: string): boo
     item.quotationNumber || "",
   ];
   const haystack = textParts.join(" ").toLowerCase();
-  const compactHaystack = normalizeCode(`${item.id} ${item.quotationNumber || ""} ${item.serviceCode}`);
+  const compactHaystack = normalizeCode(`${item.id} ${item.displayCode || ""} ${item.quotationNumber || ""} ${item.serviceCode}`);
   const digitsHaystack = item.whatsapp.replace(/\D/g, "");
 
   return tokens.every((token) => tokenMatchesText(token, haystack, compactHaystack, digitsHaystack));
