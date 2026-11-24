@@ -8,7 +8,6 @@ import {
   Building2,
   CheckCircle2,
   Clock,
-  CreditCard,
   FileText,
   Lock,
   Play,
@@ -18,22 +17,18 @@ import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
-import { CustomerPortalDevToggle } from "@/components/common/CustomerPortalDevToggle";
 import { InvoiceStatusBadge } from "@/components/invoice/InvoiceStatusBadge";
 import { OrderProgressStepper, OrderStatusBadge } from "@/components/order/OrderProgressStepper";
 import { OrderRecord, OrderStatus } from "@/types/invoice-order";
 import { formatRupiah } from "@/lib/format";
-import { useCustomerPortalMode } from "@/lib/auth/customer-portal";
 import { useDevRole } from "@/lib/auth/dev-role";
 import {
-  canCustomerViewRecord,
   evaluateOrderProcessGuard,
   formatDateTimeWib,
   getOrderStatusLabel,
-  normalizeInvoiceStatus,
 } from "@/lib/invoice-order-helpers";
 import {
-  fetchOrdersForViewerApi,
+  fetchPartnerOrdersApi,
   updatePartnerOrderStatusApi,
 } from "@/lib/data/invoice-order-api";
 import { subscribeInvoiceOrderStore } from "@/lib/data/mock-invoices-orders";
@@ -41,8 +36,6 @@ import { subscribeInvoiceOrderStore } from "@/lib/data/mock-invoices-orders";
 function DetailOrderContent() {
   const params = useParams<{ id: string }>();
   const orderId = params?.id ? decodeURIComponent(params.id) : "";
-  const { isCustomer, customerUserId, isDevPreviewAvailable, toggleCustomerPreview } =
-    useCustomerPortalMode();
   const { profile } = useDevRole();
 
   const [order, setOrder] = useState<OrderRecord | null>(null);
@@ -58,7 +51,7 @@ function DetailOrderContent() {
   useEffect(() => {
     let active = true;
     const load = () => {
-      fetchOrdersForViewerApi(isCustomer, customerUserId).then((list) => {
+      fetchPartnerOrdersApi().then((list) => {
         if (!active) return;
         const found =
           list.find(
@@ -66,11 +59,7 @@ function DetailOrderContent() {
               item.id.toLowerCase() === orderId.toLowerCase() ||
               item.order_number.toLowerCase() === orderId.toLowerCase()
           ) || null;
-        const allowed =
-          found && (!isCustomer || canCustomerViewRecord(found.customer_user_id, customerUserId))
-            ? found
-            : null;
-        setOrder(allowed);
+        setOrder(found);
         setIsLoaded(true);
       });
     };
@@ -80,13 +69,13 @@ function DetailOrderContent() {
       active = false;
       unsub();
     };
-  }, [orderId, isCustomer, customerUserId]);
+  }, [orderId]);
 
   if (!isLoaded) {
     return (
       <div className="bg-white rounded-2xl p-12 border border-slate-100 shadow-xs text-center max-w-md mx-auto my-12 space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#19376d] border-t-transparent animate-spin mx-auto" />
-        <p className="text-xs text-slate-500 font-medium">Memuat detail pesanan...</p>
+        <p className="text-xs text-slate-500 font-medium">Memuat detail order...</p>
       </div>
     );
   }
@@ -98,23 +87,22 @@ function DetailOrderContent() {
           <AlertCircle className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-base font-heading font-bold text-slate-900">Pesanan tidak ditemukan</h2>
+          <h2 className="text-base font-heading font-bold text-slate-900">Order tidak ditemukan</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Pesanan tidak tersedia atau bukan milik akun Anda (UC-09 | BR-10).
+            Data order tidak tersedia di sistem.
           </p>
         </div>
         <Link
           href="/order"
           className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
         >
-          {isCustomer ? "Kembali ke Pesanan saya" : "Kembali ke daftar order"}
+          Kembali ke daftar order
         </Link>
       </div>
     );
   }
 
   const guard = evaluateOrderProcessGuard(order);
-  const isInvoicePaid = normalizeInvoiceStatus(order.invoice_status) === "PAID";
 
   const handleConfirmUpdate = async () => {
     if (!confirmNextStatus || isUpdating) return;
@@ -156,21 +144,13 @@ function DetailOrderContent() {
 
       <Breadcrumb
         items={[
-          { label: isCustomer ? "Pesanan saya" : "Order", href: "/order" },
+          { label: "Order", href: "/order" },
           { label: order.order_number },
         ]}
         separator="/"
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <BackLink
-          href="/order"
-          label={isCustomer ? "Kembali ke Pesanan saya" : "Kembali ke daftar order"}
-        />
-        {isDevPreviewAvailable && (
-          <CustomerPortalDevToggle isCustomer={isCustomer} onToggle={toggleCustomerPreview} />
-        )}
-      </div>
+      <BackLink href="/order" label="Kembali ke daftar order" />
 
       {/* Header Order & Aksi Partner (Guard U-01 & BR-09) */}
       <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs flex flex-col @2xl:flex-row @2xl:items-center justify-between gap-4">
@@ -182,22 +162,12 @@ function DetailOrderContent() {
             <OrderStatusBadge status={order.status} />
           </div>
           <p className="text-xs text-slate-500">
-            {order.title} | {isCustomer ? order.partner_name : order.customer_name}
+            {order.title} | {order.customer_name}
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {isCustomer ? (
-            !isInvoicePaid ? (
-              <Link
-                href={`/invoice/lihat/${encodeURIComponent(order.invoice_id)}`}
-                className="inline-flex items-center justify-center gap-2 px-5 h-10 rounded-xl bg-[#19376d] hover:bg-[#122852] text-white text-xs font-bold shadow-xs transition-colors"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Bayar invoice {order.invoice_number}</span>
-              </Link>
-            ) : null
-          ) : guard.isFinal ? (
+          {guard.isFinal ? (
             <button
               type="button"
               disabled
@@ -242,7 +212,7 @@ function DetailOrderContent() {
       </div>
 
       {/* Peringatan Guard U-01 / Final BR-09 di UI Partner */}
-      {!isCustomer && guard.blockedByUnpaidInvoice && (
+      {guard.blockedByUnpaidInvoice && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-950">
           <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
@@ -252,7 +222,7 @@ function DetailOrderContent() {
         </div>
       )}
 
-      {!isCustomer && guard.isFinal && (
+      {guard.isFinal && (
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-slate-700">
           <Lock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
           <p>{guard.reason}</p>
@@ -386,7 +356,7 @@ function DetailOrderContent() {
 
 export default function DetailOrderPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-xs text-slate-500 text-center">Memuat pesanan...</div>}>
+    <Suspense fallback={<div className="p-10 text-xs text-slate-500 text-center">Memuat order...</div>}>
       <DetailOrderContent />
     </Suspense>
   );

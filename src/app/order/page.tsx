@@ -4,22 +4,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
-import { CustomerPortalDevToggle } from "@/components/common/CustomerPortalDevToggle";
-import { CustomerOrderList } from "@/components/order/CustomerOrderList";
 import { PartnerOrderTable } from "@/components/order/PartnerOrderTable";
 import { OrderFilterStatus, OrderRecord, OrderStatus } from "@/types/invoice-order";
-import { useCustomerPortalMode } from "@/lib/auth/customer-portal";
 import { useDevRole } from "@/lib/auth/dev-role";
 import { getOrderStatusLabel, normalizeOrderStatus } from "@/lib/invoice-order-helpers";
 import {
-  fetchOrdersForViewerApi,
+  fetchPartnerOrdersApi,
   updatePartnerOrderStatusApi,
 } from "@/lib/data/invoice-order-api";
 import { subscribeInvoiceOrderStore } from "@/lib/data/mock-invoices-orders";
 
 export default function OrderPage() {
-  const { isCustomer, customerUserId, isDevPreviewAvailable, toggleCustomerPreview } =
-    useCustomerPortalMode();
   const { profile } = useDevRole();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,7 +33,7 @@ export default function OrderPage() {
   useEffect(() => {
     let active = true;
     const load = () => {
-      fetchOrdersForViewerApi(isCustomer, customerUserId).then((list) => {
+      fetchPartnerOrdersApi().then((list) => {
         if (active) setOrders(list);
       });
     };
@@ -48,7 +43,7 @@ export default function OrderPage() {
       active = false;
       unsub();
     };
-  }, [isCustomer, customerUserId]);
+  }, []);
 
   const filteredOrders = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -103,46 +98,27 @@ export default function OrderPage() {
         onDismiss={() => setToast((prev) => ({ ...prev, status: "hidden" }))}
       />
 
-      <Breadcrumb items={[{ label: isCustomer ? "Pesanan saya" : "Order" }]} />
+      <Breadcrumb items={[{ label: "Order" }]} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight text-slate-900">
-            {isCustomer ? "Pesanan saya" : "Daftar order"}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            {isCustomer
-              ? "Pantau progres pesanan Anda (Baru | Diproses | Selesai) secara langsung melalui akun M1."
-              : "Kelola progres pengerjaan pesanan dengan validasi pembayaran lunas (Aturan U-01)."}
-          </p>
-        </div>
-
-        {isDevPreviewAvailable && (
-          <CustomerPortalDevToggle isCustomer={isCustomer} onToggle={toggleCustomerPreview} />
-        )}
+      <div>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight text-slate-900">
+          Daftar order
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          Kelola progres pengerjaan pesanan (Baru | Diproses | Selesai) dengan validasi pembayaran lunas (Aturan U-01).
+        </p>
       </div>
 
-      {isCustomer ? (
-        <CustomerOrderList
-          orders={orders}
-          filteredOrders={filteredOrders}
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
-          onSearchChange={setSearchTerm}
-          onStatusFilterChange={setStatusFilter}
-        />
-      ) : (
-        <PartnerOrderTable
-          orders={orders}
-          filteredOrders={filteredOrders}
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
-          updatingOrderId={updatingOrderId}
-          onSearchChange={setSearchTerm}
-          onStatusFilterChange={setStatusFilter}
-          onRequestStatusChange={(order, nextStatus) => setPendingAction({ order, nextStatus })}
-        />
-      )}
+      <PartnerOrderTable
+        orders={orders}
+        filteredOrders={filteredOrders}
+        searchTerm={searchTerm}
+        statusFilter={statusFilter}
+        updatingOrderId={updatingOrderId}
+        onSearchChange={setSearchTerm}
+        onStatusFilterChange={setStatusFilter}
+        onRequestStatusChange={(order, nextStatus) => setPendingAction({ order, nextStatus })}
+      />
 
       <ConfirmationModal
         open={Boolean(pendingAction)}
@@ -154,7 +130,7 @@ export default function OrderPage() {
         subtitle="Konfirmasi pembaruan progres order (UC-08)"
         description={
           pendingAction?.nextStatus === "diproses"
-            ? "Status order akan berubah dari Baru menjadi Diproses dan waktu perubahan tercatat untuk dipantau Customer."
+            ? "Status order akan berubah dari Baru menjadi Diproses dan waktu perubahan tercatat secara otomatis."
             : "Status Selesai bersifat final (BR-09). Setelah diselesaikan, status order tidak dapat diubah kembali."
         }
         confirmLabel={
@@ -177,7 +153,7 @@ export default function OrderPage() {
               </span>
             </div>
             <div className="flex justify-between gap-2">
-              <span className="text-slate-500">Customer</span>
+              <span className="text-slate-500">Pelanggan</span>
               <span className="font-semibold text-slate-800">
                 {pendingAction.order.customer_name}
               </span>

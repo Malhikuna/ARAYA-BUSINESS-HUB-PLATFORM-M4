@@ -3,83 +3,50 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  AlertCircle,
-  CheckCircle2,
-  CreditCard,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, RefreshCw, ShieldCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { BackLink } from "@/components/common/BackLink";
-import { ToastNotification, ToastStatus } from "@/components/common/ToastNotification";
-import { CustomerPortalDevToggle } from "@/components/common/CustomerPortalDevToggle";
 import { InvoiceStatusBadge } from "@/components/invoice/InvoiceStatusBadge";
 import { InvoiceDetailBody } from "@/components/invoice/InvoiceDetailBody";
-import { MidtransSnapModal } from "@/components/invoice/MidtransSnapModal";
 import { InvoiceRecord } from "@/types/invoice-order";
 import { formatRupiah } from "@/lib/format";
-import { useCustomerPortalMode } from "@/lib/auth/customer-portal";
 import {
-  canCustomerViewRecord,
   formatDateId,
   formatDateTimeWib,
   normalizeInvoiceStatus,
 } from "@/lib/invoice-order-helpers";
-import {
-  completeSandboxInvoicePayment,
-  fetchInvoicesForViewerApi,
-  initiateMidtransPaymentApi,
-} from "@/lib/data/invoice-order-api";
+import { fetchPartnerInvoicesApi } from "@/lib/data/invoice-order-api";
 import { subscribeInvoiceOrderStore } from "@/lib/data/mock-invoices-orders";
 
 function DetailInvoiceContent() {
   const params = useParams<{ id: string }>();
   const invoiceId = params?.id ? decodeURIComponent(params.id) : "";
-  const { isCustomer, customerUserId, isDevPreviewAvailable, toggleCustomerPreview } =
-    useCustomerPortalMode();
 
   const [invoice, setInvoice] = useState<InvoiceRecord | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
-  const [snapModalOpen, setSnapModalOpen] = useState(false);
-  const [awaitingWebhook, setAwaitingWebhook] = useState(false);
-  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
-  const [toast, setToast] = useState<{
-    status: ToastStatus;
-    title: string;
-    description: string;
-  }>({ status: "hidden", title: "", description: "" });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchLatestInvoice = useCallback(async () => {
-    setIsRefreshingStatus(true);
+    setIsRefreshing(true);
     try {
-      const list = await fetchInvoicesForViewerApi(isCustomer, customerUserId);
+      const list = await fetchPartnerInvoicesApi();
       const found =
         list.find(
           (item) =>
             item.id.toLowerCase() === invoiceId.toLowerCase() ||
             item.invoice_number.toLowerCase() === invoiceId.toLowerCase()
         ) || null;
-      const allowed =
-        found && (!isCustomer || canCustomerViewRecord(found.customer_user_id, customerUserId))
-          ? found
-          : null;
-      setInvoice(allowed);
+      setInvoice(found);
       setIsLoaded(true);
-      if (allowed && normalizeInvoiceStatus(allowed.status) === "PAID") {
-        setAwaitingWebhook(false);
-      }
-      return allowed;
     } finally {
-      setIsRefreshingStatus(false);
+      setIsRefreshing(false);
     }
-  }, [invoiceId, isCustomer, customerUserId]);
+  }, [invoiceId]);
 
   useEffect(() => {
     let active = true;
     const load = () => {
-      fetchInvoicesForViewerApi(isCustomer, customerUserId).then((list) => {
+      fetchPartnerInvoicesApi().then((list) => {
         if (!active) return;
         const found =
           list.find(
@@ -87,11 +54,7 @@ function DetailInvoiceContent() {
               item.id.toLowerCase() === invoiceId.toLowerCase() ||
               item.invoice_number.toLowerCase() === invoiceId.toLowerCase()
           ) || null;
-        const allowed =
-          found && (!isCustomer || canCustomerViewRecord(found.customer_user_id, customerUserId))
-            ? found
-            : null;
-        setInvoice(allowed);
+        setInvoice(found);
         setIsLoaded(true);
       });
     };
@@ -101,7 +64,7 @@ function DetailInvoiceContent() {
       active = false;
       unsub();
     };
-  }, [invoiceId, isCustomer, customerUserId]);
+  }, [invoiceId]);
 
   if (!isLoaded) {
     return (
@@ -121,14 +84,14 @@ function DetailInvoiceContent() {
         <div>
           <h2 className="text-base font-heading font-bold text-slate-900">Invoice tidak ditemukan</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Invoice tidak tersedia atau bukan milik akun Anda (BR-10).
+            Data invoice tidak tersedia di sistem.
           </p>
         </div>
         <Link
           href="/invoice"
           className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-[#19376d] text-white text-xs font-semibold hover:bg-[#122852] transition-colors"
         >
-          {isCustomer ? "Kembali ke Invoice saya" : "Kembali ke daftar invoice"}
+          Kembali ke daftar invoice
         </Link>
       </div>
     );
@@ -136,116 +99,30 @@ function DetailInvoiceContent() {
 
   const isPaid = normalizeInvoiceStatus(invoice.status) === "PAID";
 
-  const handleInitiatePayment = async () => {
-    if (isPaying || isPaid) return;
-    setIsPaying(true);
-    try {
-      const res = await initiateMidtransPaymentApi(invoice);
-      if (res.mode === "error") {
-        setToast({ status: "visible", title: "Gagal memulai pembayaran", description: res.message });
-        return;
-      }
-      if (res.mode === "snap" && typeof window !== "undefined" && window.snap?.pay) {
-        window.snap.pay(res.snapToken, {
-          onSuccess: () => {
-            void fetchLatestInvoice().then((latest) => {
-              if (latest && normalizeInvoiceStatus(latest.status) === "PAID") {
-                setToast({
-                  status: "visible",
-                  title: "Pembayaran terkonfirmasi",
-                  description: `Invoice ${invoice.invoice_number} telah berstatus Lunas dari server.`,
-                });
-              } else {
-                setAwaitingWebhook(true);
-                setToast({
-                  status: "visible",
-                  title: "Menunggu konfirmasi webhook",
-                  description: `Pembayaran ${invoice.invoice_number} sedang diverifikasi Midtrans. Klik Perbarui status untuk mengecek ulang.`,
-                });
-              }
-            });
-          },
-          onPending: () => {
-            setAwaitingWebhook(true);
-            setToast({
-              status: "visible",
-              title: "Menunggu pembayaran",
-              description: `Selesaikan pembayaran ${invoice.invoice_number} lalu klik Perbarui status.`,
-            });
-          },
-          onError: () => {
-            setToast({
-              status: "visible",
-              title: "Pembayaran gagal. Silakan coba lagi.",
-              description: "Status invoice tetap Belum lunas (BR-08).",
-            });
-          },
-        });
-        return;
-      }
-      if (res.mode === "snap" && res.redirectUrl) {
-        setAwaitingWebhook(true);
-        window.open(res.redirectUrl, "_blank", "noopener,noreferrer");
-        return;
-      }
-      if (res.mode === "sandbox_fallback") {
-        setSnapModalOpen(true);
-      }
-    } finally {
-      setIsPaying(false);
-    }
-  };
-
-  const handleConfirmSandboxPaid = (method: string) => {
-    const updated = completeSandboxInvoicePayment(invoice.id, method);
-    setSnapModalOpen(false);
-    if (updated) {
-      setInvoice(updated);
-      setToast({
-        status: "visible",
-        title: "Pembayaran berhasil",
-        description: `Invoice ${updated.invoice_number} otomatis berstatus Lunas via ${method}.`,
-      });
-    }
-  };
-
-  const handleSimulateFailed = () => {
-    setSnapModalOpen(false);
-    setToast({
-      status: "visible",
-      title: "Pembayaran gagal. Silakan coba lagi.",
-      description: `Status ${invoice.invoice_number} tetap Belum lunas (BR-08).`,
-    });
-  };
-
   return (
     <div className="space-y-6 pb-12">
-      <ToastNotification
-        status={toast.status}
-        title={toast.title}
-        description={toast.description}
-        onDismiss={() => setToast((prev) => ({ ...prev, status: "hidden" }))}
-      />
-
       <Breadcrumb
         items={[
-          { label: isCustomer ? "Invoice saya" : "Invoice", href: "/invoice" },
+          { label: "Invoice", href: "/invoice" },
           { label: invoice.invoice_number },
         ]}
         separator="/"
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <BackLink
-          href="/invoice"
-          label={isCustomer ? "Kembali ke Invoice saya" : "Kembali ke daftar invoice"}
-        />
-        {isDevPreviewAvailable && (
-          <CustomerPortalDevToggle isCustomer={isCustomer} onToggle={toggleCustomerPreview} />
-        )}
+        <BackLink href="/invoice" label="Kembali ke daftar invoice" />
+        <button
+          type="button"
+          disabled={isRefreshing}
+          onClick={() => void fetchLatestInvoice()}
+          className="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-[#0e7490] ${isRefreshing ? "animate-spin" : ""}`} />
+          <span>{isRefreshing ? "Memeriksa..." : "Perbarui status"}</span>
+        </button>
       </div>
 
-      {/* Hero Header Card (responsif, tanpa overlay yang menutupi konten) */}
+      {/* Hero Header Card */}
       <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs flex flex-col @2xl:flex-row @2xl:items-center justify-between gap-4">
         <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -255,29 +132,15 @@ function DetailInvoiceContent() {
             <InvoiceStatusBadge status={invoice.status} />
           </div>
           <p className="text-xs text-slate-500">
-            {invoice.title} | {invoice.partner_name}
+            {invoice.title} | {invoice.customer_name}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-[#eef4ff] rounded-xl px-4 py-2.5 text-right">
-            <span className="text-[11px] text-slate-500 block">Total tagihan</span>
-            <span className="text-lg sm:text-xl font-heading font-bold text-[#19376d]">
-              {formatRupiah(invoice.total_amount)}
-            </span>
-          </div>
-
-          {isCustomer && !isPaid && (
-            <button
-              type="button"
-              disabled={isPaying}
-              onClick={() => void handleInitiatePayment()}
-              className="inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-[#19376d] hover:bg-[#122852] disabled:opacity-60 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>{isPaying ? "Membuka Midtrans..." : "Bayar sekarang"}</span>
-            </button>
-          )}
+        <div className="bg-[#eef4ff] rounded-xl px-4 py-2.5 text-right shrink-0">
+          <span className="text-[11px] text-slate-500 block">Total tagihan</span>
+          <span className="text-lg sm:text-xl font-heading font-bold text-[#19376d]">
+            {formatRupiah(invoice.total_amount)}
+          </span>
         </div>
       </div>
 
@@ -293,50 +156,19 @@ function DetailInvoiceContent() {
             </p>
           </div>
         </div>
-      ) : awaitingWebhook ? (
-        <div
-          role="status"
-          className="bg-[#eaf8fe] border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-sky-950"
-        >
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="w-4 h-4 text-[#0e7490] shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              <strong>Menunggu konfirmasi webhook Midtrans.</strong> Status invoice akan diperbarui
-              otomatis menjadi Lunas dari server begitu notifikasi settlement valid diterima (BR-08).
-            </p>
-          </div>
-          <button
-            type="button"
-            disabled={isRefreshingStatus}
-            onClick={() => void fetchLatestInvoice()}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 text-[#0c4a6e] font-semibold cursor-pointer shrink-0 disabled:opacity-60"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStatus ? "animate-spin" : ""}`} />
-            <span>{isRefreshingStatus ? "Memeriksa..." : "Perbarui status"}</span>
-          </button>
-        </div>
       ) : (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900">
           <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            Invoice belum dilunasi. Selesaikan pembayaran sebelum{" "}
-            <strong>{formatDateId(invoice.due_date)}</strong> agar Partner dapat segera memproses
-            pesanan Anda (Aturan U-01).
+            Invoice belum dilunasi (jatuh tempo <strong>{formatDateId(invoice.due_date)}</strong>).
+            Status akan berubah menjadi Lunas secara otomatis setelah notifikasi webhook Midtrans
+            valid diterima (BR-08), lalu order terkait dapat diproses (Aturan U-01).
           </p>
         </div>
       )}
 
       {/* Rincian Partner, Dokumen & Item Tagihan */}
       <InvoiceDetailBody invoice={invoice} />
-
-      <MidtransSnapModal
-        open={snapModalOpen}
-        invoice={invoice}
-        isProcessing={false}
-        onConfirmPaid={handleConfirmSandboxPaid}
-        onSimulateFailed={handleSimulateFailed}
-        onClose={() => setSnapModalOpen(false)}
-      />
     </div>
   );
 }

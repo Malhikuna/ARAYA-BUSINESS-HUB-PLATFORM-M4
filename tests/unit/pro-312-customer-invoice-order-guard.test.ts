@@ -1,24 +1,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CUSTOMER_PORTAL_MENUS,
-  canCustomerViewRecord,
   evaluateOrderProcessGuard,
   getInvoiceStatusLabel,
   getOrderStatusLabel,
   normalizeInvoiceStatus,
   normalizeOrderStatus,
 } from "@/lib/invoice-order-helpers";
-import { resolveCustomerPortalFromSnapshot } from "@/lib/auth/customer-portal";
 import {
-  initiateMidtransPaymentApi,
   mapApiInvoiceRowToRecord,
   mapApiOrderRowToRecord,
   updatePartnerOrderStatusApi,
 } from "@/lib/data/invoice-order-api";
-import { initialInvoices, initialOrders } from "@/lib/data/mock-invoices-orders";
+import { initialOrders } from "@/lib/data/mock-invoices-orders";
 
-describe("PRO-312: Guard U-01, BR-09, BR-10 & Menu Sidebar Customer M1", () => {
+describe("PRO-312: Guard U-01, BR-09 & Status Label Invoice/Order Partner", () => {
   it("Guard U-01 menonaktifkan tombol Proses order jika Invoice terkait belum Lunas", () => {
     const unpaidOrder = initialOrders[0];
     assert.equal(normalizeInvoiceStatus(unpaidOrder.invoice_status), "UNPAID");
@@ -49,78 +45,14 @@ describe("PRO-312: Guard U-01, BR-09, BR-10 & Menu Sidebar Customer M1", () => {
     assert.ok(guardSelesai.reason?.includes("BR-09"));
   });
 
-  it("BR-10 mengisolasi data Invoice & Pesanan berdasarkan akun Customer login M1 tanpa Guest Tracking", () => {
-    assert.equal(canCustomerViewRecord("user-a", "user-a"), true);
-    assert.equal(canCustomerViewRecord("user-a", "user-b"), false);
-    assert.equal(canCustomerViewRecord("user-a", null), false);
+  it("menormalisasi label status Invoice & Order secara konsisten", () => {
     assert.equal(getInvoiceStatusLabel("belum_lunas"), "Belum lunas");
     assert.equal(getInvoiceStatusLabel("PAID"), "Lunas");
     assert.equal(getOrderStatusLabel(normalizeOrderStatus("diproses")), "Diproses");
   });
-
-  it("Sidebar Customer M1 menampilkan urutan PRD: Penawaran saya, Invoice saya, Pesanan saya (tanpa Katalog)", () => {
-    assert.deepEqual(
-      CUSTOMER_PORTAL_MENUS.map((m) => m.name),
-      ["Penawaran saya", "Invoice saya", "Pesanan saya"]
-    );
-    assert.equal(
-      CUSTOMER_PORTAL_MENUS.some((m) => String(m.href) === "/produk"),
-      false
-    );
-
-    const sessionCustomer = resolveCustomerPortalFromSnapshot({
-      isDevSwitcherEnabled: false,
-      devActiveRole: null,
-      authSessionRole: "Customer",
-      authSessionUserId: "cust-123",
-      authSessionName: "Budi Santoso",
-      customerPreviewEnabled: false,
-    });
-    assert.equal(sessionCustomer.isCustomer, true);
-    assert.equal(sessionCustomer.customerUserId, "cust-123");
-  });
 });
 
-describe("PRO-312: API Client Midtrans Snap (UC-07) & Guard U-01 PATCH Order Status (UC-08)", () => {
-  it("initiateMidtransPaymentApi mengembalikan snap_token dari POST /api/m4/v1/invoices/[id]/payments dan menolak invoice Lunas", async () => {
-    const unpaidInv = initialInvoices[0];
-    const paidInv = initialInvoices[1];
-
-    const paidResult = await initiateMidtransPaymentApi(paidInv);
-    assert.equal(paidResult.mode, "error");
-
-    const mockFetch: typeof fetch = async (input) => {
-      assert.ok(String(input).includes(`/api/m4/v1/invoices/${unpaidInv.id}/payments`));
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: { snap_token: "snap-token-live-001", redirect_url: "https://app.sandbox.midtrans.com/snap/v2/vtweb/abc" },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    };
-
-    const liveResult = await initiateMidtransPaymentApi(unpaidInv, mockFetch);
-    assert.equal(liveResult.mode, "snap");
-    if (liveResult.mode === "snap") {
-      assert.equal(liveResult.snapToken, "snap-token-live-001");
-    }
-
-    const notFoundFetch: typeof fetch = async () => new Response("Not Found", { status: 404 });
-    const prodBlocked = await initiateMidtransPaymentApi(unpaidInv, notFoundFetch, { allowDevFallback: false });
-    assert.equal(prodBlocked.mode, "error");
-    if (prodBlocked.mode === "error") assert.equal(prodBlocked.status, 404);
-
-    const networkErrFetch: typeof fetch = async () => {
-      throw new Error("ECONNREFUSED");
-    };
-    const prodNetBlocked = await initiateMidtransPaymentApi(unpaidInv, networkErrFetch, { allowDevFallback: false });
-    assert.equal(prodNetBlocked.mode, "error");
-
-    const devFallback = await initiateMidtransPaymentApi(unpaidInv, notFoundFetch, { allowDevFallback: true });
-    assert.equal(devFallback.mode, "sandbox_fallback");
-  });
-
+describe("PRO-312: Guard U-01 PATCH Order Status (UC-08) & Defensive Mappers", () => {
   it("updatePartnerOrderStatusApi memblokir panggilan API bila Invoice belum Lunas (U-01) dan menolak mutasi mock lokal di production (!isDev)", async () => {
     let fetchCalled = false;
     const spyFetch: typeof fetch = async (input, init) => {
@@ -179,7 +111,6 @@ describe("PRO-312: API Client Midtrans Snap (UC-07) & Guard U-01 PATCH Order Sta
     assert.equal(mappedInv.tax_amount, 715000);
     assert.equal(mappedInv.total_amount, 7215000);
     assert.equal(mappedInv.tax_rate, 11);
-    assert.equal(mappedInv.customer_user_id, "user-17");
     assert.equal(mappedInv.partner_name, "Araya Konsultan");
     assert.equal(mappedInv.items[0].name, "Audit Keuangan");
     assert.equal(Number.isNaN(mappedInv.total_amount), false);
@@ -196,7 +127,6 @@ describe("PRO-312: API Client Midtrans Snap (UC-07) & Guard U-01 PATCH Order Sta
     assert.equal(mappedOrd.status, "diproses");
     assert.equal(mappedOrd.invoice_status, "lunas");
     assert.equal(mappedOrd.total_amount, 7215000);
-    assert.equal(mappedOrd.customer_user_id, "user-17");
     assert.ok(mappedOrd.timeline.length >= 1);
   });
 });

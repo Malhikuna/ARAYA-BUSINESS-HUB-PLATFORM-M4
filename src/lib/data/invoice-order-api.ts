@@ -1,13 +1,8 @@
 import { InvoiceRecord, OrderRecord, OrderStatus } from "@/types/invoice-order";
-import {
-  canCustomerViewRecord,
-  evaluateOrderProcessGuard,
-  normalizeInvoiceStatus,
-} from "@/lib/invoice-order-helpers";
+import { evaluateOrderProcessGuard } from "@/lib/invoice-order-helpers";
 import {
   getStoredInvoices,
   getStoredOrders,
-  markInvoicePaidInStore,
   updateOrderStatusInStore,
 } from "@/lib/data/mock-invoices-orders";
 import {
@@ -25,7 +20,7 @@ export function isLocalDevFallbackEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_ROLE_SWITCHER === "true";
 }
 
-function resolveAuthHeader(mode: "customer" | "partner", allowDevFallback: boolean): string | undefined {
+function resolvePartnerAuthHeader(allowDevFallback: boolean): string | undefined {
   if (typeof window !== "undefined") {
     try {
       const stored = localStorage.getItem("araya_access_token");
@@ -34,22 +29,17 @@ function resolveAuthHeader(mode: "customer" | "partner", allowDevFallback: boole
       /* ignore */
     }
   }
-  if (!allowDevFallback) return undefined;
-  const fallback = mode === "customer" ? "mock-customer-token" : "mock-partner-token";
-  return `Bearer ${fallback}`;
+  return allowDevFallback ? "Bearer mock-partner-token" : undefined;
 }
 
-export async function fetchInvoicesForViewerApi(
-  isCustomer: boolean,
-  customerUserId: string,
+export async function fetchPartnerInvoicesApi(
   fetchImpl: typeof fetch = fetch,
   options?: ApiFallbackOptions
 ): Promise<InvoiceRecord[]> {
   const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
-  const endpoint = isCustomer ? "/api/m4/v1/me/invoices?limit=100" : "/api/m4/v1/invoices?limit=100";
-  const authHeader = resolveAuthHeader(isCustomer ? "customer" : "partner", allowDevFallback);
+  const authHeader = resolvePartnerAuthHeader(allowDevFallback);
   try {
-    const res = await fetchImpl(endpoint, {
+    const res = await fetchImpl("/api/m4/v1/invoices?limit=100", {
       headers: authHeader ? { Authorization: authHeader } : undefined,
     });
     if (res.ok) {
@@ -66,23 +56,17 @@ export async function fetchInvoicesForViewerApi(
     if (!allowDevFallback) return [];
   }
 
-  const stored = getStoredInvoices();
-  return isCustomer
-    ? stored.filter((inv) => canCustomerViewRecord(inv.customer_user_id, customerUserId))
-    : stored;
+  return getStoredInvoices();
 }
 
-export async function fetchOrdersForViewerApi(
-  isCustomer: boolean,
-  customerUserId: string,
+export async function fetchPartnerOrdersApi(
   fetchImpl: typeof fetch = fetch,
   options?: ApiFallbackOptions
 ): Promise<OrderRecord[]> {
   const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
-  const endpoint = isCustomer ? "/api/m4/v1/me/orders?limit=100" : "/api/m4/v1/orders?limit=100";
-  const authHeader = resolveAuthHeader(isCustomer ? "customer" : "partner", allowDevFallback);
+  const authHeader = resolvePartnerAuthHeader(allowDevFallback);
   try {
-    const res = await fetchImpl(endpoint, {
+    const res = await fetchImpl("/api/m4/v1/orders?limit=100", {
       headers: authHeader ? { Authorization: authHeader } : undefined,
     });
     if (res.ok) {
@@ -99,87 +83,7 @@ export async function fetchOrdersForViewerApi(
     if (!allowDevFallback) return [];
   }
 
-  const stored = getStoredOrders();
-  return isCustomer
-    ? stored.filter((ord) => canCustomerViewRecord(ord.customer_user_id, customerUserId))
-    : stored;
-}
-
-export type MidtransPaymentInitResult =
-  | { mode: "snap"; snapToken: string; redirectUrl?: string }
-  | { mode: "sandbox_fallback"; invoice: InvoiceRecord }
-  | { mode: "error"; status: number; message: string };
-
-/**
- * Menginisiasi transaksi Midtrans Snap melalui POST /api/m4/v1/invoices/[id]/payments (UC-07 / PRO-60).
- * Fallback simulasi lokal (`sandbox_fallback`) dikunci ketat hanya untuk mode dev (`isDev`),
- * sedangkan di production (!isDev) wajib mengembalikan error jujur tanpa mutasi lokal.
- */
-export async function initiateMidtransPaymentApi(
-  invoice: InvoiceRecord,
-  fetchImpl: typeof fetch = fetch,
-  options?: ApiFallbackOptions
-): Promise<MidtransPaymentInitResult> {
-  if (normalizeInvoiceStatus(invoice.status) === "PAID") {
-    return {
-      mode: "error",
-      status: 422,
-      message: `Invoice ${invoice.invoice_number} sudah berstatus Lunas.`,
-    };
-  }
-
-  const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
-  const authHeader = resolveAuthHeader("customer", allowDevFallback);
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (authHeader) headers.Authorization = authHeader;
-
-  try {
-    const res = await fetchImpl(
-      `/api/m4/v1/invoices/${encodeURIComponent(invoice.id)}/payments`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ invoice_id: invoice.id }),
-      }
-    );
-
-    if (res.ok) {
-      const json = await res.json().catch(() => ({}));
-      const snapToken = json?.data?.snap_token || json?.snap_token;
-      const redirectUrl = json?.data?.redirect_url || json?.redirect_url;
-      if (typeof snapToken === "string" && snapToken.trim()) {
-        return {
-          mode: "snap",
-          snapToken: snapToken.trim(),
-          redirectUrl: typeof redirectUrl === "string" ? redirectUrl : undefined,
-        };
-      }
-      if (allowDevFallback) return { mode: "sandbox_fallback", invoice };
-      return {
-        mode: "error",
-        status: 502,
-        message: "Token pembayaran Midtrans Snap tidak ditemukan pada respons server.",
-      };
-    }
-
-    if (res.status === 404 && allowDevFallback) {
-      return { mode: "sandbox_fallback", invoice };
-    }
-
-    const errJson = await res.json().catch(() => ({}));
-    return {
-      mode: "error",
-      status: res.status,
-      message: String(errJson?.error?.message || "Gagal memulai sesi pembayaran Midtrans."),
-    };
-  } catch {
-    if (allowDevFallback) return { mode: "sandbox_fallback", invoice };
-    return {
-      mode: "error",
-      status: 0,
-      message: "Tidak dapat terhubung ke server pembayaran Midtrans. Silakan coba lagi.",
-    };
-  }
+  return getStoredOrders();
 }
 
 export type OrderStatusUpdateResult =
@@ -219,7 +123,7 @@ export async function updatePartnerOrderStatusApi(
   }
 
   const allowDevFallback = options?.allowDevFallback ?? isLocalDevFallbackEnabled();
-  const authHeader = resolveAuthHeader("partner", allowDevFallback);
+  const authHeader = resolvePartnerAuthHeader(allowDevFallback);
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (authHeader) headers.Authorization = authHeader;
 
@@ -269,12 +173,4 @@ export async function updatePartnerOrderStatusApi(
       message: "Tidak dapat terhubung ke server untuk memperbarui status order.",
     };
   }
-}
-
-export function completeSandboxInvoicePayment(
-  invoiceId: string,
-  paymentMethod: string
-): InvoiceRecord | null {
-  if (!isLocalDevFallbackEnabled()) return null;
-  return markInvoicePaidInStore(invoiceId, paymentMethod);
 }

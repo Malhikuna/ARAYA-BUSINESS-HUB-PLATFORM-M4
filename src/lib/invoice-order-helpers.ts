@@ -8,12 +8,6 @@ import {
 
 const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
-export const CUSTOMER_PORTAL_MENUS = [
-  { name: "Penawaran saya", href: "/penawaran", matchPrefix: "/penawaran" },
-  { name: "Invoice saya", href: "/invoice", matchPrefix: "/invoice" },
-  { name: "Pesanan saya", href: "/order", matchPrefix: "/order" },
-] as const;
-
 export function normalizeInvoiceStatus(status?: string | null): CanonicalInvoiceStatus {
   const lower = String(status || "").trim().toLowerCase();
   return lower === "paid" || lower === "lunas" ? "PAID" : "UNPAID";
@@ -92,18 +86,6 @@ export function getNextOrderStatus(current: OrderStatus): OrderStatus | null {
   if (normalized === "baru") return "diproses";
   if (normalized === "diproses") return "selesai";
   return null;
-}
-
-/**
- * Isolasi kepemilikan data Customer M1 (BR-10 & UC-09):
- * Customer hanya boleh melihat Invoice dan Pesanan miliknya sendiri (tanpa Guest Tracking).
- */
-export function canCustomerViewRecord(
-  recordCustomerUserId?: string | null,
-  activeCustomerUserId?: string | null
-): boolean {
-  if (!recordCustomerUserId || !activeCustomerUserId) return false;
-  return recordCustomerUserId.trim().toLowerCase() === activeCustomerUserId.trim().toLowerCase();
 }
 
 export function formatDateId(dateInput?: string | null): string {

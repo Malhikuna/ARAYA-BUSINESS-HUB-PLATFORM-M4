@@ -1,6 +1,6 @@
 import { InvoiceRecord, OrderRecord } from "@/types/invoice-order";
-import { DEFAULT_CUSTOMER_M1_USER_ID } from "@/lib/auth/customer-portal";
 
+const DEFAULT_CUSTOMER_M1_USER_ID = "20000000-0000-0000-0000-000000000017";
 const OTHER_CUSTOMER_USER_ID = "20000000-0000-0000-0000-000000000099";
 
 export const initialInvoices: InvoiceRecord[] = [
