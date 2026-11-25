@@ -375,6 +375,87 @@ async function main() {
   }
   console.log('   ✅ 14 Invoice (6 Quotation + 8 Order) disinkronkan');
 
+  // 6c. Payments & Webhook Events (PRO-56 / M4-US3)
+  console.log('6c. Menyinkronkan Payments & Webhook Events (payments & webhook_events)...');
+  const seededInvoices = await prisma.invoices.findMany({
+    where: {
+      invoice_number: {
+        in: ['INV-202601-0001', 'INV-202609-0006', 'INV-202611-0106', 'INV-202611-0107'],
+      },
+    },
+  });
+
+  for (const inv of seededInvoices) {
+    const isPaid = inv.status === 'PAID' || inv.status === 'lunas';
+    const midtransOrderId = `${inv.invoice_number}-S1`;
+    const txId = `mid-tx-${inv.invoice_number.toLowerCase()}`;
+    const paymentStatus = isPaid ? 'settlement' : 'pending';
+    const paymentType = isPaid ? inv.payment_method || 'qris' : 'qris';
+    const grossAmountStr = Number(inv.total_amount).toFixed(2);
+
+    const payment = await prisma.payments.upsert({
+      where: { midtrans_order_id: midtransOrderId },
+      update: {
+        status: paymentStatus,
+        fraud_status: isPaid ? 'accept' : null,
+        payment_type: paymentType,
+        paid_at: inv.paid_at,
+        updated_at: new Date(),
+      },
+      create: {
+        invoice_id: inv.id,
+        provider: 'midtrans',
+        midtrans_order_id: midtransOrderId,
+        transaction_id: txId,
+        amount: inv.total_amount,
+        status: paymentStatus,
+        fraud_status: isPaid ? 'accept' : null,
+        payment_type: paymentType,
+        snap_token: `snap-dev-${inv.invoice_number.toLowerCase()}`,
+        redirect_url: `https://app.sandbox.midtrans.com/snap/v4/redirection/snap-dev-${inv.invoice_number.toLowerCase()}`,
+        paid_at: inv.paid_at,
+      },
+    });
+
+    if (isPaid) {
+      const eventKey = `${txId}:settlement`;
+      await prisma.webhook_events.upsert({
+        where: { event_key: eventKey },
+        update: {
+          processing_status: 'processed',
+          signature_valid: true,
+        },
+        create: {
+          event_key: eventKey,
+          provider: 'midtrans',
+          invoice_id: inv.id,
+          payment_id: payment.id,
+          midtrans_order_id: midtransOrderId,
+          transaction_id: txId,
+          transaction_status: 'settlement',
+          fraud_status: 'accept',
+          status_code: '200',
+          gross_amount: grossAmountStr,
+          payment_type: paymentType,
+          signature_key: '0'.repeat(128),
+          signature_valid: true,
+          processing_status: 'processed',
+          raw_payload: {
+            transaction_id: txId,
+            order_id: midtransOrderId,
+            transaction_status: 'settlement',
+            fraud_status: 'accept',
+            status_code: '200',
+            gross_amount: grossAmountStr,
+            payment_type: paymentType,
+          },
+          processed_at: inv.paid_at || new Date(),
+        },
+      });
+    }
+  }
+  console.log(`   ✅ ${seededInvoices.length} Sesi Payment & Log Webhook Event disinkronkan`);
+
   // 7. Document Sequences
   console.log('7. Menyinkronkan Document Sequences...');
   const currentPeriod = new Date().toISOString().slice(0, 7).replace('-', '');

@@ -51,6 +51,16 @@ export type invoice_items = Prisma.invoice_itemsModel
  */
 export type invoices = Prisma.invoicesModel
 /**
+ * Model payments
+ * Sesi & Riwayat Transaksi Pembayaran Payment Gateway Midtrans Snap (PRO-56 / M4-US3)
+ */
+export type payments = Prisma.paymentsModel
+/**
+ * Model webhook_events
+ * Log Audit & Idempotensi Notifikasi Webhook Midtrans (PRO-56 / M4-US3)
+ */
+export type webhook_events = Prisma.webhook_eventsModel
+/**
  * Model order_items
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
