@@ -8,9 +8,11 @@ describe('Prisma Client & Database Model Integrity (PRO-305)', () => {
     assert.ok(prisma, 'Prisma client singleton harus terdefinisi');
   });
 
-  it('harus memiliki model relasi inti yang lengkap termasuk partner_profiles (PRO-305) dan service_requests (PRO-302)', () => {
+  it('harus memiliki model relasi inti yang lengkap termasuk partner_profiles (PRO-305), service_requests (PRO-302), serta payments dan webhook_events (PRO-56)', () => {
     assert.ok(typeof prisma.partner_profiles?.findMany === 'function', 'Model partner_profiles harus tersedia');
     assert.ok(typeof prisma.service_requests?.findMany === 'function', 'Model service_requests harus tersedia');
+    assert.ok(typeof prisma.payments?.findMany === 'function', 'Model payments harus tersedia');
+    assert.ok(typeof prisma.webhook_events?.findMany === 'function', 'Model webhook_events harus tersedia');
     assert.ok(typeof prisma.customers?.findMany === 'function', 'Model customers harus tersedia');
     assert.ok(typeof prisma.quotations?.findMany === 'function', 'Model quotations harus tersedia');
     assert.ok(typeof prisma.invoices?.findMany === 'function', 'Model invoices harus tersedia');

@@ -57,6 +57,8 @@ export const ModelName = {
   document_sequences: 'document_sequences',
   invoice_items: 'invoice_items',
   invoices: 'invoices',
+  payments: 'payments',
+  webhook_events: 'webhook_events',
   order_items: 'order_items',
   orders: 'orders',
   products_services: 'products_services',
@@ -178,6 +180,52 @@ export const InvoicesScalarFieldEnum = {
 export type InvoicesScalarFieldEnum = (typeof InvoicesScalarFieldEnum)[keyof typeof InvoicesScalarFieldEnum]
 
 
+export const PaymentsScalarFieldEnum = {
+  id: 'id',
+  invoice_id: 'invoice_id',
+  provider: 'provider',
+  midtrans_order_id: 'midtrans_order_id',
+  transaction_id: 'transaction_id',
+  amount: 'amount',
+  status: 'status',
+  fraud_status: 'fraud_status',
+  payment_type: 'payment_type',
+  snap_token: 'snap_token',
+  redirect_url: 'redirect_url',
+  paid_at: 'paid_at',
+  expired_at: 'expired_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type PaymentsScalarFieldEnum = (typeof PaymentsScalarFieldEnum)[keyof typeof PaymentsScalarFieldEnum]
+
+
+export const Webhook_eventsScalarFieldEnum = {
+  id: 'id',
+  event_key: 'event_key',
+  provider: 'provider',
+  invoice_id: 'invoice_id',
+  payment_id: 'payment_id',
+  midtrans_order_id: 'midtrans_order_id',
+  transaction_id: 'transaction_id',
+  transaction_status: 'transaction_status',
+  fraud_status: 'fraud_status',
+  status_code: 'status_code',
+  gross_amount: 'gross_amount',
+  payment_type: 'payment_type',
+  signature_key: 'signature_key',
+  signature_valid: 'signature_valid',
+  processing_status: 'processing_status',
+  raw_payload: 'raw_payload',
+  error_message: 'error_message',
+  processed_at: 'processed_at',
+  created_at: 'created_at'
+} as const
+
+export type Webhook_eventsScalarFieldEnum = (typeof Webhook_eventsScalarFieldEnum)[keyof typeof Webhook_eventsScalarFieldEnum]
+
+
 export const Order_itemsScalarFieldEnum = {
   id: 'id',
   order_id: 'order_id',
@@ -293,6 +341,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -307,4 +362,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

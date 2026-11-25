@@ -334,6 +334,8 @@ export type invoicesWhereInput = {
   created_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
   invoice_items?: Prisma.Invoice_itemsListRelationFilter
+  payments?: Prisma.PaymentsListRelationFilter
+  webhook_events?: Prisma.Webhook_eventsListRelationFilter
   customers?: Prisma.XOR<Prisma.CustomersScalarRelationFilter, Prisma.customersWhereInput>
   orders?: Prisma.XOR<Prisma.OrdersNullableScalarRelationFilter, Prisma.ordersWhereInput> | null
   quotations?: Prisma.XOR<Prisma.QuotationsNullableScalarRelationFilter, Prisma.quotationsWhereInput> | null
@@ -360,6 +362,8 @@ export type invoicesOrderByWithRelationInput = {
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   invoice_items?: Prisma.invoice_itemsOrderByRelationAggregateInput
+  payments?: Prisma.paymentsOrderByRelationAggregateInput
+  webhook_events?: Prisma.webhook_eventsOrderByRelationAggregateInput
   customers?: Prisma.customersOrderByWithRelationInput
   orders?: Prisma.ordersOrderByWithRelationInput
   quotations?: Prisma.quotationsOrderByWithRelationInput
@@ -389,6 +393,8 @@ export type invoicesWhereUniqueInput = Prisma.AtLeast<{
   created_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
   invoice_items?: Prisma.Invoice_itemsListRelationFilter
+  payments?: Prisma.PaymentsListRelationFilter
+  webhook_events?: Prisma.Webhook_eventsListRelationFilter
   customers?: Prisma.XOR<Prisma.CustomersScalarRelationFilter, Prisma.customersWhereInput>
   orders?: Prisma.XOR<Prisma.OrdersNullableScalarRelationFilter, Prisma.ordersWhereInput> | null
   quotations?: Prisma.XOR<Prisma.QuotationsNullableScalarRelationFilter, Prisma.quotationsWhereInput> | null
@@ -461,6 +467,8 @@ export type invoicesCreateInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
@@ -487,6 +495,8 @@ export type invoicesUncheckedCreateInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
 }
 
 export type invoicesUpdateInput = {
@@ -505,6 +515,8 @@ export type invoicesUpdateInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
@@ -531,6 +543,8 @@ export type invoicesUncheckedUpdateInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
 }
 
 export type invoicesCreateManyInput = {
@@ -791,6 +805,36 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
+export type invoicesCreateNestedOneWithoutPaymentsInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutPaymentsInput, Prisma.invoicesUncheckedCreateWithoutPaymentsInput>
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutPaymentsInput
+  connect?: Prisma.invoicesWhereUniqueInput
+}
+
+export type invoicesUpdateOneRequiredWithoutPaymentsNestedInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutPaymentsInput, Prisma.invoicesUncheckedCreateWithoutPaymentsInput>
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutPaymentsInput
+  upsert?: Prisma.invoicesUpsertWithoutPaymentsInput
+  connect?: Prisma.invoicesWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.invoicesUpdateToOneWithWhereWithoutPaymentsInput, Prisma.invoicesUpdateWithoutPaymentsInput>, Prisma.invoicesUncheckedUpdateWithoutPaymentsInput>
+}
+
+export type invoicesCreateNestedOneWithoutWebhook_eventsInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutWebhook_eventsInput, Prisma.invoicesUncheckedCreateWithoutWebhook_eventsInput>
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutWebhook_eventsInput
+  connect?: Prisma.invoicesWhereUniqueInput
+}
+
+export type invoicesUpdateOneWithoutWebhook_eventsNestedInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutWebhook_eventsInput, Prisma.invoicesUncheckedCreateWithoutWebhook_eventsInput>
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutWebhook_eventsInput
+  upsert?: Prisma.invoicesUpsertWithoutWebhook_eventsInput
+  disconnect?: Prisma.invoicesWhereInput | boolean
+  delete?: Prisma.invoicesWhereInput | boolean
+  connect?: Prisma.invoicesWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.invoicesUpdateToOneWithWhereWithoutWebhook_eventsInput, Prisma.invoicesUpdateWithoutWebhook_eventsInput>, Prisma.invoicesUncheckedUpdateWithoutWebhook_eventsInput>
+}
+
 export type invoicesCreateNestedOneWithoutOrdersInput = {
   create?: Prisma.XOR<Prisma.invoicesCreateWithoutOrdersInput, Prisma.invoicesUncheckedCreateWithoutOrdersInput>
   connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutOrdersInput
@@ -871,6 +915,8 @@ export type invoicesCreateWithoutPartner_profilesInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
@@ -895,6 +941,8 @@ export type invoicesUncheckedCreateWithoutPartner_profilesInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
 }
 
 export type invoicesCreateOrConnectWithoutPartner_profilesInput = {
@@ -963,6 +1011,8 @@ export type invoicesCreateWithoutCustomersInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
   partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
@@ -987,6 +1037,8 @@ export type invoicesUncheckedCreateWithoutCustomersInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
 }
 
 export type invoicesCreateOrConnectWithoutCustomersInput = {
@@ -1030,6 +1082,8 @@ export type invoicesCreateWithoutInvoice_itemsInput = {
   snap_token?: string | null
   created_at?: Date | string
   updated_at?: Date | string
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
@@ -1055,6 +1109,8 @@ export type invoicesUncheckedCreateWithoutInvoice_itemsInput = {
   snap_token?: string | null
   created_at?: Date | string
   updated_at?: Date | string
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
 }
 
 export type invoicesCreateOrConnectWithoutInvoice_itemsInput = {
@@ -1088,6 +1144,8 @@ export type invoicesUpdateWithoutInvoice_itemsInput = {
   snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
@@ -1113,6 +1171,224 @@ export type invoicesUncheckedUpdateWithoutInvoice_itemsInput = {
   snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
+}
+
+export type invoicesCreateWithoutPaymentsInput = {
+  id?: string
+  invoice_number: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
+  customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
+  orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
+  quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
+}
+
+export type invoicesUncheckedCreateWithoutPaymentsInput = {
+  id?: string
+  invoice_number: string
+  quotation_id?: string | null
+  order_id?: string | null
+  customer_id: string
+  partner_id: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
+}
+
+export type invoicesCreateOrConnectWithoutPaymentsInput = {
+  where: Prisma.invoicesWhereUniqueInput
+  create: Prisma.XOR<Prisma.invoicesCreateWithoutPaymentsInput, Prisma.invoicesUncheckedCreateWithoutPaymentsInput>
+}
+
+export type invoicesUpsertWithoutPaymentsInput = {
+  update: Prisma.XOR<Prisma.invoicesUpdateWithoutPaymentsInput, Prisma.invoicesUncheckedUpdateWithoutPaymentsInput>
+  create: Prisma.XOR<Prisma.invoicesCreateWithoutPaymentsInput, Prisma.invoicesUncheckedCreateWithoutPaymentsInput>
+  where?: Prisma.invoicesWhereInput
+}
+
+export type invoicesUpdateToOneWithWhereWithoutPaymentsInput = {
+  where?: Prisma.invoicesWhereInput
+  data: Prisma.XOR<Prisma.invoicesUpdateWithoutPaymentsInput, Prisma.invoicesUncheckedUpdateWithoutPaymentsInput>
+}
+
+export type invoicesUpdateWithoutPaymentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
+  customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
+  orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
+  quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
+}
+
+export type invoicesUncheckedUpdateWithoutPaymentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  quotation_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
+}
+
+export type invoicesCreateWithoutWebhook_eventsInput = {
+  id?: string
+  invoice_number: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
+  orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
+  quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
+}
+
+export type invoicesUncheckedCreateWithoutWebhook_eventsInput = {
+  id?: string
+  invoice_number: string
+  quotation_id?: string | null
+  order_id?: string | null
+  customer_id: string
+  partner_id: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+}
+
+export type invoicesCreateOrConnectWithoutWebhook_eventsInput = {
+  where: Prisma.invoicesWhereUniqueInput
+  create: Prisma.XOR<Prisma.invoicesCreateWithoutWebhook_eventsInput, Prisma.invoicesUncheckedCreateWithoutWebhook_eventsInput>
+}
+
+export type invoicesUpsertWithoutWebhook_eventsInput = {
+  update: Prisma.XOR<Prisma.invoicesUpdateWithoutWebhook_eventsInput, Prisma.invoicesUncheckedUpdateWithoutWebhook_eventsInput>
+  create: Prisma.XOR<Prisma.invoicesCreateWithoutWebhook_eventsInput, Prisma.invoicesUncheckedCreateWithoutWebhook_eventsInput>
+  where?: Prisma.invoicesWhereInput
+}
+
+export type invoicesUpdateToOneWithWhereWithoutWebhook_eventsInput = {
+  where?: Prisma.invoicesWhereInput
+  data: Prisma.XOR<Prisma.invoicesUpdateWithoutWebhook_eventsInput, Prisma.invoicesUncheckedUpdateWithoutWebhook_eventsInput>
+}
+
+export type invoicesUpdateWithoutWebhook_eventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
+  orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
+  quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
+}
+
+export type invoicesUncheckedUpdateWithoutWebhook_eventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  quotation_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
 }
 
 export type invoicesCreateWithoutOrdersInput = {
@@ -1131,6 +1407,8 @@ export type invoicesCreateWithoutOrdersInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
   partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
@@ -1155,6 +1433,8 @@ export type invoicesUncheckedCreateWithoutOrdersInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
 }
 
 export type invoicesCreateOrConnectWithoutOrdersInput = {
@@ -1189,6 +1469,8 @@ export type invoicesUpdateWithoutOrdersInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
   partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
@@ -1213,6 +1495,8 @@ export type invoicesUncheckedUpdateWithoutOrdersInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
 }
 
 export type invoicesCreateWithoutQuotationsInput = {
@@ -1231,6 +1515,8 @@ export type invoicesCreateWithoutQuotationsInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
@@ -1255,6 +1541,8 @@ export type invoicesUncheckedCreateWithoutQuotationsInput = {
   created_at?: Date | string
   updated_at?: Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+  payments?: Prisma.paymentsUncheckedCreateNestedManyWithoutInvoicesInput
+  webhook_events?: Prisma.webhook_eventsUncheckedCreateNestedManyWithoutInvoicesInput
 }
 
 export type invoicesCreateOrConnectWithoutQuotationsInput = {
@@ -1289,6 +1577,8 @@ export type invoicesUpdateWithoutQuotationsInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
@@ -1313,6 +1603,8 @@ export type invoicesUncheckedUpdateWithoutQuotationsInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
 }
 
 export type invoicesCreateManyPartner_profilesInput = {
@@ -1351,6 +1643,8 @@ export type invoicesUpdateWithoutPartner_profilesInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
@@ -1375,6 +1669,8 @@ export type invoicesUncheckedUpdateWithoutPartner_profilesInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateManyWithoutPartner_profilesInput = {
@@ -1433,6 +1729,8 @@ export type invoicesUpdateWithoutCustomersInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUpdateManyWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
   partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
@@ -1457,6 +1755,8 @@ export type invoicesUncheckedUpdateWithoutCustomersInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+  payments?: Prisma.paymentsUncheckedUpdateManyWithoutInvoicesNestedInput
+  webhook_events?: Prisma.webhook_eventsUncheckedUpdateManyWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateManyWithoutCustomersInput = {
@@ -1486,10 +1786,14 @@ export type invoicesUncheckedUpdateManyWithoutCustomersInput = {
 
 export type InvoicesCountOutputType = {
   invoice_items: number
+  payments: number
+  webhook_events: number
 }
 
 export type InvoicesCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   invoice_items?: boolean | InvoicesCountOutputTypeCountInvoice_itemsArgs
+  payments?: boolean | InvoicesCountOutputTypeCountPaymentsArgs
+  webhook_events?: boolean | InvoicesCountOutputTypeCountWebhook_eventsArgs
 }
 
 /**
@@ -1507,6 +1811,20 @@ export type InvoicesCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Ext
  */
 export type InvoicesCountOutputTypeCountInvoice_itemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.invoice_itemsWhereInput
+}
+
+/**
+ * InvoicesCountOutputType without action
+ */
+export type InvoicesCountOutputTypeCountPaymentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.paymentsWhereInput
+}
+
+/**
+ * InvoicesCountOutputType without action
+ */
+export type InvoicesCountOutputTypeCountWebhook_eventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.webhook_eventsWhereInput
 }
 
 
@@ -1530,6 +1848,8 @@ export type invoicesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   created_at?: boolean
   updated_at?: boolean
   invoice_items?: boolean | Prisma.invoices$invoice_itemsArgs<ExtArgs>
+  payments?: boolean | Prisma.invoices$paymentsArgs<ExtArgs>
+  webhook_events?: boolean | Prisma.invoices$webhook_eventsArgs<ExtArgs>
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
@@ -1611,6 +1931,8 @@ export type invoicesSelectScalar = {
 export type invoicesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "invoice_number" | "quotation_id" | "order_id" | "customer_id" | "partner_id" | "invoice_date" | "due_date" | "status" | "subtotal" | "discount_amount" | "tax_amount" | "total_amount" | "paid_at" | "payment_method" | "snap_token" | "created_at" | "updated_at", ExtArgs["result"]["invoices"]>
 export type invoicesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   invoice_items?: boolean | Prisma.invoices$invoice_itemsArgs<ExtArgs>
+  payments?: boolean | Prisma.invoices$paymentsArgs<ExtArgs>
+  webhook_events?: boolean | Prisma.invoices$webhook_eventsArgs<ExtArgs>
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
@@ -1634,6 +1956,8 @@ export type $invoicesPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   name: "invoices"
   objects: {
     invoice_items: Prisma.$invoice_itemsPayload<ExtArgs>[]
+    payments: Prisma.$paymentsPayload<ExtArgs>[]
+    webhook_events: Prisma.$webhook_eventsPayload<ExtArgs>[]
     customers: Prisma.$customersPayload<ExtArgs>
     orders: Prisma.$ordersPayload<ExtArgs> | null
     quotations: Prisma.$quotationsPayload<ExtArgs> | null
@@ -2053,6 +2377,8 @@ readonly fields: invoicesFieldRefs;
 export interface Prisma__invoicesClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   invoice_items<T extends Prisma.invoices$invoice_itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$invoice_itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$invoice_itemsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  payments<T extends Prisma.invoices$paymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$paymentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  webhook_events<T extends Prisma.invoices$webhook_eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$webhook_eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$webhook_eventsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   customers<T extends Prisma.customersDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.customersDefaultArgs<ExtArgs>>): Prisma.Prisma__customersClient<runtime.Types.Result.GetResult<Prisma.$customersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   orders<T extends Prisma.invoices$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$ordersArgs<ExtArgs>>): Prisma.Prisma__ordersClient<runtime.Types.Result.GetResult<Prisma.$ordersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   quotations<T extends Prisma.invoices$quotationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$quotationsArgs<ExtArgs>>): Prisma.Prisma__quotationsClient<runtime.Types.Result.GetResult<Prisma.$quotationsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -2526,6 +2852,54 @@ export type invoices$invoice_itemsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.Invoice_itemsScalarFieldEnum | Prisma.Invoice_itemsScalarFieldEnum[]
+}
+
+/**
+ * invoices.payments
+ */
+export type invoices$paymentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the payments
+   */
+  select?: Prisma.paymentsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the payments
+   */
+  omit?: Prisma.paymentsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.paymentsInclude<ExtArgs> | null
+  where?: Prisma.paymentsWhereInput
+  orderBy?: Prisma.paymentsOrderByWithRelationInput | Prisma.paymentsOrderByWithRelationInput[]
+  cursor?: Prisma.paymentsWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PaymentsScalarFieldEnum | Prisma.PaymentsScalarFieldEnum[]
+}
+
+/**
+ * invoices.webhook_events
+ */
+export type invoices$webhook_eventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the webhook_events
+   */
+  select?: Prisma.webhook_eventsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the webhook_events
+   */
+  omit?: Prisma.webhook_eventsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.webhook_eventsInclude<ExtArgs> | null
+  where?: Prisma.webhook_eventsWhereInput
+  orderBy?: Prisma.webhook_eventsOrderByWithRelationInput | Prisma.webhook_eventsOrderByWithRelationInput[]
+  cursor?: Prisma.webhook_eventsWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.Webhook_eventsScalarFieldEnum | Prisma.Webhook_eventsScalarFieldEnum[]
 }
 
 /**
