@@ -23,6 +23,40 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
       );
     });
 
+    it('harus menolak jika nama pelanggan hanya berupa angka', () => {
+      assert.throws(
+        () => {
+          validateCustomerInput({
+            name: '787878787878',
+            email: 'test@example.com',
+            phone: '08123456789',
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof CustomerValidationError);
+          assert.equal(err.fields.name, 'Nama pelanggan tidak boleh hanya berupa angka.');
+          return true;
+        },
+      );
+    });
+
+    it('harus menolak jika nama pelanggan kurang dari 3 karakter', () => {
+      assert.throws(
+        () => {
+          validateCustomerInput({
+            name: 'PT',
+            email: 'test@example.com',
+            phone: '08123456789',
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof CustomerValidationError);
+          assert.equal(err.fields.name, 'Nama pelanggan minimal 3 karakter.');
+          return true;
+        },
+      );
+    });
+
     it('harus menolak jika format email tidak valid', () => {
       assert.throws(
         () => {
@@ -52,6 +86,23 @@ describe('Customer API & Validation Test Suite (M4-US1 / PRO-13)', () => {
         (err: unknown) => {
           assert.ok(err instanceof CustomerValidationError);
           assert.ok(err.fields.phone.includes('minimal 8 digit'));
+          return true;
+        },
+      );
+    });
+
+    it('harus menolak jika nomor telepon mengandung spasi', () => {
+      assert.throws(
+        () => {
+          validateCustomerInput({
+            name: 'PT Contoh',
+            email: 'valid@example.com',
+            phone: '08 11 98 76 785',
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof CustomerValidationError);
+          assert.equal(err.fields.phone, 'Nomor telepon tidak boleh mengandung spasi.');
           return true;
         },
       );

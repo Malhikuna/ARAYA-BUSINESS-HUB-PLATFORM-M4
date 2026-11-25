@@ -337,6 +337,7 @@ export type invoicesWhereInput = {
   customers?: Prisma.XOR<Prisma.CustomersScalarRelationFilter, Prisma.customersWhereInput>
   orders?: Prisma.XOR<Prisma.OrdersNullableScalarRelationFilter, Prisma.ordersWhereInput> | null
   quotations?: Prisma.XOR<Prisma.QuotationsNullableScalarRelationFilter, Prisma.quotationsWhereInput> | null
+  partner_profiles?: Prisma.XOR<Prisma.Partner_profilesScalarRelationFilter, Prisma.partner_profilesWhereInput>
 }
 
 export type invoicesOrderByWithRelationInput = {
@@ -362,6 +363,7 @@ export type invoicesOrderByWithRelationInput = {
   customers?: Prisma.customersOrderByWithRelationInput
   orders?: Prisma.ordersOrderByWithRelationInput
   quotations?: Prisma.quotationsOrderByWithRelationInput
+  partner_profiles?: Prisma.partner_profilesOrderByWithRelationInput
 }
 
 export type invoicesWhereUniqueInput = Prisma.AtLeast<{
@@ -390,6 +392,7 @@ export type invoicesWhereUniqueInput = Prisma.AtLeast<{
   customers?: Prisma.XOR<Prisma.CustomersScalarRelationFilter, Prisma.customersWhereInput>
   orders?: Prisma.XOR<Prisma.OrdersNullableScalarRelationFilter, Prisma.ordersWhereInput> | null
   quotations?: Prisma.XOR<Prisma.QuotationsNullableScalarRelationFilter, Prisma.quotationsWhereInput> | null
+  partner_profiles?: Prisma.XOR<Prisma.Partner_profilesScalarRelationFilter, Prisma.partner_profilesWhereInput>
 }, "id" | "invoice_number" | "quotation_id" | "order_id">
 
 export type invoicesOrderByWithAggregationInput = {
@@ -445,7 +448,6 @@ export type invoicesScalarWhereWithAggregatesInput = {
 export type invoicesCreateInput = {
   id?: string
   invoice_number: string
-  partner_id: string
   invoice_date?: Date | string
   due_date?: Date | string | null
   status?: string
@@ -462,6 +464,7 @@ export type invoicesCreateInput = {
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
 }
 
 export type invoicesUncheckedCreateInput = {
@@ -489,7 +492,6 @@ export type invoicesUncheckedCreateInput = {
 export type invoicesUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -506,6 +508,7 @@ export type invoicesUpdateInput = {
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateInput = {
@@ -554,7 +557,6 @@ export type invoicesCreateManyInput = {
 export type invoicesUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -687,6 +689,48 @@ export type InvoicesNullableScalarRelationFilter = {
   isNot?: Prisma.invoicesWhereInput | null
 }
 
+export type invoicesCreateNestedManyWithoutPartner_profilesInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutPartner_profilesInput, Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.invoicesCreateWithoutPartner_profilesInput[] | Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput | Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput[]
+  createMany?: Prisma.invoicesCreateManyPartner_profilesInputEnvelope
+  connect?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+}
+
+export type invoicesUncheckedCreateNestedManyWithoutPartner_profilesInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutPartner_profilesInput, Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.invoicesCreateWithoutPartner_profilesInput[] | Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput | Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput[]
+  createMany?: Prisma.invoicesCreateManyPartner_profilesInputEnvelope
+  connect?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+}
+
+export type invoicesUpdateManyWithoutPartner_profilesNestedInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutPartner_profilesInput, Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.invoicesCreateWithoutPartner_profilesInput[] | Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput | Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput[]
+  upsert?: Prisma.invoicesUpsertWithWhereUniqueWithoutPartner_profilesInput | Prisma.invoicesUpsertWithWhereUniqueWithoutPartner_profilesInput[]
+  createMany?: Prisma.invoicesCreateManyPartner_profilesInputEnvelope
+  set?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  disconnect?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  delete?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  connect?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  update?: Prisma.invoicesUpdateWithWhereUniqueWithoutPartner_profilesInput | Prisma.invoicesUpdateWithWhereUniqueWithoutPartner_profilesInput[]
+  updateMany?: Prisma.invoicesUpdateManyWithWhereWithoutPartner_profilesInput | Prisma.invoicesUpdateManyWithWhereWithoutPartner_profilesInput[]
+  deleteMany?: Prisma.invoicesScalarWhereInput | Prisma.invoicesScalarWhereInput[]
+}
+
+export type invoicesUncheckedUpdateManyWithoutPartner_profilesNestedInput = {
+  create?: Prisma.XOR<Prisma.invoicesCreateWithoutPartner_profilesInput, Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput> | Prisma.invoicesCreateWithoutPartner_profilesInput[] | Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput[]
+  connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput | Prisma.invoicesCreateOrConnectWithoutPartner_profilesInput[]
+  upsert?: Prisma.invoicesUpsertWithWhereUniqueWithoutPartner_profilesInput | Prisma.invoicesUpsertWithWhereUniqueWithoutPartner_profilesInput[]
+  createMany?: Prisma.invoicesCreateManyPartner_profilesInputEnvelope
+  set?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  disconnect?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  delete?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  connect?: Prisma.invoicesWhereUniqueInput | Prisma.invoicesWhereUniqueInput[]
+  update?: Prisma.invoicesUpdateWithWhereUniqueWithoutPartner_profilesInput | Prisma.invoicesUpdateWithWhereUniqueWithoutPartner_profilesInput[]
+  updateMany?: Prisma.invoicesUpdateManyWithWhereWithoutPartner_profilesInput | Prisma.invoicesUpdateManyWithWhereWithoutPartner_profilesInput[]
+  deleteMany?: Prisma.invoicesScalarWhereInput | Prisma.invoicesScalarWhereInput[]
+}
+
 export type invoicesCreateNestedManyWithoutCustomersInput = {
   create?: Prisma.XOR<Prisma.invoicesCreateWithoutCustomersInput, Prisma.invoicesUncheckedCreateWithoutCustomersInput> | Prisma.invoicesCreateWithoutCustomersInput[] | Prisma.invoicesUncheckedCreateWithoutCustomersInput[]
   connectOrCreate?: Prisma.invoicesCreateOrConnectWithoutCustomersInput | Prisma.invoicesCreateOrConnectWithoutCustomersInput[]
@@ -811,10 +855,101 @@ export type invoicesUncheckedUpdateOneWithoutQuotationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.invoicesUpdateToOneWithWhereWithoutQuotationsInput, Prisma.invoicesUpdateWithoutQuotationsInput>, Prisma.invoicesUncheckedUpdateWithoutQuotationsInput>
 }
 
+export type invoicesCreateWithoutPartner_profilesInput = {
+  id?: string
+  invoice_number: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
+  customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
+  orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
+  quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+}
+
+export type invoicesUncheckedCreateWithoutPartner_profilesInput = {
+  id?: string
+  invoice_number: string
+  quotation_id?: string | null
+  order_id?: string | null
+  customer_id: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedCreateNestedManyWithoutInvoicesInput
+}
+
+export type invoicesCreateOrConnectWithoutPartner_profilesInput = {
+  where: Prisma.invoicesWhereUniqueInput
+  create: Prisma.XOR<Prisma.invoicesCreateWithoutPartner_profilesInput, Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput>
+}
+
+export type invoicesCreateManyPartner_profilesInputEnvelope = {
+  data: Prisma.invoicesCreateManyPartner_profilesInput | Prisma.invoicesCreateManyPartner_profilesInput[]
+  skipDuplicates?: boolean
+}
+
+export type invoicesUpsertWithWhereUniqueWithoutPartner_profilesInput = {
+  where: Prisma.invoicesWhereUniqueInput
+  update: Prisma.XOR<Prisma.invoicesUpdateWithoutPartner_profilesInput, Prisma.invoicesUncheckedUpdateWithoutPartner_profilesInput>
+  create: Prisma.XOR<Prisma.invoicesCreateWithoutPartner_profilesInput, Prisma.invoicesUncheckedCreateWithoutPartner_profilesInput>
+}
+
+export type invoicesUpdateWithWhereUniqueWithoutPartner_profilesInput = {
+  where: Prisma.invoicesWhereUniqueInput
+  data: Prisma.XOR<Prisma.invoicesUpdateWithoutPartner_profilesInput, Prisma.invoicesUncheckedUpdateWithoutPartner_profilesInput>
+}
+
+export type invoicesUpdateManyWithWhereWithoutPartner_profilesInput = {
+  where: Prisma.invoicesScalarWhereInput
+  data: Prisma.XOR<Prisma.invoicesUpdateManyMutationInput, Prisma.invoicesUncheckedUpdateManyWithoutPartner_profilesInput>
+}
+
+export type invoicesScalarWhereInput = {
+  AND?: Prisma.invoicesScalarWhereInput | Prisma.invoicesScalarWhereInput[]
+  OR?: Prisma.invoicesScalarWhereInput[]
+  NOT?: Prisma.invoicesScalarWhereInput | Prisma.invoicesScalarWhereInput[]
+  id?: Prisma.UuidFilter<"invoices"> | string
+  invoice_number?: Prisma.StringFilter<"invoices"> | string
+  quotation_id?: Prisma.UuidNullableFilter<"invoices"> | string | null
+  order_id?: Prisma.UuidNullableFilter<"invoices"> | string | null
+  customer_id?: Prisma.UuidFilter<"invoices"> | string
+  partner_id?: Prisma.UuidFilter<"invoices"> | string
+  invoice_date?: Prisma.DateTimeFilter<"invoices"> | Date | string
+  due_date?: Prisma.DateTimeNullableFilter<"invoices"> | Date | string | null
+  status?: Prisma.StringFilter<"invoices"> | string
+  subtotal?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.DateTimeNullableFilter<"invoices"> | Date | string | null
+  payment_method?: Prisma.StringNullableFilter<"invoices"> | string | null
+  snap_token?: Prisma.StringNullableFilter<"invoices"> | string | null
+  created_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
+  updated_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
+}
+
 export type invoicesCreateWithoutCustomersInput = {
   id?: string
   invoice_number: string
-  partner_id: string
   invoice_date?: Date | string
   due_date?: Date | string | null
   status?: string
@@ -830,6 +965,7 @@ export type invoicesCreateWithoutCustomersInput = {
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
 }
 
 export type invoicesUncheckedCreateWithoutCustomersInput = {
@@ -879,34 +1015,9 @@ export type invoicesUpdateManyWithWhereWithoutCustomersInput = {
   data: Prisma.XOR<Prisma.invoicesUpdateManyMutationInput, Prisma.invoicesUncheckedUpdateManyWithoutCustomersInput>
 }
 
-export type invoicesScalarWhereInput = {
-  AND?: Prisma.invoicesScalarWhereInput | Prisma.invoicesScalarWhereInput[]
-  OR?: Prisma.invoicesScalarWhereInput[]
-  NOT?: Prisma.invoicesScalarWhereInput | Prisma.invoicesScalarWhereInput[]
-  id?: Prisma.UuidFilter<"invoices"> | string
-  invoice_number?: Prisma.StringFilter<"invoices"> | string
-  quotation_id?: Prisma.UuidNullableFilter<"invoices"> | string | null
-  order_id?: Prisma.UuidNullableFilter<"invoices"> | string | null
-  customer_id?: Prisma.UuidFilter<"invoices"> | string
-  partner_id?: Prisma.UuidFilter<"invoices"> | string
-  invoice_date?: Prisma.DateTimeFilter<"invoices"> | Date | string
-  due_date?: Prisma.DateTimeNullableFilter<"invoices"> | Date | string | null
-  status?: Prisma.StringFilter<"invoices"> | string
-  subtotal?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  discount_amount?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  tax_amount?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  total_amount?: Prisma.DecimalFilter<"invoices"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  paid_at?: Prisma.DateTimeNullableFilter<"invoices"> | Date | string | null
-  payment_method?: Prisma.StringNullableFilter<"invoices"> | string | null
-  snap_token?: Prisma.StringNullableFilter<"invoices"> | string | null
-  created_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
-  updated_at?: Prisma.DateTimeFilter<"invoices"> | Date | string
-}
-
 export type invoicesCreateWithoutInvoice_itemsInput = {
   id?: string
   invoice_number: string
-  partner_id: string
   invoice_date?: Date | string
   due_date?: Date | string | null
   status?: string
@@ -922,6 +1033,7 @@ export type invoicesCreateWithoutInvoice_itemsInput = {
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
 }
 
 export type invoicesUncheckedCreateWithoutInvoice_itemsInput = {
@@ -964,7 +1076,6 @@ export type invoicesUpdateToOneWithWhereWithoutInvoice_itemsInput = {
 export type invoicesUpdateWithoutInvoice_itemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -980,6 +1091,7 @@ export type invoicesUpdateWithoutInvoice_itemsInput = {
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateWithoutInvoice_itemsInput = {
@@ -1006,7 +1118,6 @@ export type invoicesUncheckedUpdateWithoutInvoice_itemsInput = {
 export type invoicesCreateWithoutOrdersInput = {
   id?: string
   invoice_number: string
-  partner_id: string
   invoice_date?: Date | string
   due_date?: Date | string | null
   status?: string
@@ -1022,6 +1133,7 @@ export type invoicesCreateWithoutOrdersInput = {
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   quotations?: Prisma.quotationsCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
 }
 
 export type invoicesUncheckedCreateWithoutOrdersInput = {
@@ -1064,7 +1176,6 @@ export type invoicesUpdateToOneWithWhereWithoutOrdersInput = {
 export type invoicesUpdateWithoutOrdersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1080,6 +1191,7 @@ export type invoicesUpdateWithoutOrdersInput = {
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateWithoutOrdersInput = {
@@ -1106,7 +1218,6 @@ export type invoicesUncheckedUpdateWithoutOrdersInput = {
 export type invoicesCreateWithoutQuotationsInput = {
   id?: string
   invoice_number: string
-  partner_id: string
   invoice_date?: Date | string
   due_date?: Date | string | null
   status?: string
@@ -1122,6 +1233,7 @@ export type invoicesCreateWithoutQuotationsInput = {
   invoice_items?: Prisma.invoice_itemsCreateNestedManyWithoutInvoicesInput
   customers: Prisma.customersCreateNestedOneWithoutInvoicesInput
   orders?: Prisma.ordersCreateNestedOneWithoutInvoicesInput
+  partner_profiles: Prisma.partner_profilesCreateNestedOneWithoutInvoicesInput
 }
 
 export type invoicesUncheckedCreateWithoutQuotationsInput = {
@@ -1164,7 +1276,6 @@ export type invoicesUpdateToOneWithWhereWithoutQuotationsInput = {
 export type invoicesUpdateWithoutQuotationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1180,6 +1291,7 @@ export type invoicesUpdateWithoutQuotationsInput = {
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
   customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateWithoutQuotationsInput = {
@@ -1201,6 +1313,88 @@ export type invoicesUncheckedUpdateWithoutQuotationsInput = {
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+}
+
+export type invoicesCreateManyPartner_profilesInput = {
+  id?: string
+  invoice_number: string
+  quotation_id?: string | null
+  order_id?: string | null
+  customer_id: string
+  invoice_date?: Date | string
+  due_date?: Date | string | null
+  status?: string
+  subtotal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Date | string | null
+  payment_method?: string | null
+  snap_token?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+}
+
+export type invoicesUpdateWithoutPartner_profilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
+  customers?: Prisma.customersUpdateOneRequiredWithoutInvoicesNestedInput
+  orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
+  quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+}
+
+export type invoicesUncheckedUpdateWithoutPartner_profilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  quotation_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoice_items?: Prisma.invoice_itemsUncheckedUpdateManyWithoutInvoicesNestedInput
+}
+
+export type invoicesUncheckedUpdateManyWithoutPartner_profilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
+  quotation_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  order_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  subtotal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  discount_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  total_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paid_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  payment_method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  snap_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type invoicesCreateManyCustomersInput = {
@@ -1226,7 +1420,6 @@ export type invoicesCreateManyCustomersInput = {
 export type invoicesUpdateWithoutCustomersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_number?: Prisma.StringFieldUpdateOperationsInput | string
-  partner_id?: Prisma.StringFieldUpdateOperationsInput | string
   invoice_date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1242,6 +1435,7 @@ export type invoicesUpdateWithoutCustomersInput = {
   invoice_items?: Prisma.invoice_itemsUpdateManyWithoutInvoicesNestedInput
   orders?: Prisma.ordersUpdateOneWithoutInvoicesNestedInput
   quotations?: Prisma.quotationsUpdateOneWithoutInvoicesNestedInput
+  partner_profiles?: Prisma.partner_profilesUpdateOneRequiredWithoutInvoicesNestedInput
 }
 
 export type invoicesUncheckedUpdateWithoutCustomersInput = {
@@ -1339,6 +1533,7 @@ export type invoicesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.InvoicesCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["invoices"]>
 
@@ -1364,6 +1559,7 @@ export type invoicesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["invoices"]>
 
 export type invoicesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1388,6 +1584,7 @@ export type invoicesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["invoices"]>
 
 export type invoicesSelectScalar = {
@@ -1417,17 +1614,20 @@ export type invoicesInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.InvoicesCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type invoicesIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }
 export type invoicesIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customers?: boolean | Prisma.customersDefaultArgs<ExtArgs>
   orders?: boolean | Prisma.invoices$ordersArgs<ExtArgs>
   quotations?: boolean | Prisma.invoices$quotationsArgs<ExtArgs>
+  partner_profiles?: boolean | Prisma.partner_profilesDefaultArgs<ExtArgs>
 }
 
 export type $invoicesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1437,6 +1637,7 @@ export type $invoicesPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     customers: Prisma.$customersPayload<ExtArgs>
     orders: Prisma.$ordersPayload<ExtArgs> | null
     quotations: Prisma.$quotationsPayload<ExtArgs> | null
+    partner_profiles: Prisma.$partner_profilesPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1855,6 +2056,7 @@ export interface Prisma__invoicesClient<T, Null = never, ExtArgs extends runtime
   customers<T extends Prisma.customersDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.customersDefaultArgs<ExtArgs>>): Prisma.Prisma__customersClient<runtime.Types.Result.GetResult<Prisma.$customersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   orders<T extends Prisma.invoices$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$ordersArgs<ExtArgs>>): Prisma.Prisma__ordersClient<runtime.Types.Result.GetResult<Prisma.$ordersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   quotations<T extends Prisma.invoices$quotationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.invoices$quotationsArgs<ExtArgs>>): Prisma.Prisma__quotationsClient<runtime.Types.Result.GetResult<Prisma.$quotationsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  partner_profiles<T extends Prisma.partner_profilesDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.partner_profilesDefaultArgs<ExtArgs>>): Prisma.Prisma__partner_profilesClient<runtime.Types.Result.GetResult<Prisma.$partner_profilesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.

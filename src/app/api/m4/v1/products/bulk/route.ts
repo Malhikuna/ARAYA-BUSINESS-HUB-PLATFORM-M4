@@ -1,7 +1,8 @@
 import { generateTraceId, createAuthErrorResponse, createSuccessResponse } from '@/lib/auth/response';
-import { getAuthUser } from '@/lib/auth/guard';
+import { authorizePartnerOrAdmin } from '@/lib/auth/partner-guard';
 import {
   createProductsBulk,
+  normalizeProductType,
   ProductValidationError,
   DuplicateSkuError,
 } from '@/lib/services/product.service';
@@ -20,8 +21,29 @@ export async function POST(request: Request) {
       return createAuthErrorResponse('INVALID_ITEMS', 'Daftar item untuk impor massal tidak boleh kosong.', traceId, 400);
     }
 
-    const authUser = getAuthUser(request);
-    const createdProducts = await createProductsBulk(items, authUser?.partnerId);
+    const auth = await authorizePartnerOrAdmin(request, { traceId });
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    if (auth.partnerProfile) {
+      const expectedType = auth.partnerProfile.tipe_usaha === 'jasa' ? 'SERVICE' : 'PRODUCT';
+      for (const item of items) {
+        if (item && typeof item === 'object' && typeof (item as Record<string, unknown>).type === 'string') {
+          const normalized = normalizeProductType((item as Record<string, unknown>).type);
+          if (['PRODUCT', 'SERVICE', 'ASSET'].includes(normalized) && normalized !== expectedType) {
+            return createAuthErrorResponse(
+              'FORBIDDEN',
+              `Partner ${auth.partnerProfile.tipe_usaha} tidak diizinkan mengimpor item bertipe ${normalized}.`,
+              traceId,
+              403
+            );
+          }
+        }
+      }
+    }
+
+    const createdProducts = await createProductsBulk(items, auth.partnerProfile?.partner_id);
 
     return createSuccessResponse(
       {
@@ -46,4 +68,3 @@ export async function POST(request: Request) {
     return createAuthErrorResponse('INTERNAL_SERVER_ERROR', message, traceId, 500);
   }
 }
-

@@ -7,7 +7,11 @@ export interface ProductFormHeaderProps {
   isEdit: boolean;
   pageTitle: string;
   pageSubtitle: string;
-  hasSubmittedError: boolean;
+  hasSubmittedError?: boolean;
+  breadcrumbParentLabel?: string;
+  breadcrumbCurrentLabel?: string;
+  backLabel?: string;
+  onBack?: () => void;
 }
 
 /**
@@ -18,16 +22,23 @@ export function ProductFormHeader({
   isEdit,
   pageTitle,
   pageSubtitle,
-  hasSubmittedError,
+  hasSubmittedError = false,
+  breadcrumbParentLabel = "Katalog",
+  breadcrumbCurrentLabel,
+  backLabel = "Kembali ke katalog",
+  onBack,
 }: ProductFormHeaderProps) {
   return (
     <>
       <Breadcrumb
         separator="/"
-        items={[{ label: "Katalog", href: "/produk" }, { label: isEdit ? "Ubah" : "Tambah" }]}
+        items={[
+          { label: breadcrumbParentLabel, href: "/produk" },
+          { label: breadcrumbCurrentLabel || (isEdit ? "Ubah" : "Tambah") },
+        ]}
         className="mb-3"
       />
-      <BackLink href="/produk" label="Kembali ke katalog" />
+      <BackLink href="/produk" label={backLabel} onClick={onBack} />
 
       <div className="mb-6">
         <h1 className="text-2xl lg:text-3xl font-heading font-bold text-slate-900 tracking-tight">{pageTitle}</h1>

@@ -36,8 +36,8 @@ export function Navbar({
   }, [isDropdownOpen]);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 print:hidden">
-      <div className="flex items-center gap-3">
+    <header className="h-16 bg-white border-b border-slate-200/90 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 print:hidden">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {onToggleSidebar && (
           <button
             type="button"
@@ -45,15 +45,15 @@ export function Navbar({
             aria-label={isSidebarOpen ? "Tutup menu sidebar" : "Buka menu sidebar"}
             aria-expanded={isSidebarOpen}
             title={isSidebarOpen ? "Tutup sidebar" : "Buka sidebar"}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 hover:text-[#19376d] hover:bg-[#eef4ff] active:scale-95 transition-all cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-slate-600 hover:text-[#19376d] hover:bg-[#eef4ff] active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
 
         <Link
           href="/pelanggan"
-          className="font-heading font-bold text-lg text-slate-900 tracking-tight hover:opacity-90 transition-opacity"
+          className="font-heading font-bold text-sm md:text-base lg:text-lg text-slate-900 tracking-tight hover:opacity-90 transition-opacity whitespace-nowrap shrink-0"
         >
           Araya Business Hub
         </Link>
@@ -64,34 +64,34 @@ export function Navbar({
 
       {/* User Account / Profile */}
       {!isDev ? (
-        <div className="flex items-center gap-2.5 select-none">
-          <div className="w-8 h-8 rounded-full bg-[#102a54] text-white flex items-center justify-center">
-            <User className="w-4 h-4" />
+        <div className="flex items-center gap-2 select-none shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#102a54] text-white flex items-center justify-center shrink-0">
+            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <span className="text-sm font-medium text-slate-800">Rani K.</span>
+          <span className="text-xs sm:text-sm font-medium text-slate-800 shrink-0">{profile.name}</span>
         </div>
       ) : (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative shrink-0" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setIsDropdownOpen((prev) => !prev)}
             aria-expanded={isDropdownOpen}
             aria-haspopup="true"
             title="Klik untuk mengganti role testing lokal"
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-slate-100/90 transition-colors cursor-pointer select-none border border-transparent hover:border-slate-200"
+            className="flex items-center gap-2 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl hover:bg-slate-100/90 transition-colors cursor-pointer select-none border border-transparent hover:border-slate-200 shrink-0"
           >
-            <div className="w-8 h-8 rounded-full bg-[#102a54] text-white flex items-center justify-center shrink-0">
-              <User className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#102a54] text-white flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left shrink-0">
               <span className="text-xs font-semibold text-slate-900 leading-tight">
                 {profile.name}
               </span>
-              <span className="text-[10px] font-medium text-[#19376d] bg-blue-50 px-1.5 py-0.2 rounded leading-tight w-fit">
+              <span className="text-[10px] font-medium text-[#19376d] bg-blue-50 px-1.5 py-0.5 rounded leading-tight w-fit mt-0.5">
                 {profile.roleLabel}
               </span>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5 shrink-0" />
           </button>
 
           {isDropdownOpen && (
@@ -131,7 +131,15 @@ export function Navbar({
                           roleKey === "ADMIN" &&
                           (currentPath.startsWith("/penawaran") ||
                             currentPath.startsWith("/invoice") ||
-                            currentPath.startsWith("/order"))
+                            currentPath.startsWith("/order") ||
+                            currentPath.startsWith("/permintaan"))
+                        ) {
+                          router.push("/produk");
+                        }
+                        if (
+                          roleKey === "PARTNER_PRODUCT" &&
+                          (currentPath.startsWith("/penawaran") ||
+                            currentPath.startsWith("/permintaan"))
                         ) {
                           router.push("/produk");
                         }
@@ -153,8 +161,11 @@ export function Navbar({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold">{item.roleLabel}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-[#19376d]" />}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-semibold">{item.roleLabel}</span>
+                            <span className="text-[10px] text-slate-400 font-medium truncate">({item.name})</span>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#19376d] shrink-0" />}
                         </div>
                         <p className="text-[11px] text-slate-500 font-normal leading-snug mt-0.5">
                           {item.description}

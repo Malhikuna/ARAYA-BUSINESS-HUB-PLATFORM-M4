@@ -108,7 +108,7 @@ export function buildCustomerReportPdfBytes(
       String(idx + 1),
       cust.name,
       cust.phone,
-      cust.email || "-",
+      cust.email?.trim() ? cust.email.trim().toLowerCase() : "-",
       cust.address || "-",
     ]),
     emptyMessage:

@@ -51,7 +51,8 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  connection_test: 'connection_test',
+  partner_profiles: 'partner_profiles',
+  service_requests: 'service_requests',
   customers: 'customers',
   document_sequences: 'document_sequences',
   invoice_items: 'invoice_items',
@@ -80,16 +81,39 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const Connection_testScalarFieldEnum = {
-  id: 'id',
-  checked_at: 'checked_at'
+export const Partner_profilesScalarFieldEnum = {
+  partner_id: 'partner_id',
+  user_id: 'user_id',
+  tipe_usaha: 'tipe_usaha',
+  is_verified: 'is_verified',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
 } as const
 
-export type Connection_testScalarFieldEnum = (typeof Connection_testScalarFieldEnum)[keyof typeof Connection_testScalarFieldEnum]
+export type Partner_profilesScalarFieldEnum = (typeof Partner_profilesScalarFieldEnum)[keyof typeof Partner_profilesScalarFieldEnum]
+
+
+export const Service_requestsScalarFieldEnum = {
+  id: 'id',
+  partner_id: 'partner_id',
+  customer_id: 'customer_id',
+  customer_user_id: 'customer_user_id',
+  customer_name: 'customer_name',
+  customer_email: 'customer_email',
+  customer_phone: 'customer_phone',
+  title: 'title',
+  description: 'description',
+  status: 'status',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Service_requestsScalarFieldEnum = (typeof Service_requestsScalarFieldEnum)[keyof typeof Service_requestsScalarFieldEnum]
 
 
 export const CustomersScalarFieldEnum = {
   id: 'id',
+  user_id: 'user_id',
   name: 'name',
   email: 'email',
   phone: 'phone',
@@ -228,11 +252,14 @@ export type Quotation_itemsScalarFieldEnum = (typeof Quotation_itemsScalarFieldE
 export const QuotationsScalarFieldEnum = {
   id: 'id',
   quotation_number: 'quotation_number',
+  service_request_id: 'service_request_id',
   customer_id: 'customer_id',
   partner_id: 'partner_id',
   quotation_date: 'quotation_date',
   valid_until: 'valid_until',
   status: 'status',
+  sent_at: 'sent_at',
+  approved_at: 'approved_at',
   subtotal: 'subtotal',
   discount_amount: 'discount_amount',
   tax_amount: 'tax_amount',

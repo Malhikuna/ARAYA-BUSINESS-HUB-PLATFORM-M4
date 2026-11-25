@@ -1,7 +1,10 @@
 import { generateTraceId, createAuthErrorResponse, createSuccessResponse } from '@/lib/auth/response';
+import { requireServicePartner } from '@/lib/auth/partner-guard';
 import {
+  getQuotationById,
   updateQuotationStatus,
   updateQuotationStatusSchema,
+  QuotationForbiddenError,
   QuotationNotFoundError,
   InvalidQuotationStatusError,
 } from '@/lib/services/quotation.service';
@@ -21,16 +24,37 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return createAuthErrorResponse('INVALID_BODY', 'Payload request body wajib berupa JSON yang valid.', traceId, 400);
     }
 
+    const auth = await requireServicePartner(request, { traceId, requireAuth: true });
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    if (auth.partnerProfile) {
+      const existing = await getQuotationById(id);
+      if (existing.partner_id !== auth.partnerProfile.partner_id) {
+        return createAuthErrorResponse(
+          'FORBIDDEN',
+          'Anda tidak memiliki akses mengubah status penawaran partner lain.',
+          traceId,
+          403
+        );
+      }
+    }
+
     const parsed = updateQuotationStatusSchema.safeParse(body);
     if (!parsed.success) {
       return createAuthErrorResponse('VALIDATION_ERROR', parsed.error.issues[0]?.message || 'Status tidak valid.', traceId, 400);
     }
 
-    const updated = await updateQuotationStatus(id, parsed.data.status);
+    const updated = await updateQuotationStatus(id, parsed.data.status, { isAdmin: auth.isAdmin });
     return createSuccessResponse(updated, 200, traceId);
   } catch (error) {
     if (error instanceof QuotationNotFoundError) {
       return createAuthErrorResponse(error.code, error.message, traceId, 404);
+    }
+
+    if (error instanceof QuotationForbiddenError) {
+      return createAuthErrorResponse(error.code, error.message, traceId, 403);
     }
 
     if (error instanceof InvalidQuotationStatusError) {

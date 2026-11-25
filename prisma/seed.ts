@@ -6,6 +6,50 @@ import { SEED_PRODUCTS } from './seed-data/products.data';
 import { SEED_QUOTATION_TEMPLATES, SEED_ORDER_TEMPLATES } from './seed-data/transactions.data';
 
 const DEFAULT_PARTNER_ID = '00000000-0000-0000-0000-000000000001';
+export const PARTNER_JASA_ID = DEFAULT_PARTNER_ID;
+export const PARTNER_PRODUK_ID = '00000000-0000-0000-0000-000000000002';
+export const PARTNER_UNVERIFIED_ID = '00000000-0000-0000-0000-000000000003';
+
+export const USER_PARTNER_JASA_ID = '10000000-0000-0000-0000-000000000001';
+export const USER_PARTNER_PRODUK_ID = '10000000-0000-0000-0000-000000000002';
+export const USER_PARTNER_UNVERIFIED_ID = '10000000-0000-0000-0000-000000000003';
+export const CUSTOMER_M1_USER_ID = '20000000-0000-0000-0000-000000000017';
+export const SERVICE_REQUEST_BARU_ID = '30000000-0000-0000-0000-000000000001';
+export const SERVICE_REQUEST_QUOTED_ID = '30000000-0000-0000-0000-000000000002';
+
+/**
+ * Guardrail Lingkungan (PRO-305):
+ * Seeder dev HANYA boleh dijalankan ke Docker PostgreSQL lokal port 5433.
+ * Dilarang keras dijalankan ke Supabase Production / remote host.
+ */
+export function assertLocalDockerDatabaseUrl(connectionUrl: string | undefined): string {
+  if (!connectionUrl) {
+    throw new Error(
+      '[PRO-305 GUARDRAIL] DATABASE_URL tidak ditemukan. Seeder hanya boleh dijalankan ke Docker lokal port 5433.'
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(connectionUrl);
+  } catch {
+    throw new Error('[PRO-305 GUARDRAIL] Format DATABASE_URL tidak valid.');
+  }
+
+  const isLocalHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  const isPort5433 = parsed.port === '5433';
+  const isSupabase = parsed.hostname.toLowerCase().includes('supabase');
+
+  if (isSupabase || !isLocalHost || !isPort5433) {
+    throw new Error(
+      `[PRO-305 GUARDRAIL] DILARANG KERAS menjalankan seeder dev ke '${parsed.hostname}:${parsed.port || '5432'}'! ` +
+        'Seeder ini khusus untuk Docker PostgreSQL lokal (localhost:5433 / 127.0.0.1:5433).'
+    );
+  }
+
+  return connectionUrl;
+}
+
 type SeededQuotation = Prisma.quotationsGetPayload<{
   include: { quotation_items: true; invoices: true };
 }>;
@@ -14,7 +58,52 @@ type SeededOrder = Prisma.ordersGetPayload<{
 }>;
 
 async function main() {
-  console.log('🌱 Memulai proses seeding komprehensif 1 tahun Modul 4 (BPU Unpas)...');
+  const activeUrl =
+    process.env.DIRECT_URL ||
+    process.env.DATABASE_URL ||
+    process.env.SUPABASE_DATABASE_URL ||
+    'postgresql://araya:araya_local_dev_only@localhost:5433/araya_business_hub';
+
+  assertLocalDockerDatabaseUrl(activeUrl);
+
+  console.log('🌱 Memulai proses seeding komprehensif 1 tahun Modul 4 (BPU Unpas) [Target: Docker localhost:5433]...');
+
+  // 0. Partner Profiles M3 Fallback (PRO-305)
+  console.log('0. Menyinkronkan Partner Profiles M3 (partner_profiles)...');
+  const partnerSamples = [
+    {
+      partner_id: PARTNER_JASA_ID,
+      user_id: USER_PARTNER_JASA_ID,
+      tipe_usaha: 'jasa',
+      is_verified: true,
+    },
+    {
+      partner_id: PARTNER_PRODUK_ID,
+      user_id: USER_PARTNER_PRODUK_ID,
+      tipe_usaha: 'produk',
+      is_verified: true,
+    },
+    {
+      partner_id: PARTNER_UNVERIFIED_ID,
+      user_id: USER_PARTNER_UNVERIFIED_ID,
+      tipe_usaha: 'produk',
+      is_verified: false,
+    },
+  ];
+
+  for (const partner of partnerSamples) {
+    await prisma.partner_profiles.upsert({
+      where: { partner_id: partner.partner_id },
+      update: {
+        user_id: partner.user_id,
+        tipe_usaha: partner.tipe_usaha,
+        is_verified: partner.is_verified,
+        updated_at: new Date(),
+      },
+      create: partner,
+    });
+  }
+  console.log(`   ✅ ${partnerSamples.length} Partner Profile fallback M3 disinkronkan`);
 
   // 1. Tax Rates
   console.log('1. Menyinkronkan Tax Rate...');
@@ -29,14 +118,65 @@ async function main() {
   console.log('2. Menyinkronkan Customers...');
   const customerMap = new Map<string, string>();
   for (const c of SEED_CUSTOMERS) {
+    const userId = c.email === 'dudi.santoso@gmail.com' ? CUSTOMER_M1_USER_ID : null;
     const cust = await prisma.customers.upsert({
       where: { email: c.email },
-      update: { name: c.name, phone: c.phone, address: c.address },
-      create: c,
+      update: { name: c.name, phone: c.phone, address: c.address, user_id: userId },
+      create: { ...c, user_id: userId },
     });
     customerMap.set(c.email, cust.id);
   }
   console.log(`   ✅ ${customerMap.size} Customer aktif disinkronkan`);
+
+  // 2b. Service Requests dari M5 (PRO-302 & PRO-305)
+  console.log('2b. Menyinkronkan Service Requests M5 (service_requests)...');
+  const dudiCustomerId = customerMap.get('dudi.santoso@gmail.com') || null;
+  const serviceRequestsSeed = [
+    {
+      id: SERVICE_REQUEST_BARU_ID,
+      partner_id: PARTNER_JASA_ID,
+      customer_id: dudiCustomerId,
+      customer_user_id: CUSTOMER_M1_USER_ID,
+      customer_name: 'Dudi Santoso',
+      customer_email: 'dudi.santoso@gmail.com',
+      customer_phone: '081711223344',
+      title: 'Permintaan Konsultasi Transformasi Digital UMKM',
+      description: 'Mohon penawaran pendampingan digitalisasi operasional selama 1 kuartal.',
+      status: 'baru',
+    },
+    {
+      id: SERVICE_REQUEST_QUOTED_ID,
+      partner_id: PARTNER_JASA_ID,
+      customer_id: dudiCustomerId,
+      customer_user_id: CUSTOMER_M1_USER_ID,
+      customer_name: 'Dudi Santoso',
+      customer_email: 'dudi.santoso@gmail.com',
+      customer_phone: '081711223344',
+      title: 'Permintaan Audit Keamanan Sistem Internal',
+      description: 'Permintaan jasa audit kesiapan keamanan aplikasi sebelum rilis produksi.',
+      status: 'sudah_ditawarkan',
+    },
+  ];
+
+  for (const sr of serviceRequestsSeed) {
+    await prisma.service_requests.upsert({
+      where: { id: sr.id },
+      update: {
+        partner_id: sr.partner_id,
+        customer_id: sr.customer_id,
+        customer_user_id: sr.customer_user_id,
+        customer_name: sr.customer_name,
+        customer_email: sr.customer_email,
+        customer_phone: sr.customer_phone,
+        title: sr.title,
+        description: sr.description,
+        status: sr.status,
+        updated_at: new Date(),
+      },
+      create: sr,
+    });
+  }
+  console.log(`   ✅ ${serviceRequestsSeed.length} Permintaan Jasa M5 disinkronkan`);
 
   // 3. Products & Services
   console.log('3. Menyinkronkan Products & Services...');
@@ -256,11 +396,20 @@ async function main() {
   console.log('\n🎉 Seeding komprehensif 1 tahun operasional selesai!');
 }
 
-main()
-  .catch((err) => {
-    console.error('❌ Gagal menjalankan seeder:', err);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+const isDirectExecution =
+  typeof process !== 'undefined' &&
+  Array.isArray(process.argv) &&
+  process.argv[1] &&
+  process.argv[1].replace(/\\/g, '/').endsWith('prisma/seed.ts');
+
+if (isDirectExecution) {
+  main()
+    .catch((err) => {
+      console.error('❌ Gagal menjalankan seeder:', err);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
+
